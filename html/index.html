@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Trading Post</title>
+</head>
+<body>
+
+<div id="root" style="width: 320px; margin: 40px auto; padding: 10px; border-style: dashed; border-width: 1px; box-sizing: border-box;">
+  embedded area
+</div>
+
+<script src="https://cdn.auth0.com/js/auth0/8.8/auth0.min.js"></script>
+<script>
+  var protocol = window.location.protocol
+  var host = window.location.host
+  var redirectUri = protocol + '//' + host + '/callback'
+
+  var webAuth = new auth0.WebAuth({
+    domain: 'trading-post.auth0.com',
+    clientID: 'qHuHbvyFn0LRXxFMiCHKpMSIEVCchYNd',
+    redirectUri: redirectUri,
+    audience: 'https://trading-post.club',
+    responseType: 'code',
+    scope: 'openid profile offline_access',
+  })
+  webAuth.authorize()
+</script>
+</body>
+</html>
