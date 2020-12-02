@@ -123,3 +123,11 @@ func verifyIss(iss string, cmp string, required bool) bool {
 		return !required
 	}
 	return 0 != subtle.ConstantTimeCompare([]byte(iss), []byte(cmp))
+}
+
+func verifyNbf(nbf int64, now int64, required bool) bool {
+	if nbf == 0 {
+		return !required
+	}
+	return now >= nbf
+}
