@@ -201,4 +201,132 @@ func testOnGCE() bool {
 	go func() {
 		req, _ := http.NewRequest("GET", "http://"+metadataIP, nil)
 		req.Header.Set("User-Agent", userAgent)
-		res, err := ctxht
+		res, err := ctxhttp.Do(ctx, metaClient, req)
+		if err != nil {
+			resc <- false
+			return
+		}
+		defer res.Body.Close()
+		resc <- res.Header.Get("Metadata-Flavor") == "Google"
+	}()
+
+	go func() {
+		addrs, err := net.LookupHost("metadata.google.internal")
+		if err != nil || len(addrs) == 0 {
+			resc <- false
+			return
+		}
+		resc <- strsContains(addrs, metadataIP)
+	}()
+
+	tryHarder := systemInfoSuggestsGCE()
+	if tryHarder {
+		res := <-resc
+		if res {
+			// The first strategy succeeded, so let's use it.
+			return true
+		}
+		// Wait for either the DNS or metadata server probe to
+		// contradict the other one and say we are running on
+		// GCE. Give it a lot of time to do so, since the system
+		// info already suggests we're running on a GCE BIOS.
+		timer := time.NewTimer(5 * time.Second)
+		defer timer.Stop()
+		select {
+		case res = <-resc:
+			return res
+		case <-timer.C:
+			// Too slow. Who knows what this system is.
+			return false
+		}
+	}
+
+	// There's no hint from the system info that we're running on
+	// GCE, so use the first probe's result as truth, whether it's
+	// true or false. The goal here is to optimize for speed for
+	// users who are NOT running on GCE. We can't assume that
+	// either a DNS lookup or an HTTP request to a blackholed IP
+	// address is fast. Worst case this should return when the
+	// metaClient's Transport.ResponseHeaderTimeout or
+	// Transport.Dial.Timeout fires (in two seconds).
+	return <-resc
+}
+
+// systemInfoSuggestsGCE reports whether the local system (without
+// doing network requests) suggests that we're running on GCE. If this
+// returns true, testOnGCE tries a bit harder to reach its metadata
+// server.
+func systemInfoSuggestsGCE() bool {
+	if runtime.GOOS != "linux" {
+		// We don't have any non-Linux clues available, at least yet.
+		return false
+	}
+	slurp, _ := ioutil.ReadFile("/sys/class/dmi/id/product_name")
+	name := strings.TrimSpace(string(slurp))
+	return name == "Google" || name == "Google Compute Engine"
+}
+
+// Subscribe subscribes to a value from the metadata service.
+// The suffix is appended to "http://${GCE_METADATA_HOST}/computeMetadata/v1/".
+// The suffix may contain query parameters.
+//
+// Subscribe calls fn with the latest metadata value indicated by the provided
+// suffix. If the metadata value is deleted, fn is called with the empty string
+// and ok false. Subscribe blocks until fn returns a non-nil error or the value
+// is deleted. Subscribe returns the error value returned from the last call to
+// fn, which may be nil when ok == false.
+func Subscribe(suffix string, fn func(v string, ok bool) error) error {
+	const failedSubscribeSleep = time.Second * 5
+
+	// First check to see if the metadata value exists at all.
+	val, lastETag, err := getETag(subscribeClient, suffix)
+	if err != nil {
+		return err
+	}
+
+	if err := fn(val, true); err != nil {
+		return err
+	}
+
+	ok := true
+	if strings.ContainsRune(suffix, '?') {
+		suffix += "&wait_for_change=true&last_etag="
+	} else {
+		suffix += "?wait_for_change=true&last_etag="
+	}
+	for {
+		val, etag, err := getETag(subscribeClient, suffix+url.QueryEscape(lastETag))
+		if err != nil {
+			if _, deleted := err.(NotDefinedError); !deleted {
+				time.Sleep(failedSubscribeSleep)
+				continue // Retry on other errors.
+			}
+			ok = false
+		}
+		lastETag = etag
+
+		if err := fn(val, ok); err != nil || !ok {
+			return err
+		}
+	}
+}
+
+// ProjectID returns the current instance's project ID string.
+func ProjectID() (string, error) { return projID.get() }
+
+// NumericProjectID returns the current instance's numeric project ID.
+func NumericProjectID() (string, error) { return projNum.get() }
+
+// InternalIP returns the instance's primary internal IP address.
+func InternalIP() (string, error) {
+	return getTrimmed("instance/network-interfaces/0/ip")
+}
+
+// ExternalIP returns the instance's primary external (public) IP address.
+func ExternalIP() (string, error) {
+	return getTrimmed("instance/network-interfaces/0/access-configs/0/external-ip")
+}
+
+// Hostname returns the instance's hostname. This will be of the form
+// "<instanceID>.c.<projID>.internal".
+func 
