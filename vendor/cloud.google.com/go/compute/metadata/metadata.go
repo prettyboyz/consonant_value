@@ -329,4 +329,109 @@ func ExternalIP() (string, error) {
 
 // Hostname returns the instance's hostname. This will be of the form
 // "<instanceID>.c.<projID>.internal".
-func 
+func Hostname() (string, error) {
+	return getTrimmed("instance/hostname")
+}
+
+// InstanceTags returns the list of user-defined instance tags,
+// assigned when initially creating a GCE instance.
+func InstanceTags() ([]string, error) {
+	var s []string
+	j, err := Get("instance/tags")
+	if err != nil {
+		return nil, err
+	}
+	if err := json.NewDecoder(strings.NewReader(j)).Decode(&s); err != nil {
+		return nil, err
+	}
+	return s, nil
+}
+
+// InstanceID returns the current VM's numeric instance ID.
+func InstanceID() (string, error) {
+	return instID.get()
+}
+
+// InstanceName returns the current VM's instance ID string.
+func InstanceName() (string, error) {
+	host, err := Hostname()
+	if err != nil {
+		return "", err
+	}
+	return strings.Split(host, ".")[0], nil
+}
+
+// Zone returns the current VM's zone, such as "us-central1-b".
+func Zone() (string, error) {
+	zone, err := getTrimmed("instance/zone")
+	// zone is of the form "projects/<projNum>/zones/<zoneName>".
+	if err != nil {
+		return "", err
+	}
+	return zone[strings.LastIndex(zone, "/")+1:], nil
+}
+
+// InstanceAttributes returns the list of user-defined attributes,
+// assigned when initially creating a GCE VM instance. The value of an
+// attribute can be obtained with InstanceAttributeValue.
+func InstanceAttributes() ([]string, error) { return lines("instance/attributes/") }
+
+// ProjectAttributes returns the list of user-defined attributes
+// applying to the project as a whole, not just this VM.  The value of
+// an attribute can be obtained with ProjectAttributeValue.
+func ProjectAttributes() ([]string, error) { return lines("project/attributes/") }
+
+func lines(suffix string) ([]string, error) {
+	j, err := Get(suffix)
+	if err != nil {
+		return nil, err
+	}
+	s := strings.Split(strings.TrimSpace(j), "\n")
+	for i := range s {
+		s[i] = strings.TrimSpace(s[i])
+	}
+	return s, nil
+}
+
+// InstanceAttributeValue returns the value of the provided VM
+// instance attribute.
+//
+// If the requested attribute is not defined, the returned error will
+// be of type NotDefinedError.
+//
+// InstanceAttributeValue may return ("", nil) if the attribute was
+// defined to be the empty string.
+func InstanceAttributeValue(attr string) (string, error) {
+	return Get("instance/attributes/" + attr)
+}
+
+// ProjectAttributeValue returns the value of the provided
+// project attribute.
+//
+// If the requested attribute is not defined, the returned error will
+// be of type NotDefinedError.
+//
+// ProjectAttributeValue may return ("", nil) if the attribute was
+// defined to be the empty string.
+func ProjectAttributeValue(attr string) (string, error) {
+	return Get("project/attributes/" + attr)
+}
+
+// Scopes returns the service account scopes for the given account.
+// The account may be empty or the string "default" to use the instance's
+// main account.
+func Scopes(serviceAccount string) ([]string, error) {
+	if serviceAccount == "" {
+		serviceAccount = "default"
+	}
+	return lines("instance/service-accounts/" + serviceAccount + "/scopes")
+}
+
+func strsContains(ss []string, s string) bool {
+	for _, v := range ss {
+		if v == s {
+			return true
+		}
+	}
+	return false
+}
