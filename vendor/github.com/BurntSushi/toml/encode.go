@@ -140,4 +140,153 @@ func (enc *Encoder) encode(key Key, rv reflect.Value) {
 			return
 		}
 		enc.eTable(key, rv)
-	case reflect
+	case reflect.Ptr:
+		if rv.IsNil() {
+			return
+		}
+		enc.encode(key, rv.Elem())
+	case reflect.Struct:
+		enc.eTable(key, rv)
+	default:
+		panic(e("unsupported type for key '%s': %s", key, k))
+	}
+}
+
+// eElement encodes any value that can be an array element (primitives and
+// arrays).
+func (enc *Encoder) eElement(rv reflect.Value) {
+	switch v := rv.Interface().(type) {
+	case time.Time:
+		// Special case time.Time as a primitive. Has to come before
+		// TextMarshaler below because time.Time implements
+		// encoding.TextMarshaler, but we need to always use UTC.
+		enc.wf(v.UTC().Format("2006-01-02T15:04:05Z"))
+		return
+	case TextMarshaler:
+		// Special case. Use text marshaler if it's available for this value.
+		if s, err := v.MarshalText(); err != nil {
+			encPanic(err)
+		} else {
+			enc.writeQuoted(string(s))
+		}
+		return
+	}
+	switch rv.Kind() {
+	case reflect.Bool:
+		enc.wf(strconv.FormatBool(rv.Bool()))
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32,
+		reflect.Int64:
+		enc.wf(strconv.FormatInt(rv.Int(), 10))
+	case reflect.Uint, reflect.Uint8, reflect.Uint16,
+		reflect.Uint32, reflect.Uint64:
+		enc.wf(strconv.FormatUint(rv.Uint(), 10))
+	case reflect.Float32:
+		enc.wf(floatAddDecimal(strconv.FormatFloat(rv.Float(), 'f', -1, 32)))
+	case reflect.Float64:
+		enc.wf(floatAddDecimal(strconv.FormatFloat(rv.Float(), 'f', -1, 64)))
+	case reflect.Array, reflect.Slice:
+		enc.eArrayOrSliceElement(rv)
+	case reflect.Interface:
+		enc.eElement(rv.Elem())
+	case reflect.String:
+		enc.writeQuoted(rv.String())
+	default:
+		panic(e("unexpected primitive type: %s", rv.Kind()))
+	}
+}
+
+// By the TOML spec, all floats must have a decimal with at least one
+// number on either side.
+func floatAddDecimal(fstr string) string {
+	if !strings.Contains(fstr, ".") {
+		return fstr + ".0"
+	}
+	return fstr
+}
+
+func (enc *Encoder) writeQuoted(s string) {
+	enc.wf("\"%s\"", quotedReplacer.Replace(s))
+}
+
+func (enc *Encoder) eArrayOrSliceElement(rv reflect.Value) {
+	length := rv.Len()
+	enc.wf("[")
+	for i := 0; i < length; i++ {
+		elem := rv.Index(i)
+		enc.eElement(elem)
+		if i != length-1 {
+			enc.wf(", ")
+		}
+	}
+	enc.wf("]")
+}
+
+func (enc *Encoder) eArrayOfTables(key Key, rv reflect.Value) {
+	if len(key) == 0 {
+		encPanic(errNoKey)
+	}
+	for i := 0; i < rv.Len(); i++ {
+		trv := rv.Index(i)
+		if isNil(trv) {
+			continue
+		}
+		panicIfInvalidKey(key)
+		enc.newline()
+		enc.wf("%s[[%s]]", enc.indentStr(key), key.maybeQuotedAll())
+		enc.newline()
+		enc.eMapOrStruct(key, trv)
+	}
+}
+
+func (enc *Encoder) eTable(key Key, rv reflect.Value) {
+	panicIfInvalidKey(key)
+	if len(key) == 1 {
+		// Output an extra newline between top-level tables.
+		// (The newline isn't written if nothing else has been written though.)
+		enc.newline()
+	}
+	if len(key) > 0 {
+		enc.wf("%s[%s]", enc.indentStr(key), key.maybeQuotedAll())
+		enc.newline()
+	}
+	enc.eMapOrStruct(key, rv)
+}
+
+func (enc *Encoder) eMapOrStruct(key Key, rv reflect.Value) {
+	switch rv := eindirect(rv); rv.Kind() {
+	case reflect.Map:
+		enc.eMap(key, rv)
+	case reflect.Struct:
+		enc.eStruct(key, rv)
+	default:
+		panic("eTable: unhandled reflect.Value Kind: " + rv.Kind().String())
+	}
+}
+
+func (enc *Encoder) eMap(key Key, rv reflect.Value) {
+	rt := rv.Type()
+	if rt.Key().Kind() != reflect.String {
+		encPanic(errNonString)
+	}
+
+	// Sort keys so that we have deterministic output. And write keys directly
+	// underneath this key first, before writing sub-structs or sub-maps.
+	var mapKeysDirect, mapKeysSub []string
+	for _, mapKey := range rv.MapKeys() {
+		k := mapKey.String()
+		if typeIsHash(tomlTypeOfGo(rv.MapIndex(mapKey))) {
+			mapKeysSub = append(mapKeysSub, k)
+		} else {
+			mapKeysDirect = append(mapKeysDirect, k)
+		}
+	}
+
+	var writeMapKeys = func(mapKeys []string) {
+		sort.Strings(mapKeys)
+		for _, mapKey := range mapKeys {
+			mrv := rv.MapIndex(reflect.ValueOf(mapKey))
+			if isNil(mrv) {
+				// Don't write anything for nil fields.
+				continue
+			}
+			enc.encode(key.add(mapKey)
