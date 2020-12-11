@@ -111,4 +111,21 @@ func untag(typed map[string]interface{}) interface{} {
 	case "array":
 		v := v.([]interface{})
 		array := make([]interface{}, len(v))
-		for i 
+		for i := range v {
+			if m, ok := v[i].(map[string]interface{}); ok {
+				array[i] = untag(m)
+			} else {
+				log.Fatalf("Arrays may only contain other arrays or "+
+					"primitive values, but found a '%T'.", m)
+			}
+		}
+		return array
+	}
+	log.Fatalf("Unrecognized tag type '%s'.", t)
+	panic("unreachable")
+}
+
+func in(key string, m map[string]interface{}) bool {
+	_, ok := m[key]
+	return ok
+}
