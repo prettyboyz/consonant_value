@@ -187,4 +187,173 @@ func (md *MetaData) unify(data interface{}, rv reflect.Value) error {
 	// encoding.TextUnmarshaler interface but also corresponds to a TOML
 	// hash or array. In particular, the unmarshaler should only be applied
 	// to primitive TOML values. But at this point, it will be applied to
-	// all kinds of values and produce an incorrect error 
+	// all kinds of values and produce an incorrect error whenever those values
+	// are hashes or arrays (including arrays of tables).
+
+	k := rv.Kind()
+
+	// laziness
+	if k >= reflect.Int && k <= reflect.Uint64 {
+		return md.unifyInt(data, rv)
+	}
+	switch k {
+	case reflect.Ptr:
+		elem := reflect.New(rv.Type().Elem())
+		err := md.unify(data, reflect.Indirect(elem))
+		if err != nil {
+			return err
+		}
+		rv.Set(elem)
+		return nil
+	case reflect.Struct:
+		return md.unifyStruct(data, rv)
+	case reflect.Map:
+		return md.unifyMap(data, rv)
+	case reflect.Array:
+		return md.unifyArray(data, rv)
+	case reflect.Slice:
+		return md.unifySlice(data, rv)
+	case reflect.String:
+		return md.unifyString(data, rv)
+	case reflect.Bool:
+		return md.unifyBool(data, rv)
+	case reflect.Interface:
+		// we only support empty interfaces.
+		if rv.NumMethod() > 0 {
+			return e("unsupported type %s", rv.Type())
+		}
+		return md.unifyAnything(data, rv)
+	case reflect.Float32:
+		fallthrough
+	case reflect.Float64:
+		return md.unifyFloat64(data, rv)
+	}
+	return e("unsupported type %s", rv.Kind())
+}
+
+func (md *MetaData) unifyStruct(mapping interface{}, rv reflect.Value) error {
+	tmap, ok := mapping.(map[string]interface{})
+	if !ok {
+		if mapping == nil {
+			return nil
+		}
+		return e("type mismatch for %s: expected table but found %T",
+			rv.Type().String(), mapping)
+	}
+
+	for key, datum := range tmap {
+		var f *field
+		fields := cachedTypeFields(rv.Type())
+		for i := range fields {
+			ff := &fields[i]
+			if ff.name == key {
+				f = ff
+				break
+			}
+			if f == nil && strings.EqualFold(ff.name, key) {
+				f = ff
+			}
+		}
+		if f != nil {
+			subv := rv
+			for _, i := range f.index {
+				subv = indirect(subv.Field(i))
+			}
+			if isUnifiable(subv) {
+				md.decoded[md.context.add(key).String()] = true
+				md.context = append(md.context, key)
+				if err := md.unify(datum, subv); err != nil {
+					return err
+				}
+				md.context = md.context[0 : len(md.context)-1]
+			} else if f.name != "" {
+				// Bad user! No soup for you!
+				return e("cannot write unexported field %s.%s",
+					rv.Type().String(), f.name)
+			}
+		}
+	}
+	return nil
+}
+
+func (md *MetaData) unifyMap(mapping interface{}, rv reflect.Value) error {
+	tmap, ok := mapping.(map[string]interface{})
+	if !ok {
+		if tmap == nil {
+			return nil
+		}
+		return badtype("map", mapping)
+	}
+	if rv.IsNil() {
+		rv.Set(reflect.MakeMap(rv.Type()))
+	}
+	for k, v := range tmap {
+		md.decoded[md.context.add(k).String()] = true
+		md.context = append(md.context, k)
+
+		rvkey := indirect(reflect.New(rv.Type().Key()))
+		rvval := reflect.Indirect(reflect.New(rv.Type().Elem()))
+		if err := md.unify(v, rvval); err != nil {
+			return err
+		}
+		md.context = md.context[0 : len(md.context)-1]
+
+		rvkey.SetString(k)
+		rv.SetMapIndex(rvkey, rvval)
+	}
+	return nil
+}
+
+func (md *MetaData) unifyArray(data interface{}, rv reflect.Value) error {
+	datav := reflect.ValueOf(data)
+	if datav.Kind() != reflect.Slice {
+		if !datav.IsValid() {
+			return nil
+		}
+		return badtype("slice", data)
+	}
+	sliceLen := datav.Len()
+	if sliceLen != rv.Len() {
+		return e("expected array length %d; got TOML array of length %d",
+			rv.Len(), sliceLen)
+	}
+	return md.unifySliceArray(datav, rv)
+}
+
+func (md *MetaData) unifySlice(data interface{}, rv reflect.Value) error {
+	datav := reflect.ValueOf(data)
+	if datav.Kind() != reflect.Slice {
+		if !datav.IsValid() {
+			return nil
+		}
+		return badtype("slice", data)
+	}
+	n := datav.Len()
+	if rv.IsNil() || rv.Cap() < n {
+		rv.Set(reflect.MakeSlice(rv.Type(), n, n))
+	}
+	rv.SetLen(n)
+	return md.unifySliceArray(datav, rv)
+}
+
+func (md *MetaData) unifySliceArray(data, rv reflect.Value) error {
+	sliceLen := data.Len()
+	for i := 0; i < sliceLen; i++ {
+		v := data.Index(i).Interface()
+		sliceval := indirect(rv.Index(i))
+		if err := md.unify(v, sliceval); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (md *MetaData) unifyDatetime(data interface{}, rv reflect.Value) error {
+	if _, ok := data.(time.Time); ok {
+		rv.Set(reflect.ValueOf(data))
+		return nil
+	}
+	return badtype("time.Time", data)
+}
+
+func (md *MetaData) unifyString(data interface{}, rv reflect.Valu
