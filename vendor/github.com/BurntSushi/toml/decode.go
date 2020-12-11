@@ -356,4 +356,154 @@ func (md *MetaData) unifyDatetime(data interface{}, rv reflect.Value) error {
 	return badtype("time.Time", data)
 }
 
-func (md *MetaData) unifyString(data interface{}, rv reflect.Valu
+func (md *MetaData) unifyString(data interface{}, rv reflect.Value) error {
+	if s, ok := data.(string); ok {
+		rv.SetString(s)
+		return nil
+	}
+	return badtype("string", data)
+}
+
+func (md *MetaData) unifyFloat64(data interface{}, rv reflect.Value) error {
+	if num, ok := data.(float64); ok {
+		switch rv.Kind() {
+		case reflect.Float32:
+			fallthrough
+		case reflect.Float64:
+			rv.SetFloat(num)
+		default:
+			panic("bug")
+		}
+		return nil
+	}
+	return badtype("float", data)
+}
+
+func (md *MetaData) unifyInt(data interface{}, rv reflect.Value) error {
+	if num, ok := data.(int64); ok {
+		if rv.Kind() >= reflect.Int && rv.Kind() <= reflect.Int64 {
+			switch rv.Kind() {
+			case reflect.Int, reflect.Int64:
+				// No bounds checking necessary.
+			case reflect.Int8:
+				if num < math.MinInt8 || num > math.MaxInt8 {
+					return e("value %d is out of range for int8", num)
+				}
+			case reflect.Int16:
+				if num < math.MinInt16 || num > math.MaxInt16 {
+					return e("value %d is out of range for int16", num)
+				}
+			case reflect.Int32:
+				if num < math.MinInt32 || num > math.MaxInt32 {
+					return e("value %d is out of range for int32", num)
+				}
+			}
+			rv.SetInt(num)
+		} else if rv.Kind() >= reflect.Uint && rv.Kind() <= reflect.Uint64 {
+			unum := uint64(num)
+			switch rv.Kind() {
+			case reflect.Uint, reflect.Uint64:
+				// No bounds checking necessary.
+			case reflect.Uint8:
+				if num < 0 || unum > math.MaxUint8 {
+					return e("value %d is out of range for uint8", num)
+				}
+			case reflect.Uint16:
+				if num < 0 || unum > math.MaxUint16 {
+					return e("value %d is out of range for uint16", num)
+				}
+			case reflect.Uint32:
+				if num < 0 || unum > math.MaxUint32 {
+					return e("value %d is out of range for uint32", num)
+				}
+			}
+			rv.SetUint(unum)
+		} else {
+			panic("unreachable")
+		}
+		return nil
+	}
+	return badtype("integer", data)
+}
+
+func (md *MetaData) unifyBool(data interface{}, rv reflect.Value) error {
+	if b, ok := data.(bool); ok {
+		rv.SetBool(b)
+		return nil
+	}
+	return badtype("boolean", data)
+}
+
+func (md *MetaData) unifyAnything(data interface{}, rv reflect.Value) error {
+	rv.Set(reflect.ValueOf(data))
+	return nil
+}
+
+func (md *MetaData) unifyText(data interface{}, v TextUnmarshaler) error {
+	var s string
+	switch sdata := data.(type) {
+	case TextMarshaler:
+		text, err := sdata.MarshalText()
+		if err != nil {
+			return err
+		}
+		s = string(text)
+	case fmt.Stringer:
+		s = sdata.String()
+	case string:
+		s = sdata
+	case bool:
+		s = fmt.Sprintf("%v", sdata)
+	case int64:
+		s = fmt.Sprintf("%d", sdata)
+	case float64:
+		s = fmt.Sprintf("%f", sdata)
+	default:
+		return badtype("primitive (string-like)", data)
+	}
+	if err := v.UnmarshalText([]byte(s)); err != nil {
+		return err
+	}
+	return nil
+}
+
+// rvalue returns a reflect.Value of `v`. All pointers are resolved.
+func rvalue(v interface{}) reflect.Value {
+	return indirect(reflect.ValueOf(v))
+}
+
+// indirect returns the value pointed to by a pointer.
+// Pointers are followed until the value is not a pointer.
+// New values are allocated for each nil pointer.
+//
+// An exception to this rule is if the value satisfies an interface of
+// interest to us (like encoding.TextUnmarshaler).
+func indirect(v reflect.Value) reflect.Value {
+	if v.Kind() != reflect.Ptr {
+		if v.CanSet() {
+			pv := v.Addr()
+			if _, ok := pv.Interface().(TextUnmarshaler); ok {
+				return pv
+			}
+		}
+		return v
+	}
+	if v.IsNil() {
+		v.Set(reflect.New(v.Type().Elem()))
+	}
+	return indirect(reflect.Indirect(v))
+}
+
+func isUnifiable(rv reflect.Value) bool {
+	if rv.CanSet() {
+		return true
+	}
+	if _, ok := rv.Interface().(TextUnmarshaler); ok {
+		return true
+	}
+	return false
+}
+
+func badtype(expected string, data interface{}) error {
+	return e("cannot load TOML value of type %T into a Go %s", data, expected)
+}
