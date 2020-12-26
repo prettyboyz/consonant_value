@@ -571,3 +571,384 @@ func lexInlineTableValueEnd(lx *lexer) stateFn {
 func lexInlineTableEnd(lx *lexer) stateFn {
 	lx.ignore()
 	lx.emit(itemInlineTableEnd)
+	return lx.pop()
+}
+
+// lexString consumes the inner contents of a string. It assumes that the
+// beginning '"' has already been consumed and ignored.
+func lexString(lx *lexer) stateFn {
+	r := lx.next()
+	switch {
+	case r == eof:
+		return lx.errorf("unexpected EOF")
+	case isNL(r):
+		return lx.errorf("strings cannot contain newlines")
+	case r == '\\':
+		lx.push(lexString)
+		return lexStringEscape
+	case r == stringEnd:
+		lx.backup()
+		lx.emit(itemString)
+		lx.next()
+		lx.ignore()
+		return lx.pop()
+	}
+	return lexString
+}
+
+// lexMultilineString consumes the inner contents of a string. It assumes that
+// the beginning '"""' has already been consumed and ignored.
+func lexMultilineString(lx *lexer) stateFn {
+	switch lx.next() {
+	case eof:
+		return lx.errorf("unexpected EOF")
+	case '\\':
+		return lexMultilineStringEscape
+	case stringEnd:
+		if lx.accept(stringEnd) {
+			if lx.accept(stringEnd) {
+				lx.backup()
+				lx.backup()
+				lx.backup()
+				lx.emit(itemMultilineString)
+				lx.next()
+				lx.next()
+				lx.next()
+				lx.ignore()
+				return lx.pop()
+			}
+			lx.backup()
+		}
+	}
+	return lexMultilineString
+}
+
+// lexRawString consumes a raw string. Nothing can be escaped in such a string.
+// It assumes that the beginning "'" has already been consumed and ignored.
+func lexRawString(lx *lexer) stateFn {
+	r := lx.next()
+	switch {
+	case r == eof:
+		return lx.errorf("unexpected EOF")
+	case isNL(r):
+		return lx.errorf("strings cannot contain newlines")
+	case r == rawStringEnd:
+		lx.backup()
+		lx.emit(itemRawString)
+		lx.next()
+		lx.ignore()
+		return lx.pop()
+	}
+	return lexRawString
+}
+
+// lexMultilineRawString consumes a raw string. Nothing can be escaped in such
+// a string. It assumes that the beginning "'''" has already been consumed and
+// ignored.
+func lexMultilineRawString(lx *lexer) stateFn {
+	switch lx.next() {
+	case eof:
+		return lx.errorf("unexpected EOF")
+	case rawStringEnd:
+		if lx.accept(rawStringEnd) {
+			if lx.accept(rawStringEnd) {
+				lx.backup()
+				lx.backup()
+				lx.backup()
+				lx.emit(itemRawMultilineString)
+				lx.next()
+				lx.next()
+				lx.next()
+				lx.ignore()
+				return lx.pop()
+			}
+			lx.backup()
+		}
+	}
+	return lexMultilineRawString
+}
+
+// lexMultilineStringEscape consumes an escaped character. It assumes that the
+// preceding '\\' has already been consumed.
+func lexMultilineStringEscape(lx *lexer) stateFn {
+	// Handle the special case first:
+	if isNL(lx.next()) {
+		return lexMultilineString
+	}
+	lx.backup()
+	lx.push(lexMultilineString)
+	return lexStringEscape(lx)
+}
+
+func lexStringEscape(lx *lexer) stateFn {
+	r := lx.next()
+	switch r {
+	case 'b':
+		fallthrough
+	case 't':
+		fallthrough
+	case 'n':
+		fallthrough
+	case 'f':
+		fallthrough
+	case 'r':
+		fallthrough
+	case '"':
+		fallthrough
+	case '\\':
+		return lx.pop()
+	case 'u':
+		return lexShortUnicodeEscape
+	case 'U':
+		return lexLongUnicodeEscape
+	}
+	return lx.errorf("invalid escape character %q; only the following "+
+		"escape characters are allowed: "+
+		`\b, \t, \n, \f, \r, \", \\, \uXXXX, and \UXXXXXXXX`, r)
+}
+
+func lexShortUnicodeEscape(lx *lexer) stateFn {
+	var r rune
+	for i := 0; i < 4; i++ {
+		r = lx.next()
+		if !isHexadecimal(r) {
+			return lx.errorf(`expected four hexadecimal digits after '\u', `+
+				"but got %q instead", lx.current())
+		}
+	}
+	return lx.pop()
+}
+
+func lexLongUnicodeEscape(lx *lexer) stateFn {
+	var r rune
+	for i := 0; i < 8; i++ {
+		r = lx.next()
+		if !isHexadecimal(r) {
+			return lx.errorf(`expected eight hexadecimal digits after '\U', `+
+				"but got %q instead", lx.current())
+		}
+	}
+	return lx.pop()
+}
+
+// lexNumberOrDateStart consumes either an integer, a float, or datetime.
+func lexNumberOrDateStart(lx *lexer) stateFn {
+	r := lx.next()
+	if isDigit(r) {
+		return lexNumberOrDate
+	}
+	switch r {
+	case '_':
+		return lexNumber
+	case 'e', 'E':
+		return lexFloat
+	case '.':
+		return lx.errorf("floats must start with a digit, not '.'")
+	}
+	return lx.errorf("expected a digit but got %q", r)
+}
+
+// lexNumberOrDate consumes either an integer, float or datetime.
+func lexNumberOrDate(lx *lexer) stateFn {
+	r := lx.next()
+	if isDigit(r) {
+		return lexNumberOrDate
+	}
+	switch r {
+	case '-':
+		return lexDatetime
+	case '_':
+		return lexNumber
+	case '.', 'e', 'E':
+		return lexFloat
+	}
+
+	lx.backup()
+	lx.emit(itemInteger)
+	return lx.pop()
+}
+
+// lexDatetime consumes a Datetime, to a first approximation.
+// The parser validates that it matches one of the accepted formats.
+func lexDatetime(lx *lexer) stateFn {
+	r := lx.next()
+	if isDigit(r) {
+		return lexDatetime
+	}
+	switch r {
+	case '-', 'T', ':', '.', 'Z':
+		return lexDatetime
+	}
+
+	lx.backup()
+	lx.emit(itemDatetime)
+	return lx.pop()
+}
+
+// lexNumberStart consumes either an integer or a float. It assumes that a sign
+// has already been read, but that *no* digits have been consumed.
+// lexNumberStart will move to the appropriate integer or float states.
+func lexNumberStart(lx *lexer) stateFn {
+	// We MUST see a digit. Even floats have to start with a digit.
+	r := lx.next()
+	if !isDigit(r) {
+		if r == '.' {
+			return lx.errorf("floats must start with a digit, not '.'")
+		}
+		return lx.errorf("expected a digit but got %q", r)
+	}
+	return lexNumber
+}
+
+// lexNumber consumes an integer or a float after seeing the first digit.
+func lexNumber(lx *lexer) stateFn {
+	r := lx.next()
+	if isDigit(r) {
+		return lexNumber
+	}
+	switch r {
+	case '_':
+		return lexNumber
+	case '.', 'e', 'E':
+		return lexFloat
+	}
+
+	lx.backup()
+	lx.emit(itemInteger)
+	return lx.pop()
+}
+
+// lexFloat consumes the elements of a float. It allows any sequence of
+// float-like characters, so floats emitted by the lexer are only a first
+// approximation and must be validated by the parser.
+func lexFloat(lx *lexer) stateFn {
+	r := lx.next()
+	if isDigit(r) {
+		return lexFloat
+	}
+	switch r {
+	case '_', '.', '-', '+', 'e', 'E':
+		return lexFloat
+	}
+
+	lx.backup()
+	lx.emit(itemFloat)
+	return lx.pop()
+}
+
+// lexBool consumes a bool string: 'true' or 'false.
+func lexBool(lx *lexer) stateFn {
+	var rs []rune
+	for {
+		r := lx.next()
+		if !unicode.IsLetter(r) {
+			lx.backup()
+			break
+		}
+		rs = append(rs, r)
+	}
+	s := string(rs)
+	switch s {
+	case "true", "false":
+		lx.emit(itemBool)
+		return lx.pop()
+	}
+	return lx.errorf("expected value but found %q instead", s)
+}
+
+// lexCommentStart begins the lexing of a comment. It will emit
+// itemCommentStart and consume no characters, passing control to lexComment.
+func lexCommentStart(lx *lexer) stateFn {
+	lx.ignore()
+	lx.emit(itemCommentStart)
+	return lexComment
+}
+
+// lexComment lexes an entire comment. It assumes that '#' has been consumed.
+// It will consume *up to* the first newline character, and pass control
+// back to the last state on the stack.
+func lexComment(lx *lexer) stateFn {
+	r := lx.peek()
+	if isNL(r) || r == eof {
+		lx.emit(itemText)
+		return lx.pop()
+	}
+	lx.next()
+	return lexComment
+}
+
+// lexSkip ignores all slurped input and moves on to the next state.
+func lexSkip(lx *lexer, nextState stateFn) stateFn {
+	return func(lx *lexer) stateFn {
+		lx.ignore()
+		return nextState
+	}
+}
+
+// isWhitespace returns true if `r` is a whitespace character according
+// to the spec.
+func isWhitespace(r rune) bool {
+	return r == '\t' || r == ' '
+}
+
+func isNL(r rune) bool {
+	return r == '\n' || r == '\r'
+}
+
+func isDigit(r rune) bool {
+	return r >= '0' && r <= '9'
+}
+
+func isHexadecimal(r rune) bool {
+	return (r >= '0' && r <= '9') ||
+		(r >= 'a' && r <= 'f') ||
+		(r >= 'A' && r <= 'F')
+}
+
+func isBareKeyChar(r rune) bool {
+	return (r >= 'A' && r <= 'Z') ||
+		(r >= 'a' && r <= 'z') ||
+		(r >= '0' && r <= '9') ||
+		r == '_' ||
+		r == '-'
+}
+
+func (itype itemType) String() string {
+	switch itype {
+	case itemError:
+		return "Error"
+	case itemNIL:
+		return "NIL"
+	case itemEOF:
+		return "EOF"
+	case itemText:
+		return "Text"
+	case itemString, itemRawString, itemMultilineString, itemRawMultilineString:
+		return "String"
+	case itemBool:
+		return "Bool"
+	case itemInteger:
+		return "Integer"
+	case itemFloat:
+		return "Float"
+	case itemDatetime:
+		return "DateTime"
+	case itemTableStart:
+		return "TableStart"
+	case itemTableEnd:
+		return "TableEnd"
+	case itemKeyStart:
+		return "KeyStart"
+	case itemArray:
+		return "Array"
+	case itemArrayEnd:
+		return "ArrayEnd"
+	case itemCommentStart:
+		return "CommentStart"
+	}
+	panic(fmt.Sprintf("BUG: Unknown type '%d'.", int(itype)))
+}
+
+func (item item) String() string {
+	return fmt.Sprintf("(%s, %s)", item.typ.String(), item.val)
+}
