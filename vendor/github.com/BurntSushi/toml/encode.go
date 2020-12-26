@@ -289,4 +289,151 @@ func (enc *Encoder) eMap(key Key, rv reflect.Value) {
 				// Don't write anything for nil fields.
 				continue
 			}
-			enc.encode(key.add(mapKey)
+			enc.encode(key.add(mapKey), mrv)
+		}
+	}
+	writeMapKeys(mapKeysDirect)
+	writeMapKeys(mapKeysSub)
+}
+
+func (enc *Encoder) eStruct(key Key, rv reflect.Value) {
+	// Write keys for fields directly under this key first, because if we write
+	// a field that creates a new table, then all keys under it will be in that
+	// table (not the one we're writing here).
+	rt := rv.Type()
+	var fieldsDirect, fieldsSub [][]int
+	var addFields func(rt reflect.Type, rv reflect.Value, start []int)
+	addFields = func(rt reflect.Type, rv reflect.Value, start []int) {
+		for i := 0; i < rt.NumField(); i++ {
+			f := rt.Field(i)
+			// skip unexported fields
+			if f.PkgPath != "" && !f.Anonymous {
+				continue
+			}
+			frv := rv.Field(i)
+			if f.Anonymous {
+				t := f.Type
+				switch t.Kind() {
+				case reflect.Struct:
+					// Treat anonymous struct fields with
+					// tag names as though they are not
+					// anonymous, like encoding/json does.
+					if getOptions(f.Tag).name == "" {
+						addFields(t, frv, f.Index)
+						continue
+					}
+				case reflect.Ptr:
+					if t.Elem().Kind() == reflect.Struct &&
+						getOptions(f.Tag).name == "" {
+						if !frv.IsNil() {
+							addFields(t.Elem(), frv.Elem(), f.Index)
+						}
+						continue
+					}
+					// Fall through to the normal field encoding logic below
+					// for non-struct anonymous fields.
+				}
+			}
+
+			if typeIsHash(tomlTypeOfGo(frv)) {
+				fieldsSub = append(fieldsSub, append(start, f.Index...))
+			} else {
+				fieldsDirect = append(fieldsDirect, append(start, f.Index...))
+			}
+		}
+	}
+	addFields(rt, rv, nil)
+
+	var writeFields = func(fields [][]int) {
+		for _, fieldIndex := range fields {
+			sft := rt.FieldByIndex(fieldIndex)
+			sf := rv.FieldByIndex(fieldIndex)
+			if isNil(sf) {
+				// Don't write anything for nil fields.
+				continue
+			}
+
+			opts := getOptions(sft.Tag)
+			if opts.skip {
+				continue
+			}
+			keyName := sft.Name
+			if opts.name != "" {
+				keyName = opts.name
+			}
+			if opts.omitempty && isEmpty(sf) {
+				continue
+			}
+			if opts.omitzero && isZero(sf) {
+				continue
+			}
+
+			enc.encode(key.add(keyName), sf)
+		}
+	}
+	writeFields(fieldsDirect)
+	writeFields(fieldsSub)
+}
+
+// tomlTypeName returns the TOML type name of the Go value's type. It is
+// used to determine whether the types of array elements are mixed (which is
+// forbidden). If the Go value is nil, then it is illegal for it to be an array
+// element, and valueIsNil is returned as true.
+
+// Returns the TOML type of a Go value. The type may be `nil`, which means
+// no concrete TOML type could be found.
+func tomlTypeOfGo(rv reflect.Value) tomlType {
+	if isNil(rv) || !rv.IsValid() {
+		return nil
+	}
+	switch rv.Kind() {
+	case reflect.Bool:
+		return tomlBool
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32,
+		reflect.Int64,
+		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32,
+		reflect.Uint64:
+		return tomlInteger
+	case reflect.Float32, reflect.Float64:
+		return tomlFloat
+	case reflect.Array, reflect.Slice:
+		if typeEqual(tomlHash, tomlArrayType(rv)) {
+			return tomlArrayHash
+		}
+		return tomlArray
+	case reflect.Ptr, reflect.Interface:
+		return tomlTypeOfGo(rv.Elem())
+	case reflect.String:
+		return tomlString
+	case reflect.Map:
+		return tomlHash
+	case reflect.Struct:
+		switch rv.Interface().(type) {
+		case time.Time:
+			return tomlDatetime
+		case TextMarshaler:
+			return tomlString
+		default:
+			return tomlHash
+		}
+	default:
+		panic("unexpected reflect.Kind: " + rv.Kind().String())
+	}
+}
+
+// tomlArrayType returns the element type of a TOML array. The type returned
+// may be nil if it cannot be determined (e.g., a nil slice or a zero length
+// slize). This function may also panic if it finds a type that cannot be
+// expressed in TOML (such as nil elements, heterogeneous arrays or directly
+// nested arrays of tables).
+func tomlArrayType(rv reflect.Value) tomlType {
+	if isNil(rv) || !rv.IsValid() || rv.Len() == 0 {
+		return nil
+	}
+	firstType := tomlTypeOfGo(rv.Index(0))
+	if firstType == nil {
+		encPanic(errArrayNilElement)
+	}
+
+	rvlen := rv.Len()
+	for i := 1; i < rvl
