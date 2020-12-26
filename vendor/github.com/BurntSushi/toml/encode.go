@@ -436,4 +436,133 @@ func tomlArrayType(rv reflect.Value) tomlType {
 	}
 
 	rvlen := rv.Len()
-	for i := 1; i < rvl
+	for i := 1; i < rvlen; i++ {
+		elem := rv.Index(i)
+		switch elemType := tomlTypeOfGo(elem); {
+		case elemType == nil:
+			encPanic(errArrayNilElement)
+		case !typeEqual(firstType, elemType):
+			encPanic(errArrayMixedElementTypes)
+		}
+	}
+	// If we have a nested array, then we must make sure that the nested
+	// array contains ONLY primitives.
+	// This checks arbitrarily nested arrays.
+	if typeEqual(firstType, tomlArray) || typeEqual(firstType, tomlArrayHash) {
+		nest := tomlArrayType(eindirect(rv.Index(0)))
+		if typeEqual(nest, tomlHash) || typeEqual(nest, tomlArrayHash) {
+			encPanic(errArrayNoTable)
+		}
+	}
+	return firstType
+}
+
+type tagOptions struct {
+	skip      bool // "-"
+	name      string
+	omitempty bool
+	omitzero  bool
+}
+
+func getOptions(tag reflect.StructTag) tagOptions {
+	t := tag.Get("toml")
+	if t == "-" {
+		return tagOptions{skip: true}
+	}
+	var opts tagOptions
+	parts := strings.Split(t, ",")
+	opts.name = parts[0]
+	for _, s := range parts[1:] {
+		switch s {
+		case "omitempty":
+			opts.omitempty = true
+		case "omitzero":
+			opts.omitzero = true
+		}
+	}
+	return opts
+}
+
+func isZero(rv reflect.Value) bool {
+	switch rv.Kind() {
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		return rv.Int() == 0
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		return rv.Uint() == 0
+	case reflect.Float32, reflect.Float64:
+		return rv.Float() == 0.0
+	}
+	return false
+}
+
+func isEmpty(rv reflect.Value) bool {
+	switch rv.Kind() {
+	case reflect.Array, reflect.Slice, reflect.Map, reflect.String:
+		return rv.Len() == 0
+	case reflect.Bool:
+		return !rv.Bool()
+	}
+	return false
+}
+
+func (enc *Encoder) newline() {
+	if enc.hasWritten {
+		enc.wf("\n")
+	}
+}
+
+func (enc *Encoder) keyEqElement(key Key, val reflect.Value) {
+	if len(key) == 0 {
+		encPanic(errNoKey)
+	}
+	panicIfInvalidKey(key)
+	enc.wf("%s%s = ", enc.indentStr(key), key.maybeQuoted(len(key)-1))
+	enc.eElement(val)
+	enc.newline()
+}
+
+func (enc *Encoder) wf(format string, v ...interface{}) {
+	if _, err := fmt.Fprintf(enc.w, format, v...); err != nil {
+		encPanic(err)
+	}
+	enc.hasWritten = true
+}
+
+func (enc *Encoder) indentStr(key Key) string {
+	return strings.Repeat(enc.Indent, len(key)-1)
+}
+
+func encPanic(err error) {
+	panic(tomlEncodeError{err})
+}
+
+func eindirect(v reflect.Value) reflect.Value {
+	switch v.Kind() {
+	case reflect.Ptr, reflect.Interface:
+		return eindirect(v.Elem())
+	default:
+		return v
+	}
+}
+
+func isNil(rv reflect.Value) bool {
+	switch rv.Kind() {
+	case reflect.Interface, reflect.Map, reflect.Ptr, reflect.Slice:
+		return rv.IsNil()
+	default:
+		return false
+	}
+}
+
+func panicIfInvalidKey(key Key) {
+	for _, k := range key {
+		if len(k) == 0 {
+			encPanic(e("Key '%s' is not a valid table name. Key names "+
+				"cannot be empty.", key.maybeQuotedAll()))
+		}
+	}
+}
+
+func isValidKeyName(s string) bool {
+	return len(s) != 0
+}

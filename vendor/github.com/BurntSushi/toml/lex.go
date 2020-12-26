@@ -1,0 +1,573 @@
+
+package toml
+
+import (
+	"fmt"
+	"strings"
+	"unicode"
+	"unicode/utf8"
+)
+
+type itemType int
+
+const (
+	itemError itemType = iota
+	itemNIL            // used in the parser to indicate no type
+	itemEOF
+	itemText
+	itemString
+	itemRawString
+	itemMultilineString
+	itemRawMultilineString
+	itemBool
+	itemInteger
+	itemFloat
+	itemDatetime
+	itemArray // the start of an array
+	itemArrayEnd
+	itemTableStart
+	itemTableEnd
+	itemArrayTableStart
+	itemArrayTableEnd
+	itemKeyStart
+	itemCommentStart
+	itemInlineTableStart
+	itemInlineTableEnd
+)
+
+const (
+	eof              = 0
+	comma            = ','
+	tableStart       = '['
+	tableEnd         = ']'
+	arrayTableStart  = '['
+	arrayTableEnd    = ']'
+	tableSep         = '.'
+	keySep           = '='
+	arrayStart       = '['
+	arrayEnd         = ']'
+	commentStart     = '#'
+	stringStart      = '"'
+	stringEnd        = '"'
+	rawStringStart   = '\''
+	rawStringEnd     = '\''
+	inlineTableStart = '{'
+	inlineTableEnd   = '}'
+)
+
+type stateFn func(lx *lexer) stateFn
+
+type lexer struct {
+	input string
+	start int
+	pos   int
+	line  int
+	state stateFn
+	items chan item
+
+	// Allow for backing up up to three runes.
+	// This is necessary because TOML contains 3-rune tokens (""" and ''').
+	prevWidths [3]int
+	nprev      int // how many of prevWidths are in use
+	// If we emit an eof, we can still back up, but it is not OK to call
+	// next again.
+	atEOF bool
+
+	// A stack of state functions used to maintain context.
+	// The idea is to reuse parts of the state machine in various places.
+	// For example, values can appear at the top level or within arbitrarily
+	// nested arrays. The last state on the stack is used after a value has
+	// been lexed. Similarly for comments.
+	stack []stateFn
+}
+
+type item struct {
+	typ  itemType
+	val  string
+	line int
+}
+
+func (lx *lexer) nextItem() item {
+	for {
+		select {
+		case item := <-lx.items:
+			return item
+		default:
+			lx.state = lx.state(lx)
+		}
+	}
+}
+
+func lex(input string) *lexer {
+	lx := &lexer{
+		input: input,
+		state: lexTop,
+		line:  1,
+		items: make(chan item, 10),
+		stack: make([]stateFn, 0, 10),
+	}
+	return lx
+}
+
+func (lx *lexer) push(state stateFn) {
+	lx.stack = append(lx.stack, state)
+}
+
+func (lx *lexer) pop() stateFn {
+	if len(lx.stack) == 0 {
+		return lx.errorf("BUG in lexer: no states to pop")
+	}
+	last := lx.stack[len(lx.stack)-1]
+	lx.stack = lx.stack[0 : len(lx.stack)-1]
+	return last
+}
+
+func (lx *lexer) current() string {
+	return lx.input[lx.start:lx.pos]
+}
+
+func (lx *lexer) emit(typ itemType) {
+	lx.items <- item{typ, lx.current(), lx.line}
+	lx.start = lx.pos
+}
+
+func (lx *lexer) emitTrim(typ itemType) {
+	lx.items <- item{typ, strings.TrimSpace(lx.current()), lx.line}
+	lx.start = lx.pos
+}
+
+func (lx *lexer) next() (r rune) {
+	if lx.atEOF {
+		panic("next called after EOF")
+	}
+	if lx.pos >= len(lx.input) {
+		lx.atEOF = true
+		return eof
+	}
+
+	if lx.input[lx.pos] == '\n' {
+		lx.line++
+	}
+	lx.prevWidths[2] = lx.prevWidths[1]
+	lx.prevWidths[1] = lx.prevWidths[0]
+	if lx.nprev < 3 {
+		lx.nprev++
+	}
+	r, w := utf8.DecodeRuneInString(lx.input[lx.pos:])
+	lx.prevWidths[0] = w
+	lx.pos += w
+	return r
+}
+
+// ignore skips over the pending input before this point.
+func (lx *lexer) ignore() {
+	lx.start = lx.pos
+}
+
+// backup steps back one rune. Can be called only twice between calls to next.
+func (lx *lexer) backup() {
+	if lx.atEOF {
+		lx.atEOF = false
+		return
+	}
+	if lx.nprev < 1 {
+		panic("backed up too far")
+	}
+	w := lx.prevWidths[0]
+	lx.prevWidths[0] = lx.prevWidths[1]
+	lx.prevWidths[1] = lx.prevWidths[2]
+	lx.nprev--
+	lx.pos -= w
+	if lx.pos < len(lx.input) && lx.input[lx.pos] == '\n' {
+		lx.line--
+	}
+}
+
+// accept consumes the next rune if it's equal to `valid`.
+func (lx *lexer) accept(valid rune) bool {
+	if lx.next() == valid {
+		return true
+	}
+	lx.backup()
+	return false
+}
+
+// peek returns but does not consume the next rune in the input.
+func (lx *lexer) peek() rune {
+	r := lx.next()
+	lx.backup()
+	return r
+}
+
+// skip ignores all input that matches the given predicate.
+func (lx *lexer) skip(pred func(rune) bool) {
+	for {
+		r := lx.next()
+		if pred(r) {
+			continue
+		}
+		lx.backup()
+		lx.ignore()
+		return
+	}
+}
+
+// errorf stops all lexing by emitting an error and returning `nil`.
+// Note that any value that is a character is escaped if it's a special
+// character (newlines, tabs, etc.).
+func (lx *lexer) errorf(format string, values ...interface{}) stateFn {
+	lx.items <- item{
+		itemError,
+		fmt.Sprintf(format, values...),
+		lx.line,
+	}
+	return nil
+}
+
+// lexTop consumes elements at the top level of TOML data.
+func lexTop(lx *lexer) stateFn {
+	r := lx.next()
+	if isWhitespace(r) || isNL(r) {
+		return lexSkip(lx, lexTop)
+	}
+	switch r {
+	case commentStart:
+		lx.push(lexTop)
+		return lexCommentStart
+	case tableStart:
+		return lexTableStart
+	case eof:
+		if lx.pos > lx.start {
+			return lx.errorf("unexpected EOF")
+		}
+		lx.emit(itemEOF)
+		return nil
+	}
+
+	// At this point, the only valid item can be a key, so we back up
+	// and let the key lexer do the rest.
+	lx.backup()
+	lx.push(lexTopEnd)
+	return lexKeyStart
+}
+
+// lexTopEnd is entered whenever a top-level item has been consumed. (A value
+// or a table.) It must see only whitespace, and will turn back to lexTop
+// upon a newline. If it sees EOF, it will quit the lexer successfully.
+func lexTopEnd(lx *lexer) stateFn {
+	r := lx.next()
+	switch {
+	case r == commentStart:
+		// a comment will read to a newline for us.
+		lx.push(lexTop)
+		return lexCommentStart
+	case isWhitespace(r):
+		return lexTopEnd
+	case isNL(r):
+		lx.ignore()
+		return lexTop
+	case r == eof:
+		lx.emit(itemEOF)
+		return nil
+	}
+	return lx.errorf("expected a top-level item to end with a newline, "+
+		"comment, or EOF, but got %q instead", r)
+}
+
+// lexTable lexes the beginning of a table. Namely, it makes sure that
+// it starts with a character other than '.' and ']'.
+// It assumes that '[' has already been consumed.
+// It also handles the case that this is an item in an array of tables.
+// e.g., '[[name]]'.
+func lexTableStart(lx *lexer) stateFn {
+	if lx.peek() == arrayTableStart {
+		lx.next()
+		lx.emit(itemArrayTableStart)
+		lx.push(lexArrayTableEnd)
+	} else {
+		lx.emit(itemTableStart)
+		lx.push(lexTableEnd)
+	}
+	return lexTableNameStart
+}
+
+func lexTableEnd(lx *lexer) stateFn {
+	lx.emit(itemTableEnd)
+	return lexTopEnd
+}
+
+func lexArrayTableEnd(lx *lexer) stateFn {
+	if r := lx.next(); r != arrayTableEnd {
+		return lx.errorf("expected end of table array name delimiter %q, "+
+			"but got %q instead", arrayTableEnd, r)
+	}
+	lx.emit(itemArrayTableEnd)
+	return lexTopEnd
+}
+
+func lexTableNameStart(lx *lexer) stateFn {
+	lx.skip(isWhitespace)
+	switch r := lx.peek(); {
+	case r == tableEnd || r == eof:
+		return lx.errorf("unexpected end of table name " +
+			"(table names cannot be empty)")
+	case r == tableSep:
+		return lx.errorf("unexpected table separator " +
+			"(table names cannot be empty)")
+	case r == stringStart || r == rawStringStart:
+		lx.ignore()
+		lx.push(lexTableNameEnd)
+		return lexValue // reuse string lexing
+	default:
+		return lexBareTableName
+	}
+}
+
+// lexBareTableName lexes the name of a table. It assumes that at least one
+// valid character for the table has already been read.
+func lexBareTableName(lx *lexer) stateFn {
+	r := lx.next()
+	if isBareKeyChar(r) {
+		return lexBareTableName
+	}
+	lx.backup()
+	lx.emit(itemText)
+	return lexTableNameEnd
+}
+
+// lexTableNameEnd reads the end of a piece of a table name, optionally
+// consuming whitespace.
+func lexTableNameEnd(lx *lexer) stateFn {
+	lx.skip(isWhitespace)
+	switch r := lx.next(); {
+	case isWhitespace(r):
+		return lexTableNameEnd
+	case r == tableSep:
+		lx.ignore()
+		return lexTableNameStart
+	case r == tableEnd:
+		return lx.pop()
+	default:
+		return lx.errorf("expected '.' or ']' to end table name, "+
+			"but got %q instead", r)
+	}
+}
+
+// lexKeyStart consumes a key name up until the first non-whitespace character.
+// lexKeyStart will ignore whitespace.
+func lexKeyStart(lx *lexer) stateFn {
+	r := lx.peek()
+	switch {
+	case r == keySep:
+		return lx.errorf("unexpected key separator %q", keySep)
+	case isWhitespace(r) || isNL(r):
+		lx.next()
+		return lexSkip(lx, lexKeyStart)
+	case r == stringStart || r == rawStringStart:
+		lx.ignore()
+		lx.emit(itemKeyStart)
+		lx.push(lexKeyEnd)
+		return lexValue // reuse string lexing
+	default:
+		lx.ignore()
+		lx.emit(itemKeyStart)
+		return lexBareKey
+	}
+}
+
+// lexBareKey consumes the text of a bare key. Assumes that the first character
+// (which is not whitespace) has not yet been consumed.
+func lexBareKey(lx *lexer) stateFn {
+	switch r := lx.next(); {
+	case isBareKeyChar(r):
+		return lexBareKey
+	case isWhitespace(r):
+		lx.backup()
+		lx.emit(itemText)
+		return lexKeyEnd
+	case r == keySep:
+		lx.backup()
+		lx.emit(itemText)
+		return lexKeyEnd
+	default:
+		return lx.errorf("bare keys cannot contain %q", r)
+	}
+}
+
+// lexKeyEnd consumes the end of a key and trims whitespace (up to the key
+// separator).
+func lexKeyEnd(lx *lexer) stateFn {
+	switch r := lx.next(); {
+	case r == keySep:
+		return lexSkip(lx, lexValue)
+	case isWhitespace(r):
+		return lexSkip(lx, lexKeyEnd)
+	default:
+		return lx.errorf("expected key separator %q, but got %q instead",
+			keySep, r)
+	}
+}
+
+// lexValue starts the consumption of a value anywhere a value is expected.
+// lexValue will ignore whitespace.
+// After a value is lexed, the last state on the next is popped and returned.
+func lexValue(lx *lexer) stateFn {
+	// We allow whitespace to precede a value, but NOT newlines.
+	// In array syntax, the array states are responsible for ignoring newlines.
+	r := lx.next()
+	switch {
+	case isWhitespace(r):
+		return lexSkip(lx, lexValue)
+	case isDigit(r):
+		lx.backup() // avoid an extra state and use the same as above
+		return lexNumberOrDateStart
+	}
+	switch r {
+	case arrayStart:
+		lx.ignore()
+		lx.emit(itemArray)
+		return lexArrayValue
+	case inlineTableStart:
+		lx.ignore()
+		lx.emit(itemInlineTableStart)
+		return lexInlineTableValue
+	case stringStart:
+		if lx.accept(stringStart) {
+			if lx.accept(stringStart) {
+				lx.ignore() // Ignore """
+				return lexMultilineString
+			}
+			lx.backup()
+		}
+		lx.ignore() // ignore the '"'
+		return lexString
+	case rawStringStart:
+		if lx.accept(rawStringStart) {
+			if lx.accept(rawStringStart) {
+				lx.ignore() // Ignore """
+				return lexMultilineRawString
+			}
+			lx.backup()
+		}
+		lx.ignore() // ignore the "'"
+		return lexRawString
+	case '+', '-':
+		return lexNumberStart
+	case '.': // special error case, be kind to users
+		return lx.errorf("floats must start with a digit, not '.'")
+	}
+	if unicode.IsLetter(r) {
+		// Be permissive here; lexBool will give a nice error if the
+		// user wrote something like
+		//   x = foo
+		// (i.e. not 'true' or 'false' but is something else word-like.)
+		lx.backup()
+		return lexBool
+	}
+	return lx.errorf("expected value but found %q instead", r)
+}
+
+// lexArrayValue consumes one value in an array. It assumes that '[' or ','
+// have already been consumed. All whitespace and newlines are ignored.
+func lexArrayValue(lx *lexer) stateFn {
+	r := lx.next()
+	switch {
+	case isWhitespace(r) || isNL(r):
+		return lexSkip(lx, lexArrayValue)
+	case r == commentStart:
+		lx.push(lexArrayValue)
+		return lexCommentStart
+	case r == comma:
+		return lx.errorf("unexpected comma")
+	case r == arrayEnd:
+		// NOTE(caleb): The spec isn't clear about whether you can have
+		// a trailing comma or not, so we'll allow it.
+		return lexArrayEnd
+	}
+
+	lx.backup()
+	lx.push(lexArrayValueEnd)
+	return lexValue
+}
+
+// lexArrayValueEnd consumes everything between the end of an array value and
+// the next value (or the end of the array): it ignores whitespace and newlines
+// and expects either a ',' or a ']'.
+func lexArrayValueEnd(lx *lexer) stateFn {
+	r := lx.next()
+	switch {
+	case isWhitespace(r) || isNL(r):
+		return lexSkip(lx, lexArrayValueEnd)
+	case r == commentStart:
+		lx.push(lexArrayValueEnd)
+		return lexCommentStart
+	case r == comma:
+		lx.ignore()
+		return lexArrayValue // move on to the next value
+	case r == arrayEnd:
+		return lexArrayEnd
+	}
+	return lx.errorf(
+		"expected a comma or array terminator %q, but got %q instead",
+		arrayEnd, r,
+	)
+}
+
+// lexArrayEnd finishes the lexing of an array.
+// It assumes that a ']' has just been consumed.
+func lexArrayEnd(lx *lexer) stateFn {
+	lx.ignore()
+	lx.emit(itemArrayEnd)
+	return lx.pop()
+}
+
+// lexInlineTableValue consumes one key/value pair in an inline table.
+// It assumes that '{' or ',' have already been consumed. Whitespace is ignored.
+func lexInlineTableValue(lx *lexer) stateFn {
+	r := lx.next()
+	switch {
+	case isWhitespace(r):
+		return lexSkip(lx, lexInlineTableValue)
+	case isNL(r):
+		return lx.errorf("newlines not allowed within inline tables")
+	case r == commentStart:
+		lx.push(lexInlineTableValue)
+		return lexCommentStart
+	case r == comma:
+		return lx.errorf("unexpected comma")
+	case r == inlineTableEnd:
+		return lexInlineTableEnd
+	}
+	lx.backup()
+	lx.push(lexInlineTableValueEnd)
+	return lexKeyStart
+}
+
+// lexInlineTableValueEnd consumes everything between the end of an inline table
+// key/value pair and the next pair (or the end of the table):
+// it ignores whitespace and expects either a ',' or a '}'.
+func lexInlineTableValueEnd(lx *lexer) stateFn {
+	r := lx.next()
+	switch {
+	case isWhitespace(r):
+		return lexSkip(lx, lexInlineTableValueEnd)
+	case isNL(r):
+		return lx.errorf("newlines not allowed within inline tables")
+	case r == commentStart:
+		lx.push(lexInlineTableValueEnd)
+		return lexCommentStart
+	case r == comma:
+		lx.ignore()
+		return lexInlineTableValue
+	case r == inlineTableEnd:
+		return lexInlineTableEnd
+	}
+	return lx.errorf("expected a comma or an inline table terminator %q, "+
+		"but got %q instead", inlineTableEnd, r)
+}
+
+// lexInlineTableEnd finishes the lexing of an inline table.
+// It assumes that a '}' has just been consumed.
+func lexInlineTableEnd(lx *lexer) stateFn {
+	lx.ignore()
+	lx.emit(itemInlineTableEnd)
