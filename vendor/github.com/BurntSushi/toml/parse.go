@@ -305,4 +305,137 @@ func (p *parser) value(it item) (interface{}, tomlType) {
 		p.currentKey = outerKey
 		return hash, tomlHash
 	}
-	p.b
+	p.bug("Unexpected value type: %s", it.typ)
+	panic("unreachable")
+}
+
+// numUnderscoresOK checks whether each underscore in s is surrounded by
+// characters that are not underscores.
+func numUnderscoresOK(s string) bool {
+	accept := false
+	for _, r := range s {
+		if r == '_' {
+			if !accept {
+				return false
+			}
+			accept = false
+			continue
+		}
+		accept = true
+	}
+	return accept
+}
+
+// numPeriodsOK checks whether every period in s is followed by a digit.
+func numPeriodsOK(s string) bool {
+	period := false
+	for _, r := range s {
+		if period && !isDigit(r) {
+			return false
+		}
+		period = r == '.'
+	}
+	return !period
+}
+
+// establishContext sets the current context of the parser,
+// where the context is either a hash or an array of hashes. Which one is
+// set depends on the value of the `array` parameter.
+//
+// Establishing the context also makes sure that the key isn't a duplicate, and
+// will create implicit hashes automatically.
+func (p *parser) establishContext(key Key, array bool) {
+	var ok bool
+
+	// Always start at the top level and drill down for our context.
+	hashContext := p.mapping
+	keyContext := make(Key, 0)
+
+	// We only need implicit hashes for key[0:-1]
+	for _, k := range key[0 : len(key)-1] {
+		_, ok = hashContext[k]
+		keyContext = append(keyContext, k)
+
+		// No key? Make an implicit hash and move on.
+		if !ok {
+			p.addImplicit(keyContext)
+			hashContext[k] = make(map[string]interface{})
+		}
+
+		// If the hash context is actually an array of tables, then set
+		// the hash context to the last element in that array.
+		//
+		// Otherwise, it better be a table, since this MUST be a key group (by
+		// virtue of it not being the last element in a key).
+		switch t := hashContext[k].(type) {
+		case []map[string]interface{}:
+			hashContext = t[len(t)-1]
+		case map[string]interface{}:
+			hashContext = t
+		default:
+			p.panicf("Key '%s' was already created as a hash.", keyContext)
+		}
+	}
+
+	p.context = keyContext
+	if array {
+		// If this is the first element for this array, then allocate a new
+		// list of tables for it.
+		k := key[len(key)-1]
+		if _, ok := hashContext[k]; !ok {
+			hashContext[k] = make([]map[string]interface{}, 0, 5)
+		}
+
+		// Add a new table. But make sure the key hasn't already been used
+		// for something else.
+		if hash, ok := hashContext[k].([]map[string]interface{}); ok {
+			hashContext[k] = append(hash, make(map[string]interface{}))
+		} else {
+			p.panicf("Key '%s' was already created and cannot be used as "+
+				"an array.", keyContext)
+		}
+	} else {
+		p.setValue(key[len(key)-1], make(map[string]interface{}))
+	}
+	p.context = append(p.context, key[len(key)-1])
+}
+
+// setValue sets the given key to the given value in the current context.
+// It will make sure that the key hasn't already been defined, account for
+// implicit key groups.
+func (p *parser) setValue(key string, value interface{}) {
+	var tmpHash interface{}
+	var ok bool
+
+	hash := p.mapping
+	keyContext := make(Key, 0)
+	for _, k := range p.context {
+		keyContext = append(keyContext, k)
+		if tmpHash, ok = hash[k]; !ok {
+			p.bug("Context for key '%s' has not been established.", keyContext)
+		}
+		switch t := tmpHash.(type) {
+		case []map[string]interface{}:
+			// The context is a table of hashes. Pick the most recent table
+			// defined as the current hash.
+			hash = t[len(t)-1]
+		case map[string]interface{}:
+			hash = t
+		default:
+			p.bug("Expected hash to have type 'map[string]interface{}', but "+
+				"it has '%T' instead.", tmpHash)
+		}
+	}
+	keyContext = append(keyContext, key)
+
+	if _, ok := hash[key]; ok {
+		// Typically, if the given key has already been set, then we have
+		// to raise an error since duplicate keys are disallowed. However,
+		// it's possible that a key was previously defined implicitly. In this
+		// case, it is allowed to be redefined concretely. (See the
+		// `tests/valid/implicit-and-explicit-after.toml` test in `toml-test`.)
+		//
+		// But we have to make sure to stop marking it as an implicit. (So that
+		// another redefinition provokes an error.)
+		//
+		// Note t
