@@ -438,4 +438,155 @@ func (p *parser) setValue(key string, value interface{}) {
 		// But we have to make sure to stop marking it as an implicit. (So that
 		// another redefinition provokes an error.)
 		//
-		// Note t
+		// Note that since it has already been defined (as a hash), we don't
+		// want to overwrite it. So our business is done.
+		if p.isImplicit(keyContext) {
+			p.removeImplicit(keyContext)
+			return
+		}
+
+		// Otherwise, we have a concrete key trying to override a previous
+		// key, which is *always* wrong.
+		p.panicf("Key '%s' has already been defined.", keyContext)
+	}
+	hash[key] = value
+}
+
+// setType sets the type of a particular value at a given key.
+// It should be called immediately AFTER setValue.
+//
+// Note that if `key` is empty, then the type given will be applied to the
+// current context (which is either a table or an array of tables).
+func (p *parser) setType(key string, typ tomlType) {
+	keyContext := make(Key, 0, len(p.context)+1)
+	for _, k := range p.context {
+		keyContext = append(keyContext, k)
+	}
+	if len(key) > 0 { // allow type setting for hashes
+		keyContext = append(keyContext, key)
+	}
+	p.types[keyContext.String()] = typ
+}
+
+// addImplicit sets the given Key as having been created implicitly.
+func (p *parser) addImplicit(key Key) {
+	p.implicits[key.String()] = true
+}
+
+// removeImplicit stops tagging the given key as having been implicitly
+// created.
+func (p *parser) removeImplicit(key Key) {
+	p.implicits[key.String()] = false
+}
+
+// isImplicit returns true if the key group pointed to by the key was created
+// implicitly.
+func (p *parser) isImplicit(key Key) bool {
+	return p.implicits[key.String()]
+}
+
+// current returns the full key name of the current context.
+func (p *parser) current() string {
+	if len(p.currentKey) == 0 {
+		return p.context.String()
+	}
+	if len(p.context) == 0 {
+		return p.currentKey
+	}
+	return fmt.Sprintf("%s.%s", p.context, p.currentKey)
+}
+
+func stripFirstNewline(s string) string {
+	if len(s) == 0 || s[0] != '\n' {
+		return s
+	}
+	return s[1:]
+}
+
+func stripEscapedWhitespace(s string) string {
+	esc := strings.Split(s, "\\\n")
+	if len(esc) > 1 {
+		for i := 1; i < len(esc); i++ {
+			esc[i] = strings.TrimLeftFunc(esc[i], unicode.IsSpace)
+		}
+	}
+	return strings.Join(esc, "")
+}
+
+func (p *parser) replaceEscapes(str string) string {
+	var replaced []rune
+	s := []byte(str)
+	r := 0
+	for r < len(s) {
+		if s[r] != '\\' {
+			c, size := utf8.DecodeRune(s[r:])
+			r += size
+			replaced = append(replaced, c)
+			continue
+		}
+		r += 1
+		if r >= len(s) {
+			p.bug("Escape sequence at end of string.")
+			return ""
+		}
+		switch s[r] {
+		default:
+			p.bug("Expected valid escape code after \\, but got %q.", s[r])
+			return ""
+		case 'b':
+			replaced = append(replaced, rune(0x0008))
+			r += 1
+		case 't':
+			replaced = append(replaced, rune(0x0009))
+			r += 1
+		case 'n':
+			replaced = append(replaced, rune(0x000A))
+			r += 1
+		case 'f':
+			replaced = append(replaced, rune(0x000C))
+			r += 1
+		case 'r':
+			replaced = append(replaced, rune(0x000D))
+			r += 1
+		case '"':
+			replaced = append(replaced, rune(0x0022))
+			r += 1
+		case '\\':
+			replaced = append(replaced, rune(0x005C))
+			r += 1
+		case 'u':
+			// At this point, we know we have a Unicode escape of the form
+			// `uXXXX` at [r, r+5). (Because the lexer guarantees this
+			// for us.)
+			escaped := p.asciiEscapeToUnicode(s[r+1 : r+5])
+			replaced = append(replaced, escaped)
+			r += 5
+		case 'U':
+			// At this point, we know we have a Unicode escape of the form
+			// `uXXXX` at [r, r+9). (Because the lexer guarantees this
+			// for us.)
+			escaped := p.asciiEscapeToUnicode(s[r+1 : r+9])
+			replaced = append(replaced, escaped)
+			r += 9
+		}
+	}
+	return string(replaced)
+}
+
+func (p *parser) asciiEscapeToUnicode(bs []byte) rune {
+	s := string(bs)
+	hex, err := strconv.ParseUint(strings.ToLower(s), 16, 32)
+	if err != nil {
+		p.bug("Could not parse '%s' as a hexadecimal number, but the "+
+			"lexer claims it's OK: %s", s, err)
+	}
+	if !utf8.ValidRune(rune(hex)) {
+		p.panicf("Escaped character '\\u%s' is not valid UTF-8.", s)
+	}
+	return rune(hex)
+}
+
+func isStringType(ty itemType) bool {
+	return ty == itemString || ty == itemMultilineString ||
+		ty == itemRawString || ty == itemRawMultilineString
+}
