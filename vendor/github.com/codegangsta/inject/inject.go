@@ -144,4 +144,44 @@ func (i *injector) Map(val interface{}) TypeMapper {
 }
 
 func (i *injector) MapTo(val interface{}, ifacePtr interface{}) TypeMapper {
-	i.values[InterfaceOf(ifacePtr)] = ref
+	i.values[InterfaceOf(ifacePtr)] = reflect.ValueOf(val)
+	return i
+}
+
+// Maps the given reflect.Type to the given reflect.Value and returns
+// the Typemapper the mapping has been registered in.
+func (i *injector) Set(typ reflect.Type, val reflect.Value) TypeMapper {
+	i.values[typ] = val
+	return i
+}
+
+func (i *injector) Get(t reflect.Type) reflect.Value {
+	val := i.values[t]
+
+	if val.IsValid() {
+		return val
+	}
+
+	// no concrete types found, try to find implementors
+	// if t is an interface
+	if t.Kind() == reflect.Interface {
+		for k, v := range i.values {
+			if k.Implements(t) {
+				val = v
+				break
+			}
+		}
+	}
+
+	// Still no type found, try to look it up on the parent
+	if !val.IsValid() && i.parent != nil {
+		val = i.parent.Get(t)
+	}
+
+	return val
+
+}
+
+func (i *injector) SetParent(parent Injector) {
+	i.parent = parent
+}
