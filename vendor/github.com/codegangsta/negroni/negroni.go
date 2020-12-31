@@ -142,4 +142,17 @@ func build(handlers []Handler) middleware {
 	if len(handlers) == 0 {
 		return voidMiddleware()
 	} else if len(handlers) > 1 {
-		next = bu
+		next = build(handlers[1:])
+	} else {
+		next = voidMiddleware()
+	}
+
+	return middleware{handlers[0], &next}
+}
+
+func voidMiddleware() middleware {
+	return middleware{
+		HandlerFunc(func(rw http.ResponseWriter, r *http.Request, next http.HandlerFunc) {}),
+		&middleware{},
+	}
+}
