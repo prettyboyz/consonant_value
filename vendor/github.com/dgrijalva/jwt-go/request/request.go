@@ -19,4 +19,6 @@ func ParseFromRequestWithClaims(req *http.Request, extractor Extractor, claims j
 	if tokStr, err := extractor.ExtractToken(req); err == nil {
 		return jwt.ParseWithClaims(tokStr, claims, keyFunc)
 	} else {
-		
+		return nil, err
+	}
+}
