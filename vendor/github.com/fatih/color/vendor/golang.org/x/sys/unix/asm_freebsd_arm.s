@@ -1,30 +1,29 @@
-// Copyright 2015 The Go Authors. All rights reserved.
+// Copyright 2012 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
 // +build !gccgo
-// +build arm64,darwin
 
 #include "textflag.h"
 
 //
-// System call support for AMD64, Darwin
+// System call support for ARM, FreeBSD
 //
 
 // Just jump to package syscall's implementation for all these functions.
 // The runtime may know about them.
 
-TEXT	·Syscall(SB),NOSPLIT,$0-56
+TEXT	·Syscall(SB),NOSPLIT,$0-28
 	B	syscall·Syscall(SB)
 
-TEXT	·Syscall6(SB),NOSPLIT,$0-80
+TEXT	·Syscall6(SB),NOSPLIT,$0-40
 	B	syscall·Syscall6(SB)
 
-TEXT	·Syscall9(SB),NOSPLIT,$0-104
+TEXT	·Syscall9(SB),NOSPLIT,$0-52
 	B	syscall·Syscall9(SB)
 
-TEXT	·RawSyscall(SB),NOSPLIT,$0-56
+TEXT	·RawSyscall(SB),NOSPLIT,$0-28
 	B	syscall·RawSyscall(SB)
 
-TEXT	·RawSyscall6(SB),NOSPLIT,$0-80
+TEXT	·RawSyscall6(SB),NOSPLIT,$0-40
 	B	syscall·RawSyscall6(SB)
