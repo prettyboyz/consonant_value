@@ -9,3 +9,12 @@ package unix
 import "syscall"
 
 //extern sysconf
+func realSysconf(name int) int64
+
+func sysconf(name int) (n int64, err syscall.Errno) {
+	r := realSysconf(name)
+	if r < 0 {
+		return 0, syscall.GetErrno()
+	}
+	return r, 0
+}
