@@ -1,8 +1,9 @@
-// Copyright 2015 The Go Authors. All rights reserved.
+
+// Copyright 2009 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// +build arm64,darwin
+// +build amd64,dragonfly
 
 package unix
 
@@ -11,7 +12,7 @@ import (
 	"unsafe"
 )
 
-func Getpagesize() int { return 16384 }
+func Getpagesize() int { return 4096 }
 
 func TimespecToNsec(ts Timespec) int64 { return int64(ts.Sec)*1e9 + int64(ts.Nsec) }
 
@@ -23,20 +24,9 @@ func NsecToTimespec(nsec int64) (ts Timespec) {
 
 func NsecToTimeval(nsec int64) (tv Timeval) {
 	nsec += 999 // round up to microsecond
-	tv.Usec = int32(nsec % 1e9 / 1e3)
+	tv.Usec = nsec % 1e9 / 1e3
 	tv.Sec = int64(nsec / 1e9)
 	return
-}
-
-//sysnb	gettimeofday(tp *Timeval) (sec int64, usec int32, err error)
-func Gettimeofday(tv *Timeval) (err error) {
-	// The tv passed to gettimeofday must be non-nil
-	// but is otherwise unused.  The answers come back
-	// in the two registers.
-	sec, usec, err := gettimeofday(tv)
-	tv.Sec = sec
-	tv.Usec = usec
-	return err
 }
 
 func SetKevent(k *Kevent_t, fd, mode, flags int) {
@@ -58,11 +48,10 @@ func (cmsg *Cmsghdr) SetLen(length int) {
 }
 
 func sendfile(outfd int, infd int, offset *int64, count int) (written int, err error) {
-	var length = uint64(count)
+	var writtenOut uint64 = 0
+	_, _, e1 := Syscall9(SYS_SENDFILE, uintptr(infd), uintptr(outfd), uintptr(*offset), uintptr(count), 0, uintptr(unsafe.Pointer(&writtenOut)), 0, 0, 0)
 
-	_, _, e1 := Syscall6(SYS_SENDFILE, uintptr(infd), uintptr(outfd), uintptr(*offset), uintptr(unsafe.Pointer(&length)), 0, 0)
-
-	written = int(length)
+	written = int(writtenOut)
 
 	if e1 != 0 {
 		err = e1
@@ -70,8 +59,4 @@ func sendfile(outfd int, infd int, offset *int64, count int) (written int, err e
 	return
 }
 
-func Syscall9(num, a1, a2, a3, a4, a5, a6, a7, a8, a9 uintptr) (r1, r2 uintptr, err syscall.Errno) // sic
-
-// SYS___SYSCTL is used by syscall_bsd.go for all BSDs, but in modern versions
-// of darwin/arm64 the syscall is called sysctl instead of __sysctl.
-const SYS___SYSCTL = SYS_SYSCTL
+func Syscall9(num, a1, a2, a3, a4, a5, a6, a7, a8, a9 uintptr) (r1, r2 uintptr, err syscall.Errno)
