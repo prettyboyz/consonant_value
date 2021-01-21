@@ -1,15 +1,21 @@
 
-// Copyright 2015 The Go Authors. All rights reserved.
+// Copyright 2009 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// +build linux
-// +build mips64 mips64le
+// +build sparc64,linux
 
 package unix
 
+import (
+	"sync/atomic"
+	"syscall"
+)
+
 //sys	EpollWait(epfd int, events []EpollEvent, msec int) (n int, err error)
+//sys	Dup2(oldfd int, newfd int) (err error)
 //sys	Fchown(fd int, uid int, gid int) (err error)
+//sys	Fstat(fd int, stat *Stat_t) (err error)
 //sys	Fstatfs(fd int, buf *Statfs_t) (err error)
 //sys	Ftruncate(fd int, length int64) (err error)
 //sysnb	Getegid() (egid int)
@@ -17,13 +23,15 @@ package unix
 //sysnb	Getgid() (gid int)
 //sysnb	Getrlimit(resource int, rlim *Rlimit) (err error)
 //sysnb	Getuid() (uid int)
+//sysnb	InotifyInit() (fd int, err error)
 //sys	Lchown(path string, uid int, gid int) (err error)
 //sys	Listen(s int, n int) (err error)
+//sys	Lstat(path string, stat *Stat_t) (err error)
 //sys	Pause() (err error)
 //sys	Pread(fd int, p []byte, offset int64) (n int, err error) = SYS_PREAD64
 //sys	Pwrite(fd int, p []byte, offset int64) (n int, err error) = SYS_PWRITE64
 //sys	Seek(fd int, offset int64, whence int) (off int64, err error) = SYS_LSEEK
-//sys	Select(nfd int, r *FdSet, w *FdSet, e *FdSet, timeout *Timeval) (n int, err error) = SYS_PSELECT6
+//sys	Select(nfd int, r *FdSet, w *FdSet, e *FdSet, timeout *Timeval) (n int, err error)
 //sys	sendfile(outfd int, infd int, offset *int64, count int) (written int, err error)
 //sys	Setfsgid(gid int) (err error)
 //sys	Setfsuid(uid int) (err error)
@@ -34,6 +42,7 @@ package unix
 //sysnb	Setreuid(ruid int, euid int) (err error)
 //sys	Shutdown(fd int, how int) (err error)
 //sys	Splice(rfd int, roff *int64, wfd int, woff *int64, len int, flags int) (n int64, err error)
+//sys	Stat(path string, stat *Stat_t) (err error)
 //sys	Statfs(path string, buf *Statfs_t) (err error)
 //sys	SyncFileRange(fd int, off int64, n int64, flags int) (err error)
 //sys	Truncate(path string, length int64) (err error)
@@ -55,7 +64,28 @@ package unix
 //sys	sendmsg(s int, msg *Msghdr, flags int) (n int, err error)
 //sys	mmap(addr uintptr, length uintptr, prot int, flags int, fd int, offset int64) (xaddr uintptr, err error)
 
-func Getpagesize() int { return 65536 }
+func sysconf(name int) (n int64, err syscall.Errno)
+
+// pageSize caches the value of Getpagesize, since it can't change
+// once the system is booted.
+var pageSize int64 // accessed atomically
+
+func Getpagesize() int {
+	n := atomic.LoadInt64(&pageSize)
+	if n == 0 {
+		n, _ = sysconf(_SC_PAGESIZE)
+		atomic.StoreInt64(&pageSize, n)
+	}
+	return int(n)
+}
+
+func Ioperm(from int, num int, on int) (err error) {
+	return ENOSYS
+}
+
+func Iopl(level int) (err error) {
+	return ENOSYS
+}
 
 //sysnb	Gettimeofday(tv *Timeval) (err error)
 
@@ -84,16 +114,34 @@ func NsecToTimespec(nsec int64) (ts Timespec) {
 func NsecToTimeval(nsec int64) (tv Timeval) {
 	nsec += 999 // round up to microsecond
 	tv.Sec = nsec / 1e9
-	tv.Usec = nsec % 1e9 / 1e3
+	tv.Usec = int32(nsec % 1e9 / 1e3)
 	return
 }
+
+func (r *PtraceRegs) PC() uint64 { return r.Tpc }
+
+func (r *PtraceRegs) SetPC(pc uint64) { r.Tpc = pc }
+
+func (iov *Iovec) SetLen(length int) {
+	iov.Len = uint64(length)
+}
+
+func (msghdr *Msghdr) SetControllen(length int) {
+	msghdr.Controllen = uint64(length)
+}
+
+func (cmsg *Cmsghdr) SetLen(length int) {
+	cmsg.Len = uint64(length)
+}
+
+//sysnb pipe(p *[2]_C_int) (err error)
 
 func Pipe(p []int) (err error) {
 	if len(p) != 2 {
 		return EINVAL
 	}
 	var pp [2]_C_int
-	err = pipe2(&pp, 0)
+	err = pipe(&pp)
 	p[0] = int(pp[0])
 	p[1] = int(pp[1])
 	return
@@ -110,93 +158,6 @@ func Pipe2(p []int, flags int) (err error) {
 	p[0] = int(pp[0])
 	p[1] = int(pp[1])
 	return
-}
-
-func Ioperm(from int, num int, on int) (err error) {
-	return ENOSYS
-}
-
-func Iopl(level int) (err error) {
-	return ENOSYS
-}
-
-type stat_t struct {
-	Dev        uint32
-	Pad0       [3]int32
-	Ino        uint64
-	Mode       uint32
-	Nlink      uint32
-	Uid        uint32
-	Gid        uint32
-	Rdev       uint32
-	Pad1       [3]uint32
-	Size       int64
-	Atime      uint32
-	Atime_nsec uint32
-	Mtime      uint32
-	Mtime_nsec uint32
-	Ctime      uint32
-	Ctime_nsec uint32
-	Blksize    uint32
-	Pad2       uint32
-	Blocks     int64
-}
-
-//sys	fstat(fd int, st *stat_t) (err error)
-//sys	lstat(path string, st *stat_t) (err error)
-//sys	stat(path string, st *stat_t) (err error)
-
-func Fstat(fd int, s *Stat_t) (err error) {
-	st := &stat_t{}
-	err = fstat(fd, st)
-	fillStat_t(s, st)
-	return
-}
-
-func Lstat(path string, s *Stat_t) (err error) {
-	st := &stat_t{}
-	err = lstat(path, st)
-	fillStat_t(s, st)
-	return
-}
-
-func Stat(path string, s *Stat_t) (err error) {
-	st := &stat_t{}
-	err = stat(path, st)
-	fillStat_t(s, st)
-	return
-}
-
-func fillStat_t(s *Stat_t, st *stat_t) {
-	s.Dev = st.Dev
-	s.Ino = st.Ino
-	s.Mode = st.Mode
-	s.Nlink = st.Nlink
-	s.Uid = st.Uid
-	s.Gid = st.Gid
-	s.Rdev = st.Rdev
-	s.Size = st.Size
-	s.Atim = Timespec{int64(st.Atime), int64(st.Atime_nsec)}
-	s.Mtim = Timespec{int64(st.Mtime), int64(st.Mtime_nsec)}
-	s.Ctim = Timespec{int64(st.Ctime), int64(st.Ctime_nsec)}
-	s.Blksize = st.Blksize
-	s.Blocks = st.Blocks
-}
-
-func (r *PtraceRegs) PC() uint64 { return r.Regs[64] }
-
-func (r *PtraceRegs) SetPC(pc uint64) { r.Regs[64] = pc }
-
-func (iov *Iovec) SetLen(length int) {
-	iov.Len = uint64(length)
-}
-
-func (msghdr *Msghdr) SetControllen(length int) {
-	msghdr.Controllen = uint64(length)
-}
-
-func (cmsg *Cmsghdr) SetLen(length int) {
-	cmsg.Len = uint64(length)
 }
 
 //sys	poll(fds *PollFd, nfds int, timeout int) (n int, err error)
