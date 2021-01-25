@@ -190,4 +190,114 @@ func Getfsstat(buf []Statfs_t, flags int) (n int, err error) {
 //sys	Setpriority(which int, who int, prio int) (err error)
 //sysnb	Setregid(rgid int, egid int) (err error)
 //sysnb	Setreuid(ruid int, euid int) (err error)
-//sysnb	Setresgid(rgid in
+//sysnb	Setresgid(rgid int, egid int, sgid int) (err error)
+//sysnb	Setresuid(ruid int, euid int, suid int) (err error)
+//sysnb	Setrlimit(which int, lim *Rlimit) (err error)
+//sysnb	Setsid() (pid int, err error)
+//sysnb	Settimeofday(tp *Timeval) (err error)
+//sysnb	Setuid(uid int) (err error)
+//sys	Stat(path string, stat *Stat_t) (err error)
+//sys	Statfs(path string, stat *Statfs_t) (err error)
+//sys	Symlink(path string, link string) (err error)
+//sys	Sync() (err error)
+//sys	Truncate(path string, length int64) (err error)
+//sys	Umask(newmask int) (oldmask int)
+//sys	Unlink(path string) (err error)
+//sys	Unmount(path string, flags int) (err error)
+//sys	write(fd int, p []byte) (n int, err error)
+//sys	mmap(addr uintptr, length uintptr, prot int, flag int, fd int, pos int64) (ret uintptr, err error)
+//sys	munmap(addr uintptr, length uintptr) (err error)
+//sys	readlen(fd int, buf *byte, nbuf int) (n int, err error) = SYS_READ
+//sys	writelen(fd int, buf *byte, nbuf int) (n int, err error) = SYS_WRITE
+
+/*
+ * Unimplemented
+ */
+// __getcwd
+// __semctl
+// __syscall
+// __sysctl
+// adjfreq
+// break
+// clock_getres
+// clock_gettime
+// clock_settime
+// closefrom
+// execve
+// faccessat
+// fchmodat
+// fchownat
+// fcntl
+// fhopen
+// fhstat
+// fhstatfs
+// fork
+// fstatat
+// futimens
+// getfh
+// getgid
+// getitimer
+// getlogin
+// getresgid
+// getresuid
+// getrtable
+// getthrid
+// ioctl
+// ktrace
+// lfs_bmapv
+// lfs_markv
+// lfs_segclean
+// lfs_segwait
+// linkat
+// mincore
+// minherit
+// mkdirat
+// mkfifoat
+// mknodat
+// mount
+// mquery
+// msgctl
+// msgget
+// msgrcv
+// msgsnd
+// nfssvc
+// nnpfspioctl
+// openat
+// poll
+// preadv
+// profil
+// pwritev
+// quotactl
+// readlinkat
+// readv
+// reboot
+// renameat
+// rfork
+// sched_yield
+// semget
+// semop
+// setgroups
+// setitimer
+// setrtable
+// setsockopt
+// shmat
+// shmctl
+// shmdt
+// shmget
+// sigaction
+// sigaltstack
+// sigpending
+// sigprocmask
+// sigreturn
+// sigsuspend
+// symlinkat
+// sysarch
+// syscall
+// threxit
+// thrsigdivert
+// thrsleep
+// thrwakeup
+// unlinkat
+// utimensat
+// vfork
+// writev
