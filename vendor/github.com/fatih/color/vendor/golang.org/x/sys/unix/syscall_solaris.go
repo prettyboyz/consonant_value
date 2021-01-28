@@ -342,4 +342,165 @@ func FcntlFlock(fd uintptr, cmd int, lk *Flock_t) error {
 	_, _, e1 := sysvicall6(uintptr(unsafe.Pointer(&procfcntl)), 3, uintptr(fd), uintptr(cmd), uintptr(unsafe.Pointer(lk)), 0, 0, 0)
 	if e1 != 0 {
 		return e1
+	}
+	return nil
+}
+
+//sys	futimesat(fildes int, path *byte, times *[2]Timeval) (err error)
+
+func Futimesat(dirfd int, path string, tv []Timeval) error {
+	pathp, err := BytePtrFromString(path)
+	if err != nil {
+		return err
+	}
+	if tv == nil {
+		return futimesat(dirfd, pathp, nil)
+	}
+	if len(tv) != 2 {
+		return EINVAL
+	}
+	return futimesat(dirfd, pathp, (*[2]Timeval)(unsafe.Pointer(&tv[0])))
+}
+
+// Solaris doesn't have an futimes function because it allows NULL to be
+// specified as the path for futimesat.  However, Go doesn't like
+// NULL-style string interfaces, so this simple wrapper is provided.
+func Futimes(fd int, tv []Timeval) error {
+	if tv == nil {
+		return futimesat(fd, nil, nil)
+	}
+	if len(tv) != 2 {
+		return EINVAL
+	}
+	return futimesat(fd, nil, (*[2]Timeval)(unsafe.Pointer(&tv[0])))
+}
+
+func anyToSockaddr(rsa *RawSockaddrAny) (Sockaddr, error) {
+	switch rsa.Addr.Family {
+	case AF_UNIX:
+		pp := (*RawSockaddrUnix)(unsafe.Pointer(rsa))
+		sa := new(SockaddrUnix)
+		// Assume path ends at NUL.
+		// This is not technically the Solaris semantics for
+		// abstract Unix domain sockets -- they are supposed
+		// to be uninterpreted fixed-size binary blobs -- but
+		// everyone uses this convention.
+		n := 0
+		for n < len(pp.Path) && pp.Path[n] != 0 {
+			n++
+		}
+		bytes := (*[10000]byte)(unsafe.Pointer(&pp.Path[0]))[0:n]
+		sa.Name = string(bytes)
+		return sa, nil
+
+	case AF_INET:
+		pp := (*RawSockaddrInet4)(unsafe.Pointer(rsa))
+		sa := new(SockaddrInet4)
+		p := (*[2]byte)(unsafe.Pointer(&pp.Port))
+		sa.Port = int(p[0])<<8 + int(p[1])
+		for i := 0; i < len(sa.Addr); i++ {
+			sa.Addr[i] = pp.Addr[i]
+		}
+		return sa, nil
+
+	case AF_INET6:
+		pp := (*RawSockaddrInet6)(unsafe.Pointer(rsa))
+		sa := new(SockaddrInet6)
+		p := (*[2]byte)(unsafe.Pointer(&pp.Port))
+		sa.Port = int(p[0])<<8 + int(p[1])
+		sa.ZoneId = pp.Scope_id
+		for i := 0; i < len(sa.Addr); i++ {
+			sa.Addr[i] = pp.Addr[i]
+		}
+		return sa, nil
+	}
+	return nil, EAFNOSUPPORT
+}
+
+//sys	accept(s int, rsa *RawSockaddrAny, addrlen *_Socklen) (fd int, err error) = libsocket.accept
+
+func Accept(fd int) (nfd int, sa Sockaddr, err error) {
+	var rsa RawSockaddrAny
+	var len _Socklen = SizeofSockaddrAny
+	nfd, err = accept(fd, &rsa, &len)
+	if nfd == -1 {
+		return
+	}
+	sa, err = anyToSockaddr(&rsa)
+	if err != nil {
+		Close(nfd)
+		nfd = 0
+	}
+	return
+}
+
+//sys	recvmsg(s int, msg *Msghdr, flags int) (n int, err error) = libsocket.recvmsg
+
+func Recvmsg(fd int, p, oob []byte, flags int) (n, oobn int, recvflags int, from Sockaddr, err error) {
+	var msg Msghdr
+	var rsa RawSockaddrAny
+	msg.Name = (*byte)(unsafe.Pointer(&rsa))
+	msg.Namelen = uint32(SizeofSockaddrAny)
+	var iov Iovec
+	if len(p) > 0 {
+		iov.Base = (*int8)(unsafe.Pointer(&p[0]))
+		iov.SetLen(len(p))
+	}
+	var dummy int8
+	if len(oob) > 0 {
+		// receive at least one normal byte
+		if len(p) == 0 {
+			iov.Base = &dummy
+			iov.SetLen(1)
+		}
+		msg.Accrights = (*int8)(unsafe.Pointer(&oob[0]))
+	}
+	msg.Iov = &iov
+	msg.Iovlen = 1
+	if n, err = recvmsg(fd, &msg, flags); n == -1 {
+		return
+	}
+	oobn = int(msg.Accrightslen)
+	// source address is only specified if the socket is unconnected
+	if rsa.Addr.Family != AF_UNSPEC {
+		from, err = anyToSockaddr(&rsa)
+	}
+	return
+}
+
+func Sendmsg(fd int, p, oob []byte, to Sockaddr, flags int) (err error) {
+	_, err = SendmsgN(fd, p, oob, to, flags)
+	return
+}
+
+//sys	sendmsg(s int, msg *Msghdr, flags int) (n int, err error) = libsocket.sendmsg
+
+func SendmsgN(fd int, p, oob []byte, to Sockaddr, flags int) (n int, err error) {
+	var ptr unsafe.Pointer
+	var salen _Socklen
+	if to != nil {
+		ptr, salen, err = to.sockaddr()
+		if err != nil {
+			return 0, err
+		}
+	}
+	var msg Msghdr
+	msg.Name = (*byte)(unsafe.Pointer(ptr))
+	msg.Namelen = uint32(salen)
+	var iov Iovec
+	if len(p) > 0 {
+		iov.Base = (*int8)(unsafe.Pointer(&p[0]))
+		iov.SetLen(len(p))
+	}
+	var dummy int8
+	if len(oob) > 0 {
+		// send at least one normal byte
+		if len(p) == 0 {
+			iov.Base = &dummy
+			iov.SetLen(1)
+		}
+		msg.Accrights = (*int8)(unsafe.Pointer(&oob[0]))
+	}
+	msg.Iov = &iov
+	msg.Iovlen = 1
 	
