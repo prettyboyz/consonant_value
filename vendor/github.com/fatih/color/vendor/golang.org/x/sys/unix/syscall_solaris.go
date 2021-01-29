@@ -503,4 +503,129 @@ func SendmsgN(fd int, p, oob []byte, to Sockaddr, flags int) (n int, err error) 
 	}
 	msg.Iov = &iov
 	msg.Iovlen = 1
-	
+	if n, err = sendmsg(fd, &msg, flags); err != nil {
+		return 0, err
+	}
+	if len(oob) > 0 && len(p) == 0 {
+		n = 0
+	}
+	return n, nil
+}
+
+//sys	acct(path *byte) (err error)
+
+func Acct(path string) (err error) {
+	if len(path) == 0 {
+		// Assume caller wants to disable accounting.
+		return acct(nil)
+	}
+
+	pathp, err := BytePtrFromString(path)
+	if err != nil {
+		return err
+	}
+	return acct(pathp)
+}
+
+/*
+ * Expose the ioctl function
+ */
+
+//sys	ioctl(fd int, req int, arg uintptr) (err error)
+
+func IoctlSetInt(fd int, req int, value int) (err error) {
+	return ioctl(fd, req, uintptr(value))
+}
+
+func IoctlSetWinsize(fd int, req int, value *Winsize) (err error) {
+	return ioctl(fd, req, uintptr(unsafe.Pointer(value)))
+}
+
+func IoctlSetTermios(fd int, req int, value *Termios) (err error) {
+	return ioctl(fd, req, uintptr(unsafe.Pointer(value)))
+}
+
+func IoctlSetTermio(fd int, req int, value *Termio) (err error) {
+	return ioctl(fd, req, uintptr(unsafe.Pointer(value)))
+}
+
+func IoctlGetInt(fd int, req int) (int, error) {
+	var value int
+	err := ioctl(fd, req, uintptr(unsafe.Pointer(&value)))
+	return value, err
+}
+
+func IoctlGetWinsize(fd int, req int) (*Winsize, error) {
+	var value Winsize
+	err := ioctl(fd, req, uintptr(unsafe.Pointer(&value)))
+	return &value, err
+}
+
+func IoctlGetTermios(fd int, req int) (*Termios, error) {
+	var value Termios
+	err := ioctl(fd, req, uintptr(unsafe.Pointer(&value)))
+	return &value, err
+}
+
+func IoctlGetTermio(fd int, req int) (*Termio, error) {
+	var value Termio
+	err := ioctl(fd, req, uintptr(unsafe.Pointer(&value)))
+	return &value, err
+}
+
+/*
+ * Exposed directly
+ */
+//sys	Access(path string, mode uint32) (err error)
+//sys	Adjtime(delta *Timeval, olddelta *Timeval) (err error)
+//sys	Chdir(path string) (err error)
+//sys	Chmod(path string, mode uint32) (err error)
+//sys	Chown(path string, uid int, gid int) (err error)
+//sys	Chroot(path string) (err error)
+//sys	Close(fd int) (err error)
+//sys	Creat(path string, mode uint32) (fd int, err error)
+//sys	Dup(fd int) (nfd int, err error)
+//sys	Dup2(oldfd int, newfd int) (err error)
+//sys	Exit(code int)
+//sys	Fchdir(fd int) (err error)
+//sys	Fchmod(fd int, mode uint32) (err error)
+//sys	Fchmodat(dirfd int, path string, mode uint32, flags int) (err error)
+//sys	Fchown(fd int, uid int, gid int) (err error)
+//sys	Fchownat(dirfd int, path string, uid int, gid int, flags int) (err error)
+//sys	Fdatasync(fd int) (err error)
+//sys	Fpathconf(fd int, name int) (val int, err error)
+//sys	Fstat(fd int, stat *Stat_t) (err error)
+//sys	Getdents(fd int, buf []byte, basep *uintptr) (n int, err error)
+//sysnb	Getgid() (gid int)
+//sysnb	Getpid() (pid int)
+//sysnb	Getpgid(pid int) (pgid int, err error)
+//sysnb	Getpgrp() (pgid int, err error)
+//sys	Geteuid() (euid int)
+//sys	Getegid() (egid int)
+//sys	Getppid() (ppid int)
+//sys	Getpriority(which int, who int) (n int, err error)
+//sysnb	Getrlimit(which int, lim *Rlimit) (err error)
+//sysnb	Getrusage(who int, rusage *Rusage) (err error)
+//sysnb	Gettimeofday(tv *Timeval) (err error)
+//sysnb	Getuid() (uid int)
+//sys	Kill(pid int, signum syscall.Signal) (err error)
+//sys	Lchown(path string, uid int, gid int) (err error)
+//sys	Link(path string, link string) (err error)
+//sys	Listen(s int, backlog int) (err error) = libsocket.listen
+//sys	Lstat(path string, stat *Stat_t) (err error)
+//sys	Madvise(b []byte, advice int) (err error)
+//sys	Mkdir(path string, mode uint32) (err error)
+//sys	Mkdirat(dirfd int, path string, mode uint32) (err error)
+//sys	Mkfifo(path string, mode uint32) (err error)
+//sys	Mkfifoat(dirfd int, path string, mode uint32) (err error)
+//sys	Mknod(path string, mode uint32, dev int) (err error)
+//sys	Mknodat(dirfd int, path string, mode uint32, dev int) (err error)
+//sys	Mlock(b []byte) (err error)
+//sys	Mlockall(flags int) (err error)
+//sys	Mprotect(b []byte, prot int) (err error)
+//sys	Munlock(b []byte) (err error)
+//sys	Munlockall() (err error)
+//sys	Nanosleep(time *Timespec, leftover *Timespec) (err error)
+//sys	Open(path string, mode int, perm uint32) (fd int, err error)
+//sys	Openat(dirfd int, path string, flags int, mode uint32) (fd int, err error)
+//sys	Pat
