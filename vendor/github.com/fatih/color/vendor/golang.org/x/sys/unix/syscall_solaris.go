@@ -628,4 +628,95 @@ func IoctlGetTermio(fd int, req int) (*Termio, error) {
 //sys	Nanosleep(time *Timespec, leftover *Timespec) (err error)
 //sys	Open(path string, mode int, perm uint32) (fd int, err error)
 //sys	Openat(dirfd int, path string, flags int, mode uint32) (fd int, err error)
-//sys	Pat
+//sys	Pathconf(path string, name int) (val int, err error)
+//sys	Pause() (err error)
+//sys	Pread(fd int, p []byte, offset int64) (n int, err error)
+//sys	Pwrite(fd int, p []byte, offset int64) (n int, err error)
+//sys	read(fd int, p []byte) (n int, err error)
+//sys	Readlink(path string, buf []byte) (n int, err error)
+//sys	Rename(from string, to string) (err error)
+//sys	Renameat(olddirfd int, oldpath string, newdirfd int, newpath string) (err error)
+//sys	Rmdir(path string) (err error)
+//sys	Seek(fd int, offset int64, whence int) (newoffset int64, err error) = lseek
+//sysnb	Setegid(egid int) (err error)
+//sysnb	Seteuid(euid int) (err error)
+//sysnb	Setgid(gid int) (err error)
+//sys	Sethostname(p []byte) (err error)
+//sysnb	Setpgid(pid int, pgid int) (err error)
+//sys	Setpriority(which int, who int, prio int) (err error)
+//sysnb	Setregid(rgid int, egid int) (err error)
+//sysnb	Setreuid(ruid int, euid int) (err error)
+//sysnb	Setrlimit(which int, lim *Rlimit) (err error)
+//sysnb	Setsid() (pid int, err error)
+//sysnb	Setuid(uid int) (err error)
+//sys	Shutdown(s int, how int) (err error) = libsocket.shutdown
+//sys	Stat(path string, stat *Stat_t) (err error)
+//sys	Symlink(path string, link string) (err error)
+//sys	Sync() (err error)
+//sysnb	Times(tms *Tms) (ticks uintptr, err error)
+//sys	Truncate(path string, length int64) (err error)
+//sys	Fsync(fd int) (err error)
+//sys	Ftruncate(fd int, length int64) (err error)
+//sys	Umask(mask int) (oldmask int)
+//sysnb	Uname(buf *Utsname) (err error)
+//sys	Unmount(target string, flags int) (err error) = libc.umount
+//sys	Unlink(path string) (err error)
+//sys	Unlinkat(dirfd int, path string, flags int) (err error)
+//sys	Ustat(dev int, ubuf *Ustat_t) (err error)
+//sys	Utime(path string, buf *Utimbuf) (err error)
+//sys	bind(s int, addr unsafe.Pointer, addrlen _Socklen) (err error) = libsocket.bind
+//sys	connect(s int, addr unsafe.Pointer, addrlen _Socklen) (err error) = libsocket.connect
+//sys	mmap(addr uintptr, length uintptr, prot int, flag int, fd int, pos int64) (ret uintptr, err error)
+//sys	munmap(addr uintptr, length uintptr) (err error)
+//sys	sendto(s int, buf []byte, flags int, to unsafe.Pointer, addrlen _Socklen) (err error) = libsocket.sendto
+//sys	socket(domain int, typ int, proto int) (fd int, err error) = libsocket.socket
+//sysnb	socketpair(domain int, typ int, proto int, fd *[2]int32) (err error) = libsocket.socketpair
+//sys	write(fd int, p []byte) (n int, err error)
+//sys	getsockopt(s int, level int, name int, val unsafe.Pointer, vallen *_Socklen) (err error) = libsocket.getsockopt
+//sysnb	getpeername(fd int, rsa *RawSockaddrAny, addrlen *_Socklen) (err error) = libsocket.getpeername
+//sys	setsockopt(s int, level int, name int, val unsafe.Pointer, vallen uintptr) (err error) = libsocket.setsockopt
+//sys	recvfrom(fd int, p []byte, flags int, from *RawSockaddrAny, fromlen *_Socklen) (n int, err error) = libsocket.recvfrom
+
+func readlen(fd int, buf *byte, nbuf int) (n int, err error) {
+	r0, _, e1 := sysvicall6(uintptr(unsafe.Pointer(&procread)), 3, uintptr(fd), uintptr(unsafe.Pointer(buf)), uintptr(nbuf), 0, 0, 0)
+	n = int(r0)
+	if e1 != 0 {
+		err = e1
+	}
+	return
+}
+
+func writelen(fd int, buf *byte, nbuf int) (n int, err error) {
+	r0, _, e1 := sysvicall6(uintptr(unsafe.Pointer(&procwrite)), 3, uintptr(fd), uintptr(unsafe.Pointer(buf)), uintptr(nbuf), 0, 0, 0)
+	n = int(r0)
+	if e1 != 0 {
+		err = e1
+	}
+	return
+}
+
+var mapper = &mmapper{
+	active: make(map[*byte][]byte),
+	mmap:   mmap,
+	munmap: munmap,
+}
+
+func Mmap(fd int, offset int64, length int, prot int, flags int) (data []byte, err error) {
+	return mapper.Mmap(fd, offset, length, prot, flags)
+}
+
+func Munmap(b []byte) (err error) {
+	return mapper.Munmap(b)
+}
+
+//sys	sysconf(name int) (n int64, err error)
+
+// pageSize caches the value of Getpagesize, since it can't change
+// once the system is booted.
+var pageSize int64 // accessed atomically
+
+func Getpagesize() int {
+	n := atomic.LoadInt64(&pageSize)
+	if n == 0 {
+		n, _ = sysconf(_SC_PAGESIZE)
+		atomic.Store
