@@ -1301,3 +1301,277 @@ const (
 	EBADRPC         = syscall.Errno(0x48)
 	EBUSY           = syscall.Errno(0x10)
 	ECANCELED       = syscall.Errno(0x59)
+	ECHILD          = syscall.Errno(0xa)
+	ECONNABORTED    = syscall.Errno(0x35)
+	ECONNREFUSED    = syscall.Errno(0x3d)
+	ECONNRESET      = syscall.Errno(0x36)
+	EDEADLK         = syscall.Errno(0xb)
+	EDESTADDRREQ    = syscall.Errno(0x27)
+	EDEVERR         = syscall.Errno(0x53)
+	EDOM            = syscall.Errno(0x21)
+	EDQUOT          = syscall.Errno(0x45)
+	EEXIST          = syscall.Errno(0x11)
+	EFAULT          = syscall.Errno(0xe)
+	EFBIG           = syscall.Errno(0x1b)
+	EFTYPE          = syscall.Errno(0x4f)
+	EHOSTDOWN       = syscall.Errno(0x40)
+	EHOSTUNREACH    = syscall.Errno(0x41)
+	EIDRM           = syscall.Errno(0x5a)
+	EILSEQ          = syscall.Errno(0x5c)
+	EINPROGRESS     = syscall.Errno(0x24)
+	EINTR           = syscall.Errno(0x4)
+	EINVAL          = syscall.Errno(0x16)
+	EIO             = syscall.Errno(0x5)
+	EISCONN         = syscall.Errno(0x38)
+	EISDIR          = syscall.Errno(0x15)
+	ELAST           = syscall.Errno(0x6a)
+	ELOOP           = syscall.Errno(0x3e)
+	EMFILE          = syscall.Errno(0x18)
+	EMLINK          = syscall.Errno(0x1f)
+	EMSGSIZE        = syscall.Errno(0x28)
+	EMULTIHOP       = syscall.Errno(0x5f)
+	ENAMETOOLONG    = syscall.Errno(0x3f)
+	ENEEDAUTH       = syscall.Errno(0x51)
+	ENETDOWN        = syscall.Errno(0x32)
+	ENETRESET       = syscall.Errno(0x34)
+	ENETUNREACH     = syscall.Errno(0x33)
+	ENFILE          = syscall.Errno(0x17)
+	ENOATTR         = syscall.Errno(0x5d)
+	ENOBUFS         = syscall.Errno(0x37)
+	ENODATA         = syscall.Errno(0x60)
+	ENODEV          = syscall.Errno(0x13)
+	ENOENT          = syscall.Errno(0x2)
+	ENOEXEC         = syscall.Errno(0x8)
+	ENOLCK          = syscall.Errno(0x4d)
+	ENOLINK         = syscall.Errno(0x61)
+	ENOMEM          = syscall.Errno(0xc)
+	ENOMSG          = syscall.Errno(0x5b)
+	ENOPOLICY       = syscall.Errno(0x67)
+	ENOPROTOOPT     = syscall.Errno(0x2a)
+	ENOSPC          = syscall.Errno(0x1c)
+	ENOSR           = syscall.Errno(0x62)
+	ENOSTR          = syscall.Errno(0x63)
+	ENOSYS          = syscall.Errno(0x4e)
+	ENOTBLK         = syscall.Errno(0xf)
+	ENOTCONN        = syscall.Errno(0x39)
+	ENOTDIR         = syscall.Errno(0x14)
+	ENOTEMPTY       = syscall.Errno(0x42)
+	ENOTRECOVERABLE = syscall.Errno(0x68)
+	ENOTSOCK        = syscall.Errno(0x26)
+	ENOTSUP         = syscall.Errno(0x2d)
+	ENOTTY          = syscall.Errno(0x19)
+	ENXIO           = syscall.Errno(0x6)
+	EOPNOTSUPP      = syscall.Errno(0x66)
+	EOVERFLOW       = syscall.Errno(0x54)
+	EOWNERDEAD      = syscall.Errno(0x69)
+	EPERM           = syscall.Errno(0x1)
+	EPFNOSUPPORT    = syscall.Errno(0x2e)
+	EPIPE           = syscall.Errno(0x20)
+	EPROCLIM        = syscall.Errno(0x43)
+	EPROCUNAVAIL    = syscall.Errno(0x4c)
+	EPROGMISMATCH   = syscall.Errno(0x4b)
+	EPROGUNAVAIL    = syscall.Errno(0x4a)
+	EPROTO          = syscall.Errno(0x64)
+	EPROTONOSUPPORT = syscall.Errno(0x2b)
+	EPROTOTYPE      = syscall.Errno(0x29)
+	EPWROFF         = syscall.Errno(0x52)
+	EQFULL          = syscall.Errno(0x6a)
+	ERANGE          = syscall.Errno(0x22)
+	EREMOTE         = syscall.Errno(0x47)
+	EROFS           = syscall.Errno(0x1e)
+	ERPCMISMATCH    = syscall.Errno(0x49)
+	ESHLIBVERS      = syscall.Errno(0x57)
+	ESHUTDOWN       = syscall.Errno(0x3a)
+	ESOCKTNOSUPPORT = syscall.Errno(0x2c)
+	ESPIPE          = syscall.Errno(0x1d)
+	ESRCH           = syscall.Errno(0x3)
+	ESTALE          = syscall.Errno(0x46)
+	ETIME           = syscall.Errno(0x65)
+	ETIMEDOUT       = syscall.Errno(0x3c)
+	ETOOMANYREFS    = syscall.Errno(0x3b)
+	ETXTBSY         = syscall.Errno(0x1a)
+	EUSERS          = syscall.Errno(0x44)
+	EWOULDBLOCK     = syscall.Errno(0x23)
+	EXDEV           = syscall.Errno(0x12)
+)
+
+// Signals
+const (
+	SIGABRT   = syscall.Signal(0x6)
+	SIGALRM   = syscall.Signal(0xe)
+	SIGBUS    = syscall.Signal(0xa)
+	SIGCHLD   = syscall.Signal(0x14)
+	SIGCONT   = syscall.Signal(0x13)
+	SIGEMT    = syscall.Signal(0x7)
+	SIGFPE    = syscall.Signal(0x8)
+	SIGHUP    = syscall.Signal(0x1)
+	SIGILL    = syscall.Signal(0x4)
+	SIGINFO   = syscall.Signal(0x1d)
+	SIGINT    = syscall.Signal(0x2)
+	SIGIO     = syscall.Signal(0x17)
+	SIGIOT    = syscall.Signal(0x6)
+	SIGKILL   = syscall.Signal(0x9)
+	SIGPIPE   = syscall.Signal(0xd)
+	SIGPROF   = syscall.Signal(0x1b)
+	SIGQUIT   = syscall.Signal(0x3)
+	SIGSEGV   = syscall.Signal(0xb)
+	SIGSTOP   = syscall.Signal(0x11)
+	SIGSYS    = syscall.Signal(0xc)
+	SIGTERM   = syscall.Signal(0xf)
+	SIGTRAP   = syscall.Signal(0x5)
+	SIGTSTP   = syscall.Signal(0x12)
+	SIGTTIN   = syscall.Signal(0x15)
+	SIGTTOU   = syscall.Signal(0x16)
+	SIGURG    = syscall.Signal(0x10)
+	SIGUSR1   = syscall.Signal(0x1e)
+	SIGUSR2   = syscall.Signal(0x1f)
+	SIGVTALRM = syscall.Signal(0x1a)
+	SIGWINCH  = syscall.Signal(0x1c)
+	SIGXCPU   = syscall.Signal(0x18)
+	SIGXFSZ   = syscall.Signal(0x19)
+)
+
+// Error table
+var errors = [...]string{
+	1:   "operation not permitted",
+	2:   "no such file or directory",
+	3:   "no such process",
+	4:   "interrupted system call",
+	5:   "input/output error",
+	6:   "device not configured",
+	7:   "argument list too long",
+	8:   "exec format error",
+	9:   "bad file descriptor",
+	10:  "no child processes",
+	11:  "resource deadlock avoided",
+	12:  "cannot allocate memory",
+	13:  "permission denied",
+	14:  "bad address",
+	15:  "block device required",
+	16:  "resource busy",
+	17:  "file exists",
+	18:  "cross-device link",
+	19:  "operation not supported by device",
+	20:  "not a directory",
+	21:  "is a directory",
+	22:  "invalid argument",
+	23:  "too many open files in system",
+	24:  "too many open files",
+	25:  "inappropriate ioctl for device",
+	26:  "text file busy",
+	27:  "file too large",
+	28:  "no space left on device",
+	29:  "illegal seek",
+	30:  "read-only file system",
+	31:  "too many links",
+	32:  "broken pipe",
+	33:  "numerical argument out of domain",
+	34:  "result too large",
+	35:  "resource temporarily unavailable",
+	36:  "operation now in progress",
+	37:  "operation already in progress",
+	38:  "socket operation on non-socket",
+	39:  "destination address required",
+	40:  "message too long",
+	41:  "protocol wrong type for socket",
+	42:  "protocol not available",
+	43:  "protocol not supported",
+	44:  "socket type not supported",
+	45:  "operation not supported",
+	46:  "protocol family not supported",
+	47:  "address family not supported by protocol family",
+	48:  "address already in use",
+	49:  "can't assign requested address",
+	50:  "network is down",
+	51:  "network is unreachable",
+	52:  "network dropped connection on reset",
+	53:  "software caused connection abort",
+	54:  "connection reset by peer",
+	55:  "no buffer space available",
+	56:  "socket is already connected",
+	57:  "socket is not connected",
+	58:  "can't send after socket shutdown",
+	59:  "too many references: can't splice",
+	60:  "operation timed out",
+	61:  "connection refused",
+	62:  "too many levels of symbolic links",
+	63:  "file name too long",
+	64:  "host is down",
+	65:  "no route to host",
+	66:  "directory not empty",
+	67:  "too many processes",
+	68:  "too many users",
+	69:  "disc quota exceeded",
+	70:  "stale NFS file handle",
+	71:  "too many levels of remote in path",
+	72:  "RPC struct is bad",
+	73:  "RPC version wrong",
+	74:  "RPC prog. not avail",
+	75:  "program version wrong",
+	76:  "bad procedure for program",
+	77:  "no locks available",
+	78:  "function not implemented",
+	79:  "inappropriate file type or format",
+	80:  "authentication error",
+	81:  "need authenticator",
+	82:  "device power is off",
+	83:  "device error",
+	84:  "value too large to be stored in data type",
+	85:  "bad executable (or shared library)",
+	86:  "bad CPU type in executable",
+	87:  "shared library version mismatch",
+	88:  "malformed Mach-o file",
+	89:  "operation canceled",
+	90:  "identifier removed",
+	91:  "no message of desired type",
+	92:  "illegal byte sequence",
+	93:  "attribute not found",
+	94:  "bad message",
+	95:  "EMULTIHOP (Reserved)",
+	96:  "no message available on STREAM",
+	97:  "ENOLINK (Reserved)",
+	98:  "no STREAM resources",
+	99:  "not a STREAM",
+	100: "protocol error",
+	101: "STREAM ioctl timeout",
+	102: "operation not supported on socket",
+	103: "policy not found",
+	104: "state not recoverable",
+	105: "previous owner died",
+	106: "interface output queue is full",
+}
+
+// Signal table
+var signals = [...]string{
+	1:  "hangup",
+	2:  "interrupt",
+	3:  "quit",
+	4:  "illegal instruction",
+	5:  "trace/BPT trap",
+	6:  "abort trap",
+	7:  "EMT trap",
+	8:  "floating point exception",
+	9:  "killed",
+	10: "bus error",
+	11: "segmentation fault",
+	12: "bad system call",
+	13: "broken pipe",
+	14: "alarm clock",
+	15: "terminated",
+	16: "urgent I/O condition",
+	17: "suspended (signal)",
+	18: "suspended",
+	19: "continued",
+	20: "child exited",
+	21: "stopped (tty input)",
+	22: "stopped (tty output)",
+	23: "I/O possible",
+	24: "cputime limit exceeded",
+	25: "filesize limit exceeded",
+	26: "virtual timer expired",
+	27: "profiling timer expired",
+	28: "window size changes",
+	29: "information request",
+	30: "user defined signal 1",
+	31: "user defined signal 2",
+}
