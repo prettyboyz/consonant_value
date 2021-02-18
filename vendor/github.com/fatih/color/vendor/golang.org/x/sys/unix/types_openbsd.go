@@ -1,3 +1,4 @@
+
 // Copyright 2009 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
@@ -21,10 +22,11 @@ package unix
 #include <termios.h>
 #include <stdio.h>
 #include <unistd.h>
+#include <sys/param.h>
+#include <sys/types.h>
 #include <sys/event.h>
 #include <sys/mman.h>
 #include <sys/mount.h>
-#include <sys/param.h>
 #include <sys/ptrace.h>
 #include <sys/resource.h>
 #include <sys/select.h>
@@ -32,7 +34,7 @@ package unix
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <sys/time.h>
-#include <sys/types.h>
+#include <sys/uio.h>
 #include <sys/un.h>
 #include <sys/wait.h>
 #include <net/bpf.h>
@@ -60,91 +62,6 @@ struct sockaddr_any {
 	char pad[sizeof(union sockaddr_all) - sizeof(struct sockaddr)];
 };
 
-// This structure is a duplicate of stat on FreeBSD 8-STABLE.
-// See /usr/include/sys/stat.h.
-struct stat8 {
-#undef st_atimespec	st_atim
-#undef st_mtimespec	st_mtim
-#undef st_ctimespec	st_ctim
-#undef st_birthtimespec	st_birthtim
-	__dev_t   st_dev;
-	ino_t     st_ino;
-	mode_t    st_mode;
-	nlink_t   st_nlink;
-	uid_t     st_uid;
-	gid_t     st_gid;
-	__dev_t   st_rdev;
-#if __BSD_VISIBLE
-	struct  timespec st_atimespec;
-	struct  timespec st_mtimespec;
-	struct  timespec st_ctimespec;
-#else
-	time_t    st_atime;
-	long      __st_atimensec;
-	time_t    st_mtime;
-	long      __st_mtimensec;
-	time_t    st_ctime;
-	long      __st_ctimensec;
-#endif
-	off_t     st_size;
-	blkcnt_t st_blocks;
-	blksize_t st_blksize;
-	fflags_t  st_flags;
-	__uint32_t st_gen;
-	__int32_t st_lspare;
-#if __BSD_VISIBLE
-	struct timespec st_birthtimespec;
-	unsigned int :(8 / 2) * (16 - (int)sizeof(struct timespec));
-	unsigned int :(8 / 2) * (16 - (int)sizeof(struct timespec));
-#else
-	time_t    st_birthtime;
-	long      st_birthtimensec;
-	unsigned int :(8 / 2) * (16 - (int)sizeof(struct __timespec));
-	unsigned int :(8 / 2) * (16 - (int)sizeof(struct __timespec));
-#endif
-};
-
-// This structure is a duplicate of if_data on FreeBSD 8-STABLE.
-// See /usr/include/net/if.h.
-struct if_data8 {
-	u_char  ifi_type;
-	u_char  ifi_physical;
-	u_char  ifi_addrlen;
-	u_char  ifi_hdrlen;
-	u_char  ifi_link_state;
-	u_char  ifi_spare_char1;
-	u_char  ifi_spare_char2;
-	u_char  ifi_datalen;
-	u_long  ifi_mtu;
-	u_long  ifi_metric;
-	u_long  ifi_baudrate;
-	u_long  ifi_ipackets;
-	u_long  ifi_ierrors;
-	u_long  ifi_opackets;
-	u_long  ifi_oerrors;
-	u_long  ifi_collisions;
-	u_long  ifi_ibytes;
-	u_long  ifi_obytes;
-	u_long  ifi_imcasts;
-	u_long  ifi_omcasts;
-	u_long  ifi_iqdrops;
-	u_long  ifi_noproto;
-	u_long  ifi_hwassist;
-	time_t  ifi_epoch;
-	struct  timeval ifi_lastchange;
-};
-
-// This structure is a duplicate of if_msghdr on FreeBSD 8-STABLE.
-// See /usr/include/net/if.h.
-struct if_msghdr8 {
-	u_short ifm_msglen;
-	u_char  ifm_version;
-	u_char  ifm_type;
-	int     ifm_addrs;
-	int     ifm_flags;
-	u_short ifm_index;
-	struct  if_data8 ifm_data;
-};
 */
 import "C"
 
@@ -200,7 +117,7 @@ const ( // Directory mode bits
 	S_IXUSR  = C.S_IXUSR
 )
 
-type Stat_t C.struct_stat8
+type Stat_t C.struct_stat
 
 type Statfs_t C.struct_statfs
 
@@ -208,18 +125,7 @@ type Flock_t C.struct_flock
 
 type Dirent C.struct_dirent
 
-type Fsid C.struct_fsid
-
-// Advice to Fadvise
-
-const (
-	FADV_NORMAL     = C.POSIX_FADV_NORMAL
-	FADV_RANDOM     = C.POSIX_FADV_RANDOM
-	FADV_SEQUENTIAL = C.POSIX_FADV_SEQUENTIAL
-	FADV_WILLNEED   = C.POSIX_FADV_WILLNEED
-	FADV_DONTNEED   = C.POSIX_FADV_DONTNEED
-	FADV_NOREUSE    = C.POSIX_FADV_NOREUSE
-)
+type Fsid C.fsid_t
 
 // Sockets
 
@@ -243,8 +149,6 @@ type Iovec C.struct_iovec
 
 type IPMreq C.struct_ip_mreq
 
-type IPMreqn C.struct_ip_mreqn
-
 type IPv6Mreq C.struct_ipv6_mreq
 
 type Msghdr C.struct_msghdr
@@ -265,7 +169,6 @@ const (
 	SizeofSockaddrDatalink = C.sizeof_struct_sockaddr_dl
 	SizeofLinger           = C.sizeof_struct_linger
 	SizeofIPMreq           = C.sizeof_struct_ip_mreq
-	SizeofIPMreqn          = C.sizeof_struct_ip_mreqn
 	SizeofIPv6Mreq         = C.sizeof_struct_ipv6_mreq
 	SizeofMsghdr           = C.sizeof_struct_msghdr
 	SizeofCmsghdr          = C.sizeof_struct_cmsghdr
@@ -293,28 +196,19 @@ type FdSet C.fd_set
 // Routing and interface messages
 
 const (
-	sizeofIfMsghdr         = C.sizeof_struct_if_msghdr
-	SizeofIfMsghdr         = C.sizeof_struct_if_msghdr8
-	sizeofIfData           = C.sizeof_struct_if_data
-	SizeofIfData           = C.sizeof_struct_if_data8
+	SizeofIfMsghdr         = C.sizeof_struct_if_msghdr
+	SizeofIfData           = C.sizeof_struct_if_data
 	SizeofIfaMsghdr        = C.sizeof_struct_ifa_msghdr
-	SizeofIfmaMsghdr       = C.sizeof_struct_ifma_msghdr
 	SizeofIfAnnounceMsghdr = C.sizeof_struct_if_announcemsghdr
 	SizeofRtMsghdr         = C.sizeof_struct_rt_msghdr
 	SizeofRtMetrics        = C.sizeof_struct_rt_metrics
 )
 
-type ifMsghdr C.struct_if_msghdr
+type IfMsghdr C.struct_if_msghdr
 
-type IfMsghdr C.struct_if_msghdr8
-
-type ifData C.struct_if_data
-
-type IfData C.struct_if_data8
+type IfData C.struct_if_data
 
 type IfaMsghdr C.struct_ifa_msghdr
-
-type IfmaMsghdr C.struct_ifma_msghdr
 
 type IfAnnounceMsghdr C.struct_if_announcemsghdr
 
@@ -322,23 +216,21 @@ type RtMsghdr C.struct_rt_msghdr
 
 type RtMetrics C.struct_rt_metrics
 
+type Mclpool C.struct_mclpool
+
 // Berkeley packet filter
 
 const (
-	SizeofBpfVersion    = C.sizeof_struct_bpf_version
-	SizeofBpfStat       = C.sizeof_struct_bpf_stat
-	SizeofBpfZbuf       = C.sizeof_struct_bpf_zbuf
-	SizeofBpfProgram    = C.sizeof_struct_bpf_program
-	SizeofBpfInsn       = C.sizeof_struct_bpf_insn
-	SizeofBpfHdr        = C.sizeof_struct_bpf_hdr
-	SizeofBpfZbufHeader = C.sizeof_struct_bpf_zbuf_header
+	SizeofBpfVersion = C.sizeof_struct_bpf_version
+	SizeofBpfStat    = C.sizeof_struct_bpf_stat
+	SizeofBpfProgram = C.sizeof_struct_bpf_program
+	SizeofBpfInsn    = C.sizeof_struct_bpf_insn
+	SizeofBpfHdr     = C.sizeof_struct_bpf_hdr
 )
 
 type BpfVersion C.struct_bpf_version
 
 type BpfStat C.struct_bpf_stat
-
-type BpfZbuf C.struct_bpf_zbuf
 
 type BpfProgram C.struct_bpf_program
 
@@ -346,7 +238,7 @@ type BpfInsn C.struct_bpf_insn
 
 type BpfHdr C.struct_bpf_hdr
 
-type BpfZbufHeader C.struct_bpf_zbuf_header
+type BpfTimeval C.struct_bpf_timeval
 
 // Terminal handling
 
