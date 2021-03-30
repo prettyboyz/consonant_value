@@ -1354,3 +1354,391 @@ const (
 	TCP_INFO                          = 0x20
 	TCP_KEEPCNT                       = 0x400
 	TCP_KEEPIDLE                      = 0x100
+	TCP_KEEPINIT                      = 0x80
+	TCP_KEEPINTVL                     = 0x200
+	TCP_MAXBURST                      = 0x4
+	TCP_MAXHLEN                       = 0x3c
+	TCP_MAXOLEN                       = 0x28
+	TCP_MAXSEG                        = 0x2
+	TCP_MAXWIN                        = 0xffff
+	TCP_MAX_SACK                      = 0x4
+	TCP_MAX_WINSHIFT                  = 0xe
+	TCP_MD5SIG                        = 0x10
+	TCP_MINMSS                        = 0xd8
+	TCP_MSS                           = 0x218
+	TCP_NODELAY                       = 0x1
+	TCP_NOOPT                         = 0x8
+	TCP_NOPUSH                        = 0x4
+	TCP_VENDOR                        = 0x80000000
+	TCSAFLUSH                         = 0x2
+	TIOCCBRK                          = 0x2000747a
+	TIOCCDTR                          = 0x20007478
+	TIOCCONS                          = 0x80047462
+	TIOCDRAIN                         = 0x2000745e
+	TIOCEXCL                          = 0x2000740d
+	TIOCEXT                           = 0x80047460
+	TIOCFLUSH                         = 0x80047410
+	TIOCGDRAINWAIT                    = 0x40047456
+	TIOCGETA                          = 0x402c7413
+	TIOCGETD                          = 0x4004741a
+	TIOCGPGRP                         = 0x40047477
+	TIOCGPTN                          = 0x4004740f
+	TIOCGSID                          = 0x40047463
+	TIOCGWINSZ                        = 0x40087468
+	TIOCMBIC                          = 0x8004746b
+	TIOCMBIS                          = 0x8004746c
+	TIOCMGDTRWAIT                     = 0x4004745a
+	TIOCMGET                          = 0x4004746a
+	TIOCMSDTRWAIT                     = 0x8004745b
+	TIOCMSET                          = 0x8004746d
+	TIOCM_CAR                         = 0x40
+	TIOCM_CD                          = 0x40
+	TIOCM_CTS                         = 0x20
+	TIOCM_DCD                         = 0x40
+	TIOCM_DSR                         = 0x100
+	TIOCM_DTR                         = 0x2
+	TIOCM_LE                          = 0x1
+	TIOCM_RI                          = 0x80
+	TIOCM_RNG                         = 0x80
+	TIOCM_RTS                         = 0x4
+	TIOCM_SR                          = 0x10
+	TIOCM_ST                          = 0x8
+	TIOCNOTTY                         = 0x20007471
+	TIOCNXCL                          = 0x2000740e
+	TIOCOUTQ                          = 0x40047473
+	TIOCPKT                           = 0x80047470
+	TIOCPKT_DATA                      = 0x0
+	TIOCPKT_DOSTOP                    = 0x20
+	TIOCPKT_FLUSHREAD                 = 0x1
+	TIOCPKT_FLUSHWRITE                = 0x2
+	TIOCPKT_IOCTL                     = 0x40
+	TIOCPKT_NOSTOP                    = 0x10
+	TIOCPKT_START                     = 0x8
+	TIOCPKT_STOP                      = 0x4
+	TIOCPTMASTER                      = 0x2000741c
+	TIOCSBRK                          = 0x2000747b
+	TIOCSCTTY                         = 0x20007461
+	TIOCSDRAINWAIT                    = 0x80047457
+	TIOCSDTR                          = 0x20007479
+	TIOCSETA                          = 0x802c7414
+	TIOCSETAF                         = 0x802c7416
+	TIOCSETAW                         = 0x802c7415
+	TIOCSETD                          = 0x8004741b
+	TIOCSIG                           = 0x2004745f
+	TIOCSPGRP                         = 0x80047476
+	TIOCSTART                         = 0x2000746e
+	TIOCSTAT                          = 0x20007465
+	TIOCSTI                           = 0x80017472
+	TIOCSTOP                          = 0x2000746f
+	TIOCSWINSZ                        = 0x80087467
+	TIOCTIMESTAMP                     = 0x40087459
+	TIOCUCNTL                         = 0x80047466
+	TOSTOP                            = 0x400000
+	VDISCARD                          = 0xf
+	VDSUSP                            = 0xb
+	VEOF                              = 0x0
+	VEOL                              = 0x1
+	VEOL2                             = 0x2
+	VERASE                            = 0x3
+	VERASE2                           = 0x7
+	VINTR                             = 0x8
+	VKILL                             = 0x5
+	VLNEXT                            = 0xe
+	VMIN                              = 0x10
+	VQUIT                             = 0x9
+	VREPRINT                          = 0x6
+	VSTART                            = 0xc
+	VSTATUS                           = 0x12
+	VSTOP                             = 0xd
+	VSUSP                             = 0xa
+	VTIME                             = 0x11
+	VWERASE                           = 0x4
+	WCONTINUED                        = 0x4
+	WCOREFLAG                         = 0x80
+	WEXITED                           = 0x10
+	WLINUXCLONE                       = 0x80000000
+	WNOHANG                           = 0x1
+	WNOWAIT                           = 0x8
+	WSTOPPED                          = 0x2
+	WTRAPPED                          = 0x20
+	WUNTRACED                         = 0x2
+)
+
+// Errors
+const (
+	E2BIG           = syscall.Errno(0x7)
+	EACCES          = syscall.Errno(0xd)
+	EADDRINUSE      = syscall.Errno(0x30)
+	EADDRNOTAVAIL   = syscall.Errno(0x31)
+	EAFNOSUPPORT    = syscall.Errno(0x2f)
+	EAGAIN          = syscall.Errno(0x23)
+	EALREADY        = syscall.Errno(0x25)
+	EAUTH           = syscall.Errno(0x50)
+	EBADF           = syscall.Errno(0x9)
+	EBADMSG         = syscall.Errno(0x59)
+	EBADRPC         = syscall.Errno(0x48)
+	EBUSY           = syscall.Errno(0x10)
+	ECANCELED       = syscall.Errno(0x55)
+	ECAPMODE        = syscall.Errno(0x5e)
+	ECHILD          = syscall.Errno(0xa)
+	ECONNABORTED    = syscall.Errno(0x35)
+	ECONNREFUSED    = syscall.Errno(0x3d)
+	ECONNRESET      = syscall.Errno(0x36)
+	EDEADLK         = syscall.Errno(0xb)
+	EDESTADDRREQ    = syscall.Errno(0x27)
+	EDOM            = syscall.Errno(0x21)
+	EDOOFUS         = syscall.Errno(0x58)
+	EDQUOT          = syscall.Errno(0x45)
+	EEXIST          = syscall.Errno(0x11)
+	EFAULT          = syscall.Errno(0xe)
+	EFBIG           = syscall.Errno(0x1b)
+	EFTYPE          = syscall.Errno(0x4f)
+	EHOSTDOWN       = syscall.Errno(0x40)
+	EHOSTUNREACH    = syscall.Errno(0x41)
+	EIDRM           = syscall.Errno(0x52)
+	EILSEQ          = syscall.Errno(0x56)
+	EINPROGRESS     = syscall.Errno(0x24)
+	EINTR           = syscall.Errno(0x4)
+	EINVAL          = syscall.Errno(0x16)
+	EIO             = syscall.Errno(0x5)
+	EISCONN         = syscall.Errno(0x38)
+	EISDIR          = syscall.Errno(0x15)
+	ELAST           = syscall.Errno(0x60)
+	ELOOP           = syscall.Errno(0x3e)
+	EMFILE          = syscall.Errno(0x18)
+	EMLINK          = syscall.Errno(0x1f)
+	EMSGSIZE        = syscall.Errno(0x28)
+	EMULTIHOP       = syscall.Errno(0x5a)
+	ENAMETOOLONG    = syscall.Errno(0x3f)
+	ENEEDAUTH       = syscall.Errno(0x51)
+	ENETDOWN        = syscall.Errno(0x32)
+	ENETRESET       = syscall.Errno(0x34)
+	ENETUNREACH     = syscall.Errno(0x33)
+	ENFILE          = syscall.Errno(0x17)
+	ENOATTR         = syscall.Errno(0x57)
+	ENOBUFS         = syscall.Errno(0x37)
+	ENODEV          = syscall.Errno(0x13)
+	ENOENT          = syscall.Errno(0x2)
+	ENOEXEC         = syscall.Errno(0x8)
+	ENOLCK          = syscall.Errno(0x4d)
+	ENOLINK         = syscall.Errno(0x5b)
+	ENOMEM          = syscall.Errno(0xc)
+	ENOMSG          = syscall.Errno(0x53)
+	ENOPROTOOPT     = syscall.Errno(0x2a)
+	ENOSPC          = syscall.Errno(0x1c)
+	ENOSYS          = syscall.Errno(0x4e)
+	ENOTBLK         = syscall.Errno(0xf)
+	ENOTCAPABLE     = syscall.Errno(0x5d)
+	ENOTCONN        = syscall.Errno(0x39)
+	ENOTDIR         = syscall.Errno(0x14)
+	ENOTEMPTY       = syscall.Errno(0x42)
+	ENOTRECOVERABLE = syscall.Errno(0x5f)
+	ENOTSOCK        = syscall.Errno(0x26)
+	ENOTSUP         = syscall.Errno(0x2d)
+	ENOTTY          = syscall.Errno(0x19)
+	ENXIO           = syscall.Errno(0x6)
+	EOPNOTSUPP      = syscall.Errno(0x2d)
+	EOVERFLOW       = syscall.Errno(0x54)
+	EOWNERDEAD      = syscall.Errno(0x60)
+	EPERM           = syscall.Errno(0x1)
+	EPFNOSUPPORT    = syscall.Errno(0x2e)
+	EPIPE           = syscall.Errno(0x20)
+	EPROCLIM        = syscall.Errno(0x43)
+	EPROCUNAVAIL    = syscall.Errno(0x4c)
+	EPROGMISMATCH   = syscall.Errno(0x4b)
+	EPROGUNAVAIL    = syscall.Errno(0x4a)
+	EPROTO          = syscall.Errno(0x5c)
+	EPROTONOSUPPORT = syscall.Errno(0x2b)
+	EPROTOTYPE      = syscall.Errno(0x29)
+	ERANGE          = syscall.Errno(0x22)
+	EREMOTE         = syscall.Errno(0x47)
+	EROFS           = syscall.Errno(0x1e)
+	ERPCMISMATCH    = syscall.Errno(0x49)
+	ESHUTDOWN       = syscall.Errno(0x3a)
+	ESOCKTNOSUPPORT = syscall.Errno(0x2c)
+	ESPIPE          = syscall.Errno(0x1d)
+	ESRCH           = syscall.Errno(0x3)
+	ESTALE          = syscall.Errno(0x46)
+	ETIMEDOUT       = syscall.Errno(0x3c)
+	ETOOMANYREFS    = syscall.Errno(0x3b)
+	ETXTBSY         = syscall.Errno(0x1a)
+	EUSERS          = syscall.Errno(0x44)
+	EWOULDBLOCK     = syscall.Errno(0x23)
+	EXDEV           = syscall.Errno(0x12)
+)
+
+// Signals
+const (
+	SIGABRT   = syscall.Signal(0x6)
+	SIGALRM   = syscall.Signal(0xe)
+	SIGBUS    = syscall.Signal(0xa)
+	SIGCHLD   = syscall.Signal(0x14)
+	SIGCONT   = syscall.Signal(0x13)
+	SIGEMT    = syscall.Signal(0x7)
+	SIGFPE    = syscall.Signal(0x8)
+	SIGHUP    = syscall.Signal(0x1)
+	SIGILL    = syscall.Signal(0x4)
+	SIGINFO   = syscall.Signal(0x1d)
+	SIGINT    = syscall.Signal(0x2)
+	SIGIO     = syscall.Signal(0x17)
+	SIGIOT    = syscall.Signal(0x6)
+	SIGKILL   = syscall.Signal(0x9)
+	SIGLIBRT  = syscall.Signal(0x21)
+	SIGLWP    = syscall.Signal(0x20)
+	SIGPIPE   = syscall.Signal(0xd)
+	SIGPROF   = syscall.Signal(0x1b)
+	SIGQUIT   = syscall.Signal(0x3)
+	SIGSEGV   = syscall.Signal(0xb)
+	SIGSTOP   = syscall.Signal(0x11)
+	SIGSYS    = syscall.Signal(0xc)
+	SIGTERM   = syscall.Signal(0xf)
+	SIGTHR    = syscall.Signal(0x20)
+	SIGTRAP   = syscall.Signal(0x5)
+	SIGTSTP   = syscall.Signal(0x12)
+	SIGTTIN   = syscall.Signal(0x15)
+	SIGTTOU   = syscall.Signal(0x16)
+	SIGURG    = syscall.Signal(0x10)
+	SIGUSR1   = syscall.Signal(0x1e)
+	SIGUSR2   = syscall.Signal(0x1f)
+	SIGVTALRM = syscall.Signal(0x1a)
+	SIGWINCH  = syscall.Signal(0x1c)
+	SIGXCPU   = syscall.Signal(0x18)
+	SIGXFSZ   = syscall.Signal(0x19)
+)
+
+// Error table
+var errors = [...]string{
+	1:  "operation not permitted",
+	2:  "no such file or directory",
+	3:  "no such process",
+	4:  "interrupted system call",
+	5:  "input/output error",
+	6:  "device not configured",
+	7:  "argument list too long",
+	8:  "exec format error",
+	9:  "bad file descriptor",
+	10: "no child processes",
+	11: "resource deadlock avoided",
+	12: "cannot allocate memory",
+	13: "permission denied",
+	14: "bad address",
+	15: "block device required",
+	16: "device busy",
+	17: "file exists",
+	18: "cross-device link",
+	19: "operation not supported by device",
+	20: "not a directory",
+	21: "is a directory",
+	22: "invalid argument",
+	23: "too many open files in system",
+	24: "too many open files",
+	25: "inappropriate ioctl for device",
+	26: "text file busy",
+	27: "file too large",
+	28: "no space left on device",
+	29: "illegal seek",
+	30: "read-only file system",
+	31: "too many links",
+	32: "broken pipe",
+	33: "numerical argument out of domain",
+	34: "result too large",
+	35: "resource temporarily unavailable",
+	36: "operation now in progress",
+	37: "operation already in progress",
+	38: "socket operation on non-socket",
+	39: "destination address required",
+	40: "message too long",
+	41: "protocol wrong type for socket",
+	42: "protocol not available",
+	43: "protocol not supported",
+	44: "socket type not supported",
+	45: "operation not supported",
+	46: "protocol family not supported",
+	47: "address family not supported by protocol family",
+	48: "address already in use",
+	49: "can't assign requested address",
+	50: "network is down",
+	51: "network is unreachable",
+	52: "network dropped connection on reset",
+	53: "software caused connection abort",
+	54: "connection reset by peer",
+	55: "no buffer space available",
+	56: "socket is already connected",
+	57: "socket is not connected",
+	58: "can't send after socket shutdown",
+	59: "too many references: can't splice",
+	60: "operation timed out",
+	61: "connection refused",
+	62: "too many levels of symbolic links",
+	63: "file name too long",
+	64: "host is down",
+	65: "no route to host",
+	66: "directory not empty",
+	67: "too many processes",
+	68: "too many users",
+	69: "disc quota exceeded",
+	70: "stale NFS file handle",
+	71: "too many levels of remote in path",
+	72: "RPC struct is bad",
+	73: "RPC version wrong",
+	74: "RPC prog. not avail",
+	75: "program version wrong",
+	76: "bad procedure for program",
+	77: "no locks available",
+	78: "function not implemented",
+	79: "inappropriate file type or format",
+	80: "authentication error",
+	81: "need authenticator",
+	82: "identifier removed",
+	83: "no message of desired type",
+	84: "value too large to be stored in data type",
+	85: "operation canceled",
+	86: "illegal byte sequence",
+	87: "attribute not found",
+	88: "programming error",
+	89: "bad message",
+	90: "multihop attempted",
+	91: "link has been severed",
+	92: "protocol error",
+	93: "capabilities insufficient",
+	94: "not permitted in capability mode",
+	95: "state not recoverable",
+	96: "previous owner died",
+}
+
+// Signal table
+var signals = [...]string{
+	1:  "hangup",
+	2:  "interrupt",
+	3:  "quit",
+	4:  "illegal instruction",
+	5:  "trace/BPT trap",
+	6:  "abort trap",
+	7:  "EMT trap",
+	8:  "floating point exception",
+	9:  "killed",
+	10: "bus error",
+	11: "segmentation fault",
+	12: "bad system call",
+	13: "broken pipe",
+	14: "alarm clock",
+	15: "terminated",
+	16: "urgent I/O condition",
+	17: "suspended (signal)",
+	18: "suspended",
+	19: "continued",
+	20: "child exited",
+	21: "stopped (tty input)",
+	22: "stopped (tty output)",
+	23: "I/O possible",
+	24: "cputime limit exceeded",
+	25: "filesize limit exceeded",
+	26: "virtual timer expired",
+	27: "profiling timer expired",
+	28: "window size changes",
+	29: "information request",
+	30: "user defined signal 1",
+	31: "user defined signal 2",
+	32: "unknown signal",
+	33: "unknown signal",
+}
