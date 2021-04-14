@@ -1524,4 +1524,127 @@ const (
 	ENODEV          = syscall.Errno(0x13)
 	ENOENT          = syscall.Errno(0x2)
 	ENOEXEC         = syscall.Errno(0x8)
-	ENOLCK        
+	ENOLCK          = syscall.Errno(0x4d)
+	ENOLINK         = syscall.Errno(0x5b)
+	ENOMEM          = syscall.Errno(0xc)
+	ENOMSG          = syscall.Errno(0x53)
+	ENOPROTOOPT     = syscall.Errno(0x2a)
+	ENOSPC          = syscall.Errno(0x1c)
+	ENOSYS          = syscall.Errno(0x4e)
+	ENOTBLK         = syscall.Errno(0xf)
+	ENOTCAPABLE     = syscall.Errno(0x5d)
+	ENOTCONN        = syscall.Errno(0x39)
+	ENOTDIR         = syscall.Errno(0x14)
+	ENOTEMPTY       = syscall.Errno(0x42)
+	ENOTRECOVERABLE = syscall.Errno(0x5f)
+	ENOTSOCK        = syscall.Errno(0x26)
+	ENOTSUP         = syscall.Errno(0x2d)
+	ENOTTY          = syscall.Errno(0x19)
+	ENXIO           = syscall.Errno(0x6)
+	EOPNOTSUPP      = syscall.Errno(0x2d)
+	EOVERFLOW       = syscall.Errno(0x54)
+	EOWNERDEAD      = syscall.Errno(0x60)
+	EPERM           = syscall.Errno(0x1)
+	EPFNOSUPPORT    = syscall.Errno(0x2e)
+	EPIPE           = syscall.Errno(0x20)
+	EPROCLIM        = syscall.Errno(0x43)
+	EPROCUNAVAIL    = syscall.Errno(0x4c)
+	EPROGMISMATCH   = syscall.Errno(0x4b)
+	EPROGUNAVAIL    = syscall.Errno(0x4a)
+	EPROTO          = syscall.Errno(0x5c)
+	EPROTONOSUPPORT = syscall.Errno(0x2b)
+	EPROTOTYPE      = syscall.Errno(0x29)
+	ERANGE          = syscall.Errno(0x22)
+	EREMOTE         = syscall.Errno(0x47)
+	EROFS           = syscall.Errno(0x1e)
+	ERPCMISMATCH    = syscall.Errno(0x49)
+	ESHUTDOWN       = syscall.Errno(0x3a)
+	ESOCKTNOSUPPORT = syscall.Errno(0x2c)
+	ESPIPE          = syscall.Errno(0x1d)
+	ESRCH           = syscall.Errno(0x3)
+	ESTALE          = syscall.Errno(0x46)
+	ETIMEDOUT       = syscall.Errno(0x3c)
+	ETOOMANYREFS    = syscall.Errno(0x3b)
+	ETXTBSY         = syscall.Errno(0x1a)
+	EUSERS          = syscall.Errno(0x44)
+	EWOULDBLOCK     = syscall.Errno(0x23)
+	EXDEV           = syscall.Errno(0x12)
+)
+
+// Signals
+const (
+	SIGABRT   = syscall.Signal(0x6)
+	SIGALRM   = syscall.Signal(0xe)
+	SIGBUS    = syscall.Signal(0xa)
+	SIGCHLD   = syscall.Signal(0x14)
+	SIGCONT   = syscall.Signal(0x13)
+	SIGEMT    = syscall.Signal(0x7)
+	SIGFPE    = syscall.Signal(0x8)
+	SIGHUP    = syscall.Signal(0x1)
+	SIGILL    = syscall.Signal(0x4)
+	SIGINFO   = syscall.Signal(0x1d)
+	SIGINT    = syscall.Signal(0x2)
+	SIGIO     = syscall.Signal(0x17)
+	SIGIOT    = syscall.Signal(0x6)
+	SIGKILL   = syscall.Signal(0x9)
+	SIGLIBRT  = syscall.Signal(0x21)
+	SIGLWP    = syscall.Signal(0x20)
+	SIGPIPE   = syscall.Signal(0xd)
+	SIGPROF   = syscall.Signal(0x1b)
+	SIGQUIT   = syscall.Signal(0x3)
+	SIGSEGV   = syscall.Signal(0xb)
+	SIGSTOP   = syscall.Signal(0x11)
+	SIGSYS    = syscall.Signal(0xc)
+	SIGTERM   = syscall.Signal(0xf)
+	SIGTHR    = syscall.Signal(0x20)
+	SIGTRAP   = syscall.Signal(0x5)
+	SIGTSTP   = syscall.Signal(0x12)
+	SIGTTIN   = syscall.Signal(0x15)
+	SIGTTOU   = syscall.Signal(0x16)
+	SIGURG    = syscall.Signal(0x10)
+	SIGUSR1   = syscall.Signal(0x1e)
+	SIGUSR2   = syscall.Signal(0x1f)
+	SIGVTALRM = syscall.Signal(0x1a)
+	SIGWINCH  = syscall.Signal(0x1c)
+	SIGXCPU   = syscall.Signal(0x18)
+	SIGXFSZ   = syscall.Signal(0x19)
+)
+
+// Error table
+var errors = [...]string{
+	1:  "operation not permitted",
+	2:  "no such file or directory",
+	3:  "no such process",
+	4:  "interrupted system call",
+	5:  "input/output error",
+	6:  "device not configured",
+	7:  "argument list too long",
+	8:  "exec format error",
+	9:  "bad file descriptor",
+	10: "no child processes",
+	11: "resource deadlock avoided",
+	12: "cannot allocate memory",
+	13: "permission denied",
+	14: "bad address",
+	15: "block device required",
+	16: "device busy",
+	17: "file exists",
+	18: "cross-device link",
+	19: "operation not supported by device",
+	20: "not a directory",
+	21: "is a directory",
+	22: "invalid argument",
+	23: "too many open files in system",
+	24: "too many open files",
+	25: "inappropriate ioctl for device",
+	26: "text file busy",
+	27: "file too large",
+	28: "no space left on device",
+	29: "illegal seek",
+	30: "read-only file system",
+	31: "too many links",
+	32: "broken pipe",
+	33: "numerical argument out of domain",
+	34: "result too large",
+	35: "resource temporarily unavailable",
+	36: "operat
