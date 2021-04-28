@@ -1574,4 +1574,124 @@ const (
 	ENOTEMPTY       = syscall.Errno(0x5d)
 	ENOTNAM         = syscall.Errno(0x89)
 	ENOTRECOVERABLE = syscall.Errno(0xa6)
-	ENOTSOCK        = sys
+	ENOTSOCK        = syscall.Errno(0x5f)
+	ENOTSUP         = syscall.Errno(0x7a)
+	ENOTTY          = syscall.Errno(0x19)
+	ENOTUNIQ        = syscall.Errno(0x50)
+	ENXIO           = syscall.Errno(0x6)
+	EOPNOTSUPP      = syscall.Errno(0x7a)
+	EOVERFLOW       = syscall.Errno(0x4f)
+	EOWNERDEAD      = syscall.Errno(0xa5)
+	EPERM           = syscall.Errno(0x1)
+	EPFNOSUPPORT    = syscall.Errno(0x7b)
+	EPIPE           = syscall.Errno(0x20)
+	EPROTO          = syscall.Errno(0x47)
+	EPROTONOSUPPORT = syscall.Errno(0x78)
+	EPROTOTYPE      = syscall.Errno(0x62)
+	ERANGE          = syscall.Errno(0x22)
+	EREMCHG         = syscall.Errno(0x52)
+	EREMDEV         = syscall.Errno(0x8e)
+	EREMOTE         = syscall.Errno(0x42)
+	EREMOTEIO       = syscall.Errno(0x8c)
+	ERESTART        = syscall.Errno(0x5b)
+	ERFKILL         = syscall.Errno(0xa7)
+	EROFS           = syscall.Errno(0x1e)
+	ESHUTDOWN       = syscall.Errno(0x8f)
+	ESOCKTNOSUPPORT = syscall.Errno(0x79)
+	ESPIPE          = syscall.Errno(0x1d)
+	ESRCH           = syscall.Errno(0x3)
+	ESRMNT          = syscall.Errno(0x45)
+	ESTALE          = syscall.Errno(0x97)
+	ESTRPIPE        = syscall.Errno(0x5c)
+	ETIME           = syscall.Errno(0x3e)
+	ETIMEDOUT       = syscall.Errno(0x91)
+	ETOOMANYREFS    = syscall.Errno(0x90)
+	ETXTBSY         = syscall.Errno(0x1a)
+	EUCLEAN         = syscall.Errno(0x87)
+	EUNATCH         = syscall.Errno(0x2a)
+	EUSERS          = syscall.Errno(0x5e)
+	EWOULDBLOCK     = syscall.Errno(0xb)
+	EXDEV           = syscall.Errno(0x12)
+	EXFULL          = syscall.Errno(0x34)
+)
+
+// Signals
+const (
+	SIGABRT   = syscall.Signal(0x6)
+	SIGALRM   = syscall.Signal(0xe)
+	SIGBUS    = syscall.Signal(0xa)
+	SIGCHLD   = syscall.Signal(0x12)
+	SIGCLD    = syscall.Signal(0x12)
+	SIGCONT   = syscall.Signal(0x19)
+	SIGEMT    = syscall.Signal(0x7)
+	SIGFPE    = syscall.Signal(0x8)
+	SIGHUP    = syscall.Signal(0x1)
+	SIGILL    = syscall.Signal(0x4)
+	SIGINT    = syscall.Signal(0x2)
+	SIGIO     = syscall.Signal(0x16)
+	SIGIOT    = syscall.Signal(0x6)
+	SIGKILL   = syscall.Signal(0x9)
+	SIGPIPE   = syscall.Signal(0xd)
+	SIGPOLL   = syscall.Signal(0x16)
+	SIGPROF   = syscall.Signal(0x1d)
+	SIGPWR    = syscall.Signal(0x13)
+	SIGQUIT   = syscall.Signal(0x3)
+	SIGSEGV   = syscall.Signal(0xb)
+	SIGSTOP   = syscall.Signal(0x17)
+	SIGSYS    = syscall.Signal(0xc)
+	SIGTERM   = syscall.Signal(0xf)
+	SIGTRAP   = syscall.Signal(0x5)
+	SIGTSTP   = syscall.Signal(0x18)
+	SIGTTIN   = syscall.Signal(0x1a)
+	SIGTTOU   = syscall.Signal(0x1b)
+	SIGURG    = syscall.Signal(0x15)
+	SIGUSR1   = syscall.Signal(0x10)
+	SIGUSR2   = syscall.Signal(0x11)
+	SIGVTALRM = syscall.Signal(0x1c)
+	SIGWINCH  = syscall.Signal(0x14)
+	SIGXCPU   = syscall.Signal(0x1e)
+	SIGXFSZ   = syscall.Signal(0x1f)
+)
+
+// Error table
+var errors = [...]string{
+	1:    "operation not permitted",
+	2:    "no such file or directory",
+	3:    "no such process",
+	4:    "interrupted system call",
+	5:    "input/output error",
+	6:    "no such device or address",
+	7:    "argument list too long",
+	8:    "exec format error",
+	9:    "bad file descriptor",
+	10:   "no child processes",
+	11:   "resource temporarily unavailable",
+	12:   "cannot allocate memory",
+	13:   "permission denied",
+	14:   "bad address",
+	15:   "block device required",
+	16:   "device or resource busy",
+	17:   "file exists",
+	18:   "invalid cross-device link",
+	19:   "no such device",
+	20:   "not a directory",
+	21:   "is a directory",
+	22:   "invalid argument",
+	23:   "too many open files in system",
+	24:   "too many open files",
+	25:   "inappropriate ioctl for device",
+	26:   "text file busy",
+	27:   "file too large",
+	28:   "no space left on device",
+	29:   "illegal seek",
+	30:   "read-only file system",
+	31:   "too many links",
+	32:   "broken pipe",
+	33:   "numerical argument out of domain",
+	34:   "numerical result out of range",
+	35:   "no message of desired type",
+	36:   "identifier removed",
+	37:   "channel number out of range",
+	38:   "level 2 not synchronized",
+	39:   "level 3 halted",
+	40:   "
