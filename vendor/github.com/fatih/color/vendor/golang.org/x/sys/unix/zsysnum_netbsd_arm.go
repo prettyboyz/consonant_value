@@ -260,4 +260,14 @@ const (
 	SYS_FCHOWNAT             = 464 // { int|sys||fchownat(int fd, const char *path, uid_t owner, gid_t group, int flag); }
 	SYS_FEXECVE              = 465 // { int|sys||fexecve(int fd, char * const *argp, char * const *envp); }
 	SYS_FSTATAT              = 466 // { int|sys||fstatat(int fd, const char *path, struct stat *buf, int flag); }
-	SYS_UTIMENSAT            = 467 // { int|sys||utimensat(int fd, const char *path, const struct timespec *tptr, int 
+	SYS_UTIMENSAT            = 467 // { int|sys||utimensat(int fd, const char *path, const struct timespec *tptr, int flag); }
+	SYS_OPENAT               = 468 // { int|sys||openat(int fd, const char *path, int oflags, ... mode_t mode); }
+	SYS_READLINKAT           = 469 // { int|sys||readlinkat(int fd, const char *path, char *buf, size_t bufsize); }
+	SYS_SYMLINKAT            = 470 // { int|sys||symlinkat(const char *path1, int fd, const char *path2); }
+	SYS_UNLINKAT             = 471 // { int|sys||unlinkat(int fd, const char *path, int flag); }
+	SYS_FUTIMENS             = 472 // { int|sys||futimens(int fd, const struct timespec *tptr); }
+	SYS___QUOTACTL           = 473 // { int|sys||__quotactl(const char *path, struct quotactl_args *args); }
+	SYS_POSIX_SPAWN          = 474 // { int|sys||posix_spawn(pid_t *pid, const char *path, const struct posix_spawn_file_actions *file_actions, const struct posix_spawnattr *attrp, char *const *argv, char *const *envp); }
+	SYS_RECVMMSG             = 475 // { int|sys||recvmmsg(int s, struct mmsghdr *mmsg, unsigned int vlen, unsigned int flags, struct timespec *timeout); }
+	SYS_SENDMMSG             = 476 // { int|sys||sendmmsg(int s, struct mmsghdr *mmsg, unsigned int vlen, unsigned int flags); }
+)
