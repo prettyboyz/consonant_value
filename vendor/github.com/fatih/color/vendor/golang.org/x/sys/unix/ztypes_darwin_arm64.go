@@ -421,4 +421,37 @@ type BpfVersion struct {
 
 type BpfStat struct {
 	Recv uint32
-	Dro
+	Drop uint32
+}
+
+type BpfProgram struct {
+	Len       uint32
+	Pad_cgo_0 [4]byte
+	Insns     *BpfInsn
+}
+
+type BpfInsn struct {
+	Code uint16
+	Jt   uint8
+	Jf   uint8
+	K    uint32
+}
+
+type BpfHdr struct {
+	Tstamp    Timeval32
+	Caplen    uint32
+	Datalen   uint32
+	Hdrlen    uint16
+	Pad_cgo_0 [2]byte
+}
+
+type Termios struct {
+	Iflag     uint64
+	Oflag     uint64
+	Cflag     uint64
+	Lflag     uint64
+	Cc        [20]uint8
+	Pad_cgo_0 [4]byte
+	Ispeed    uint64
+	Ospeed    uint64
+}
