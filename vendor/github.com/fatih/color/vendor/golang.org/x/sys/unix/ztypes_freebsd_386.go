@@ -303,4 +303,200 @@ type ifMsghdr struct {
 	Msglen    uint16
 	Version   uint8
 	Type      uint8
-	Addrs     in
+	Addrs     int32
+	Flags     int32
+	Index     uint16
+	Pad_cgo_0 [2]byte
+	Data      ifData
+}
+
+type IfMsghdr struct {
+	Msglen    uint16
+	Version   uint8
+	Type      uint8
+	Addrs     int32
+	Flags     int32
+	Index     uint16
+	Pad_cgo_0 [2]byte
+	Data      IfData
+}
+
+type ifData struct {
+	Type        uint8
+	Physical    uint8
+	Addrlen     uint8
+	Hdrlen      uint8
+	Link_state  uint8
+	Vhid        uint8
+	Baudrate_pf uint8
+	Datalen     uint8
+	Mtu         uint32
+	Metric      uint32
+	Baudrate    uint32
+	Ipackets    uint32
+	Ierrors     uint32
+	Opackets    uint32
+	Oerrors     uint32
+	Collisions  uint32
+	Ibytes      uint32
+	Obytes      uint32
+	Imcasts     uint32
+	Omcasts     uint32
+	Iqdrops     uint32
+	Noproto     uint32
+	Hwassist    uint64
+	Epoch       int32
+	Lastchange  Timeval
+}
+
+type IfData struct {
+	Type        uint8
+	Physical    uint8
+	Addrlen     uint8
+	Hdrlen      uint8
+	Link_state  uint8
+	Spare_char1 uint8
+	Spare_char2 uint8
+	Datalen     uint8
+	Mtu         uint32
+	Metric      uint32
+	Baudrate    uint32
+	Ipackets    uint32
+	Ierrors     uint32
+	Opackets    uint32
+	Oerrors     uint32
+	Collisions  uint32
+	Ibytes      uint32
+	Obytes      uint32
+	Imcasts     uint32
+	Omcasts     uint32
+	Iqdrops     uint32
+	Noproto     uint32
+	Hwassist    uint32
+	Epoch       int32
+	Lastchange  Timeval
+}
+
+type IfaMsghdr struct {
+	Msglen    uint16
+	Version   uint8
+	Type      uint8
+	Addrs     int32
+	Flags     int32
+	Index     uint16
+	Pad_cgo_0 [2]byte
+	Metric    int32
+}
+
+type IfmaMsghdr struct {
+	Msglen    uint16
+	Version   uint8
+	Type      uint8
+	Addrs     int32
+	Flags     int32
+	Index     uint16
+	Pad_cgo_0 [2]byte
+}
+
+type IfAnnounceMsghdr struct {
+	Msglen  uint16
+	Version uint8
+	Type    uint8
+	Index   uint16
+	Name    [16]int8
+	What    uint16
+}
+
+type RtMsghdr struct {
+	Msglen    uint16
+	Version   uint8
+	Type      uint8
+	Index     uint16
+	Pad_cgo_0 [2]byte
+	Flags     int32
+	Addrs     int32
+	Pid       int32
+	Seq       int32
+	Errno     int32
+	Fmask     int32
+	Inits     uint32
+	Rmx       RtMetrics
+}
+
+type RtMetrics struct {
+	Locks    uint32
+	Mtu      uint32
+	Hopcount uint32
+	Expire   uint32
+	Recvpipe uint32
+	Sendpipe uint32
+	Ssthresh uint32
+	Rtt      uint32
+	Rttvar   uint32
+	Pksent   uint32
+	Weight   uint32
+	Filler   [3]uint32
+}
+
+const (
+	SizeofBpfVersion    = 0x4
+	SizeofBpfStat       = 0x8
+	SizeofBpfZbuf       = 0xc
+	SizeofBpfProgram    = 0x8
+	SizeofBpfInsn       = 0x8
+	SizeofBpfHdr        = 0x14
+	SizeofBpfZbufHeader = 0x20
+)
+
+type BpfVersion struct {
+	Major uint16
+	Minor uint16
+}
+
+type BpfStat struct {
+	Recv uint32
+	Drop uint32
+}
+
+type BpfZbuf struct {
+	Bufa   *byte
+	Bufb   *byte
+	Buflen uint32
+}
+
+type BpfProgram struct {
+	Len   uint32
+	Insns *BpfInsn
+}
+
+type BpfInsn struct {
+	Code uint16
+	Jt   uint8
+	Jf   uint8
+	K    uint32
+}
+
+type BpfHdr struct {
+	Tstamp    Timeval
+	Caplen    uint32
+	Datalen   uint32
+	Hdrlen    uint16
+	Pad_cgo_0 [2]byte
+}
+
+type BpfZbufHeader struct {
+	Kernel_gen uint32
+	Kernel_len uint32
+	User_gen   uint32
+	X_bzh_pad  [5]uint32
+}
+
+type Termios struct {
+	Iflag  uint32
+	Oflag  uint32
+	Cflag  uint32
+	Lflag  uint32
+	Cc     [20]uint8
+	Ispeed uint32
+	Ospeed uint32
+}
