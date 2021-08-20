@@ -1,51 +1,55 @@
-// +build amd64,freebsd
+
 // Created by cgo -godefs - DO NOT EDIT
-// cgo -godefs types_freebsd.go
+// cgo -godefs -- -fsigned-char types_freebsd.go
+
+// +build arm,freebsd
 
 package unix
 
 const (
-	sizeofPtr      = 0x8
+	sizeofPtr      = 0x4
 	sizeofShort    = 0x2
 	sizeofInt      = 0x4
-	sizeofLong     = 0x8
+	sizeofLong     = 0x4
 	sizeofLongLong = 0x8
 )
 
 type (
 	_C_short     int16
 	_C_int       int32
-	_C_long      int64
+	_C_long      int32
 	_C_long_long int64
 )
 
 type Timespec struct {
-	Sec  int64
-	Nsec int64
+	Sec       int64
+	Nsec      int32
+	Pad_cgo_0 [4]byte
 }
 
 type Timeval struct {
-	Sec  int64
-	Usec int64
+	Sec       int64
+	Usec      int32
+	Pad_cgo_0 [4]byte
 }
 
 type Rusage struct {
 	Utime    Timeval
 	Stime    Timeval
-	Maxrss   int64
-	Ixrss    int64
-	Idrss    int64
-	Isrss    int64
-	Minflt   int64
-	Majflt   int64
-	Nswap    int64
-	Inblock  int64
-	Oublock  int64
-	Msgsnd   int64
-	Msgrcv   int64
-	Nsignals int64
-	Nvcsw    int64
-	Nivcsw   int64
+	Maxrss   int32
+	Ixrss    int32
+	Idrss    int32
+	Isrss    int32
+	Minflt   int32
+	Majflt   int32
+	Nswap    int32
+	Inblock  int32
+	Oublock  int32
+	Msgsnd   int32
+	Msgrcv   int32
+	Nsignals int32
+	Nvcsw    int32
+	Nivcsw   int32
 }
 
 type Rlimit struct {
@@ -139,15 +143,6 @@ type Fsid struct {
 	Val [2]int32
 }
 
-const (
-	FADV_NORMAL     = 0x0
-	FADV_RANDOM     = 0x1
-	FADV_SEQUENTIAL = 0x2
-	FADV_WILLNEED   = 0x3
-	FADV_DONTNEED   = 0x4
-	FADV_NOREUSE    = 0x5
-)
-
 type RawSockaddrInet4 struct {
 	Len    uint8
 	Family uint8
@@ -202,7 +197,7 @@ type Linger struct {
 
 type Iovec struct {
 	Base *byte
-	Len  uint64
+	Len  uint32
 }
 
 type IPMreq struct {
@@ -224,10 +219,8 @@ type IPv6Mreq struct {
 type Msghdr struct {
 	Name       *byte
 	Namelen    uint32
-	Pad_cgo_0  [4]byte
 	Iov        *Iovec
 	Iovlen     int32
-	Pad_cgo_1  [4]byte
 	Control    *byte
 	Controllen uint32
 	Flags      int32
@@ -263,7 +256,7 @@ const (
 	SizeofIPMreq           = 0x8
 	SizeofIPMreqn          = 0xc
 	SizeofIPv6Mreq         = 0x14
-	SizeofMsghdr           = 0x30
+	SizeofMsghdr           = 0x1c
 	SizeofCmsghdr          = 0xc
 	SizeofInet6Pktinfo     = 0x14
 	SizeofIPv6MTUInfo      = 0x20
@@ -277,28 +270,28 @@ const (
 )
 
 type Kevent_t struct {
-	Ident  uint64
+	Ident  uint32
 	Filter int16
 	Flags  uint16
 	Fflags uint32
-	Data   int64
+	Data   int32
 	Udata  *byte
 }
 
 type FdSet struct {
-	X__fds_bits [16]uint64
+	X__fds_bits [32]uint32
 }
 
 const (
-	sizeofIfMsghdr         = 0xa8
-	SizeofIfMsghdr         = 0xa8
-	sizeofIfData           = 0x98
-	SizeofIfData           = 0x98
+	sizeofIfMsghdr         = 0x70
+	SizeofIfMsghdr         = 0x70
+	sizeofIfData           = 0x60
+	SizeofIfData           = 0x60
 	SizeofIfaMsghdr        = 0x14
 	SizeofIfmaMsghdr       = 0x10
 	SizeofIfAnnounceMsghdr = 0x18
-	SizeofRtMsghdr         = 0x98
-	SizeofRtMetrics        = 0x70
+	SizeofRtMsghdr         = 0x5c
+	SizeofRtMetrics        = 0x38
 )
 
 type ifMsghdr struct {
@@ -332,20 +325,20 @@ type ifData struct {
 	Vhid        uint8
 	Baudrate_pf uint8
 	Datalen     uint8
-	Mtu         uint64
-	Metric      uint64
-	Baudrate    uint64
-	Ipackets    uint64
-	Ierrors     uint64
-	Opackets    uint64
-	Oerrors     uint64
-	Collisions  uint64
-	Ibytes      uint64
-	Obytes      uint64
-	Imcasts     uint64
-	Omcasts     uint64
-	Iqdrops     uint64
-	Noproto     uint64
+	Mtu         uint32
+	Metric      uint32
+	Baudrate    uint32
+	Ipackets    uint32
+	Ierrors     uint32
+	Opackets    uint32
+	Oerrors     uint32
+	Collisions  uint32
+	Ibytes      uint32
+	Obytes      uint32
+	Imcasts     uint32
+	Omcasts     uint32
+	Iqdrops     uint32
+	Noproto     uint32
 	Hwassist    uint64
 	Epoch       int64
 	Lastchange  Timeval
@@ -360,21 +353,22 @@ type IfData struct {
 	Spare_char1 uint8
 	Spare_char2 uint8
 	Datalen     uint8
-	Mtu         uint64
-	Metric      uint64
-	Baudrate    uint64
-	Ipackets    uint64
-	Ierrors     uint64
-	Opackets    uint64
-	Oerrors     uint64
-	Collisions  uint64
-	Ibytes      uint64
-	Obytes      uint64
-	Imcasts     uint64
-	Omcasts     uint64
-	Iqdrops     uint64
-	Noproto     uint64
-	Hwassist    uint64
+	Mtu         uint32
+	Metric      uint32
+	Baudrate    uint32
+	Ipackets    uint32
+	Ierrors     uint32
+	Opackets    uint32
+	Oerrors     uint32
+	Collisions  uint32
+	Ibytes      uint32
+	Obytes      uint32
+	Imcasts     uint32
+	Omcasts     uint32
+	Iqdrops     uint32
+	Noproto     uint32
+	Hwassist    uint32
+	Pad_cgo_0   [4]byte
 	Epoch       int64
 	Lastchange  Timeval
 }
@@ -421,30 +415,30 @@ type RtMsghdr struct {
 	Seq       int32
 	Errno     int32
 	Fmask     int32
-	Inits     uint64
+	Inits     uint32
 	Rmx       RtMetrics
 }
 
 type RtMetrics struct {
-	Locks    uint64
-	Mtu      uint64
-	Hopcount uint64
-	Expire   uint64
-	Recvpipe uint64
-	Sendpipe uint64
-	Ssthresh uint64
-	Rtt      uint64
-	Rttvar   uint64
-	Pksent   uint64
-	Weight   uint64
-	Filler   [3]uint64
+	Locks    uint32
+	Mtu      uint32
+	Hopcount uint32
+	Expire   uint32
+	Recvpipe uint32
+	Sendpipe uint32
+	Ssthresh uint32
+	Rtt      uint32
+	Rttvar   uint32
+	Pksent   uint32
+	Weight   uint32
+	Filler   [3]uint32
 }
 
 const (
 	SizeofBpfVersion    = 0x4
 	SizeofBpfStat       = 0x8
-	SizeofBpfZbuf       = 0x18
-	SizeofBpfProgram    = 0x10
+	SizeofBpfZbuf       = 0xc
+	SizeofBpfProgram    = 0x8
 	SizeofBpfInsn       = 0x8
 	SizeofBpfHdr        = 0x20
 	SizeofBpfZbufHeader = 0x20
@@ -463,13 +457,12 @@ type BpfStat struct {
 type BpfZbuf struct {
 	Bufa   *byte
 	Bufb   *byte
-	Buflen uint64
+	Buflen uint32
 }
 
 type BpfProgram struct {
-	Len       uint32
-	Pad_cgo_0 [4]byte
-	Insns     *BpfInsn
+	Len   uint32
+	Insns *BpfInsn
 }
 
 type BpfInsn struct {
