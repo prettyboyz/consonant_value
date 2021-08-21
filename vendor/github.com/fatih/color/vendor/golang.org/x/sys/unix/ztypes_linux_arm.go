@@ -1,7 +1,7 @@
 
-// +build 386,linux
+// +build arm,linux
 // Created by cgo -godefs - DO NOT EDIT
-// cgo -godefs types_linux.go
+// cgo -godefs types_linux.go | go run mkpost.go
 
 package unix
 
@@ -106,9 +106,10 @@ type Stat_t struct {
 	Gid       uint32
 	Rdev      uint64
 	X__pad2   uint16
-	Pad_cgo_1 [2]byte
+	Pad_cgo_1 [6]byte
 	Size      int64
 	Blksize   int32
+	Pad_cgo_2 [4]byte
 	Blocks    int64
 	Atim      Timespec
 	Mtim      Timespec
@@ -117,18 +118,19 @@ type Stat_t struct {
 }
 
 type Statfs_t struct {
-	Type    int32
-	Bsize   int32
-	Blocks  uint64
-	Bfree   uint64
-	Bavail  uint64
-	Files   uint64
-	Ffree   uint64
-	Fsid    Fsid
-	Namelen int32
-	Frsize  int32
-	Flags   int32
-	Spare   [4]int32
+	Type      int32
+	Bsize     int32
+	Blocks    uint64
+	Bfree     uint64
+	Bavail    uint64
+	Files     uint64
+	Ffree     uint64
+	Fsid      Fsid
+	Namelen   int32
+	Frsize    int32
+	Flags     int32
+	Spare     [4]int32
+	Pad_cgo_0 [4]byte
 }
 
 type Dirent struct {
@@ -136,8 +138,8 @@ type Dirent struct {
 	Off       int64
 	Reclen    uint16
 	Type      uint8
-	Name      [256]int8
-	Pad_cgo_0 [1]byte
+	Name      [256]uint8
+	Pad_cgo_0 [5]byte
 }
 
 type Fsid struct {
@@ -145,11 +147,13 @@ type Fsid struct {
 }
 
 type Flock_t struct {
-	Type   int16
-	Whence int16
-	Start  int64
-	Len    int64
-	Pid    int32
+	Type      int16
+	Whence    int16
+	Pad_cgo_0 [4]byte
+	Start     int64
+	Len       int64
+	Pid       int32
+	Pad_cgo_1 [4]byte
 }
 
 const (
@@ -221,12 +225,12 @@ type RawSockaddrALG struct {
 
 type RawSockaddr struct {
 	Family uint16
-	Data   [14]int8
+	Data   [14]uint8
 }
 
 type RawSockaddrAny struct {
 	Addr RawSockaddr
-	Pad  [96]int8
+	Pad  [96]uint8
 }
 
 type _Socklen uint32
@@ -538,29 +542,13 @@ type InotifyEvent struct {
 	Mask   uint32
 	Cookie uint32
 	Len    uint32
-	Name   [0]int8
+	Name   [0]uint8
 }
 
 const SizeofInotifyEvent = 0x10
 
 type PtraceRegs struct {
-	Ebx      int32
-	Ecx      int32
-	Edx      int32
-	Esi      int32
-	Edi      int32
-	Ebp      int32
-	Eax      int32
-	Xds      int32
-	Xes      int32
-	Xfs      int32
-	Xgs      int32
-	Orig_eax int32
-	Eip      int32
-	Xcs      int32
-	Eflags   int32
-	Esp      int32
-	Xss      int32
+	Uregs [18]uint32
 }
 
 type FdSet struct {
@@ -581,27 +569,28 @@ type Sysinfo_t struct {
 	Totalhigh uint32
 	Freehigh  uint32
 	Unit      uint32
-	X_f       [8]int8
+	X_f       [8]uint8
 }
 
 type Utsname struct {
-	Sysname    [65]int8
-	Nodename   [65]int8
-	Release    [65]int8
-	Version    [65]int8
-	Machine    [65]int8
-	Domainname [65]int8
+	Sysname    [65]uint8
+	Nodename   [65]uint8
+	Release    [65]uint8
+	Version    [65]uint8
+	Machine    [65]uint8
+	Domainname [65]uint8
 }
 
 type Ustat_t struct {
 	Tfree  int32
 	Tinode uint32
-	Fname  [6]int8
-	Fpack  [6]int8
+	Fname  [6]uint8
+	Fpack  [6]uint8
 }
 
 type EpollEvent struct {
 	Events uint32
+	PadFd  int32
 	Fd     int32
 	Pad    int32
 }
