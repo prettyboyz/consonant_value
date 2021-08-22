@@ -606,4 +606,36 @@ const (
 	AT_FDCWD            = -0x64
 	AT_REMOVEDIR        = 0x200
 	AT_SYMLINK_FOLLOW   = 0x400
-	AT_SY
+	AT_SYMLINK_NOFOLLOW = 0x100
+)
+
+type PollFd struct {
+	Fd      int32
+	Events  int16
+	Revents int16
+}
+
+const (
+	POLLIN    = 0x1
+	POLLPRI   = 0x2
+	POLLOUT   = 0x4
+	POLLRDHUP = 0x2000
+	POLLERR   = 0x8
+	POLLHUP   = 0x10
+	POLLNVAL  = 0x20
+)
+
+type Sigset_t struct {
+	X__val [16]uint64
+}
+
+type Termios struct {
+	Iflag  uint32
+	Oflag  uint32
+	Cflag  uint32
+	Lflag  uint32
+	Line   uint8
+	Cc     [19]uint8
+	Ispeed uint32
+	Ospeed uint32
+}
