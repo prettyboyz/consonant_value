@@ -430,4 +430,222 @@ const (
 	RTNLGRP_LINK        = 0x1
 	RTNLGRP_NOTIFY      = 0x2
 	RTNLGRP_NEIGH       = 0x3
-	
+	RTNLGRP_TC          = 0x4
+	RTNLGRP_IPV4_IFADDR = 0x5
+	RTNLGRP_IPV4_MROUTE = 0x6
+	RTNLGRP_IPV4_ROUTE  = 0x7
+	RTNLGRP_IPV4_RULE   = 0x8
+	RTNLGRP_IPV6_IFADDR = 0x9
+	RTNLGRP_IPV6_MROUTE = 0xa
+	RTNLGRP_IPV6_ROUTE  = 0xb
+	RTNLGRP_IPV6_IFINFO = 0xc
+	RTNLGRP_IPV6_PREFIX = 0x12
+	RTNLGRP_IPV6_RULE   = 0x13
+	RTNLGRP_ND_USEROPT  = 0x14
+	SizeofNlMsghdr      = 0x10
+	SizeofNlMsgerr      = 0x14
+	SizeofRtGenmsg      = 0x1
+	SizeofNlAttr        = 0x4
+	SizeofRtAttr        = 0x4
+	SizeofIfInfomsg     = 0x10
+	SizeofIfAddrmsg     = 0x8
+	SizeofRtMsg         = 0xc
+	SizeofRtNexthop     = 0x8
+)
+
+type NlMsghdr struct {
+	Len   uint32
+	Type  uint16
+	Flags uint16
+	Seq   uint32
+	Pid   uint32
+}
+
+type NlMsgerr struct {
+	Error int32
+	Msg   NlMsghdr
+}
+
+type RtGenmsg struct {
+	Family uint8
+}
+
+type NlAttr struct {
+	Len  uint16
+	Type uint16
+}
+
+type RtAttr struct {
+	Len  uint16
+	Type uint16
+}
+
+type IfInfomsg struct {
+	Family     uint8
+	X__ifi_pad uint8
+	Type       uint16
+	Index      int32
+	Flags      uint32
+	Change     uint32
+}
+
+type IfAddrmsg struct {
+	Family    uint8
+	Prefixlen uint8
+	Flags     uint8
+	Scope     uint8
+	Index     uint32
+}
+
+type RtMsg struct {
+	Family   uint8
+	Dst_len  uint8
+	Src_len  uint8
+	Tos      uint8
+	Table    uint8
+	Protocol uint8
+	Scope    uint8
+	Type     uint8
+	Flags    uint32
+}
+
+type RtNexthop struct {
+	Len     uint16
+	Flags   uint8
+	Hops    uint8
+	Ifindex int32
+}
+
+const (
+	SizeofSockFilter = 0x8
+	SizeofSockFprog  = 0x8
+)
+
+type SockFilter struct {
+	Code uint16
+	Jt   uint8
+	Jf   uint8
+	K    uint32
+}
+
+type SockFprog struct {
+	Len       uint16
+	Pad_cgo_0 [2]byte
+	Filter    *SockFilter
+}
+
+type InotifyEvent struct {
+	Wd     int32
+	Mask   uint32
+	Cookie uint32
+	Len    uint32
+}
+
+const SizeofInotifyEvent = 0x10
+
+type PtraceRegs struct {
+	Regs        [109]uint32
+	U_tsize     uint32
+	U_dsize     uint32
+	U_ssize     uint32
+	Start_code  uint32
+	Start_data  uint32
+	Start_stack uint32
+	Signal      int32
+	U_ar0       *byte
+	Magic       uint32
+	U_comm      [32]int8
+}
+
+type ptracePsw struct {
+}
+
+type ptraceFpregs struct {
+}
+
+type ptracePer struct {
+}
+
+type FdSet struct {
+	Bits [32]int32
+}
+
+type Sysinfo_t struct {
+	Uptime    int32
+	Loads     [3]uint32
+	Totalram  uint32
+	Freeram   uint32
+	Sharedram uint32
+	Bufferram uint32
+	Totalswap uint32
+	Freeswap  uint32
+	Procs     uint16
+	Pad       uint16
+	Totalhigh uint32
+	Freehigh  uint32
+	Unit      uint32
+	X_f       [8]int8
+}
+
+type Utsname struct {
+	Sysname    [65]int8
+	Nodename   [65]int8
+	Release    [65]int8
+	Version    [65]int8
+	Machine    [65]int8
+	Domainname [65]int8
+}
+
+type Ustat_t struct {
+	Tfree  int32
+	Tinode uint32
+	Fname  [6]int8
+	Fpack  [6]int8
+}
+
+type EpollEvent struct {
+	Events uint32
+	PadFd  int32
+	Fd     int32
+	Pad    int32
+}
+
+const (
+	AT_FDCWD            = -0x64
+	AT_REMOVEDIR        = 0x200
+	AT_SYMLINK_FOLLOW   = 0x400
+	AT_SYMLINK_NOFOLLOW = 0x100
+)
+
+type PollFd struct {
+	Fd      int32
+	Events  int16
+	Revents int16
+}
+
+const (
+	POLLIN    = 0x1
+	POLLPRI   = 0x2
+	POLLOUT   = 0x4
+	POLLRDHUP = 0x2000
+	POLLERR   = 0x8
+	POLLHUP   = 0x10
+	POLLNVAL  = 0x20
+)
+
+type Sigset_t struct {
+	X__val [32]uint32
+}
+
+const _SC_PAGESIZE = 0x1e
+
+type Termios struct {
+	Iflag  uint32
+	Oflag  uint32
+	Cflag  uint32
+	Lflag  uint32
+	Line   uint8
+	Cc     [23]uint8
+	Ispeed uint32
+	Ospeed uint32
+}
