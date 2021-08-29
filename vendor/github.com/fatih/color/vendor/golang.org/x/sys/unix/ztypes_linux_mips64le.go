@@ -1,4 +1,5 @@
-// +build mips64,linux
+
+// +build mips64le,linux
 // Created by cgo -godefs - DO NOT EDIT
 // cgo -godefs types_linux.go
 
