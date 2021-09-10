@@ -576,4 +576,82 @@ type Sysinfo_t struct {
 	Uptime    int64
 	Loads     [3]uint64
 	Totalram  uint64
-	Freera
+	Freeram   uint64
+	Sharedram uint64
+	Bufferram uint64
+	Totalswap uint64
+	Freeswap  uint64
+	Procs     uint16
+	Pad       uint16
+	Pad_cgo_0 [4]byte
+	Totalhigh uint64
+	Freehigh  uint64
+	Unit      uint32
+	X_f       [0]int8
+	Pad_cgo_1 [4]byte
+}
+
+type Utsname struct {
+	Sysname    [65]int8
+	Nodename   [65]int8
+	Release    [65]int8
+	Version    [65]int8
+	Machine    [65]int8
+	Domainname [65]int8
+}
+
+type Ustat_t struct {
+	Tfree     int32
+	Pad_cgo_0 [4]byte
+	Tinode    uint64
+	Fname     [6]int8
+	Fpack     [6]int8
+	Pad_cgo_1 [4]byte
+}
+
+type EpollEvent struct {
+	Events  uint32
+	X_padFd int32
+	Fd      int32
+	Pad     int32
+}
+
+const (
+	AT_FDCWD            = -0x64
+	AT_REMOVEDIR        = 0x200
+	AT_SYMLINK_FOLLOW   = 0x400
+	AT_SYMLINK_NOFOLLOW = 0x100
+)
+
+type PollFd struct {
+	Fd      int32
+	Events  int16
+	Revents int16
+}
+
+const (
+	POLLIN    = 0x1
+	POLLPRI   = 0x2
+	POLLOUT   = 0x4
+	POLLRDHUP = 0x800
+	POLLERR   = 0x8
+	POLLHUP   = 0x10
+	POLLNVAL  = 0x20
+)
+
+type Sigset_t struct {
+	X__val [16]uint64
+}
+
+const _SC_PAGESIZE = 0x1e
+
+type Termios struct {
+	Iflag  uint32
+	Oflag  uint32
+	Cflag  uint32
+	Lflag  uint32
+	Line   uint8
+	Cc     [19]uint8
+	Ispeed uint32
+	Ospeed uint32
+}
