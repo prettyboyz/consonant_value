@@ -2,52 +2,52 @@
 // Created by cgo -godefs - DO NOT EDIT
 // cgo -godefs types_openbsd.go
 
-// +build 386,openbsd
+// +build amd64,openbsd
 
 package unix
 
 const (
-	sizeofPtr      = 0x4
+	sizeofPtr      = 0x8
 	sizeofShort    = 0x2
 	sizeofInt      = 0x4
-	sizeofLong     = 0x4
+	sizeofLong     = 0x8
 	sizeofLongLong = 0x8
 )
 
 type (
 	_C_short     int16
 	_C_int       int32
-	_C_long      int32
+	_C_long      int64
 	_C_long_long int64
 )
 
 type Timespec struct {
 	Sec  int64
-	Nsec int32
+	Nsec int64
 }
 
 type Timeval struct {
 	Sec  int64
-	Usec int32
+	Usec int64
 }
 
 type Rusage struct {
 	Utime    Timeval
 	Stime    Timeval
-	Maxrss   int32
-	Ixrss    int32
-	Idrss    int32
-	Isrss    int32
-	Minflt   int32
-	Majflt   int32
-	Nswap    int32
-	Inblock  int32
-	Oublock  int32
-	Msgsnd   int32
-	Msgrcv   int32
-	Nsignals int32
-	Nvcsw    int32
-	Nivcsw   int32
+	Maxrss   int64
+	Ixrss    int64
+	Idrss    int64
+	Isrss    int64
+	Minflt   int64
+	Majflt   int64
+	Nswap    int64
+	Inblock  int64
+	Oublock  int64
+	Msgsnd   int64
+	Msgrcv   int64
+	Nsignals int64
+	Nvcsw    int64
+	Nivcsw   int64
 }
 
 type Rlimit struct {
@@ -90,6 +90,7 @@ type Stat_t struct {
 	Blksize        uint32
 	Flags          uint32
 	Gen            uint32
+	Pad_cgo_0      [4]byte
 	X__st_birthtim Timespec
 }
 
@@ -97,6 +98,7 @@ type Statfs_t struct {
 	F_flags       uint32
 	F_bsize       uint32
 	F_iosize      uint32
+	Pad_cgo_0     [4]byte
 	F_blocks      uint64
 	F_bfree       uint64
 	F_bavail      int64
@@ -115,7 +117,7 @@ type Statfs_t struct {
 	F_mntonname   [90]int8
 	F_mntfromname [90]int8
 	F_mntfromspec [90]int8
-	Pad_cgo_0     [2]byte
+	Pad_cgo_1     [2]byte
 	Mount_info    [160]byte
 }
 
@@ -195,7 +197,7 @@ type Linger struct {
 
 type Iovec struct {
 	Base *byte
-	Len  uint32
+	Len  uint64
 }
 
 type IPMreq struct {
@@ -211,8 +213,10 @@ type IPv6Mreq struct {
 type Msghdr struct {
 	Name       *byte
 	Namelen    uint32
+	Pad_cgo_0  [4]byte
 	Iov        *Iovec
 	Iovlen     uint32
+	Pad_cgo_1  [4]byte
 	Control    *byte
 	Controllen uint32
 	Flags      int32
@@ -247,7 +251,7 @@ const (
 	SizeofLinger           = 0x8
 	SizeofIPMreq           = 0x8
 	SizeofIPv6Mreq         = 0x14
-	SizeofMsghdr           = 0x1c
+	SizeofMsghdr           = 0x30
 	SizeofCmsghdr          = 0xc
 	SizeofInet6Pktinfo     = 0x14
 	SizeofIPv6MTUInfo      = 0x20
@@ -261,7 +265,7 @@ const (
 )
 
 type Kevent_t struct {
-	Ident  uint32
+	Ident  uint64
 	Filter int16
 	Flags  uint16
 	Fflags uint32
@@ -274,8 +278,8 @@ type FdSet struct {
 }
 
 const (
-	SizeofIfMsghdr         = 0xec
-	SizeofIfData           = 0xd4
+	SizeofIfMsghdr         = 0xf8
+	SizeofIfData           = 0xe0
 	SizeofIfaMsghdr        = 0x18
 	SizeofIfAnnounceMsghdr = 0x1a
 	SizeofRtMsghdr         = 0x60
@@ -318,8 +322,10 @@ type IfData struct {
 	Iqdrops      uint64
 	Noproto      uint64
 	Capabilities uint32
+	Pad_cgo_0    [4]byte
 	Lastchange   Timeval
 	Mclpool      [7]Mclpool
+	Pad_cgo_1    [4]byte
 }
 
 type IfaMsghdr struct {
@@ -391,7 +397,7 @@ type Mclpool struct {
 const (
 	SizeofBpfVersion = 0x4
 	SizeofBpfStat    = 0x8
-	SizeofBpfProgram = 0x8
+	SizeofBpfProgram = 0x10
 	SizeofBpfInsn    = 0x8
 	SizeofBpfHdr     = 0x14
 )
@@ -407,8 +413,9 @@ type BpfStat struct {
 }
 
 type BpfProgram struct {
-	Len   uint32
-	Insns *BpfInsn
+	Len       uint32
+	Pad_cgo_0 [4]byte
+	Insns     *BpfInsn
 }
 
 type BpfInsn struct {
