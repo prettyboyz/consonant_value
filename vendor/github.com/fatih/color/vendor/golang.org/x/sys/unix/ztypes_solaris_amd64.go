@@ -214,4 +214,210 @@ type Inet6Pktinfo struct {
 	Ifindex uint32
 }
 
-type I
+type IPv6MTUInfo struct {
+	Addr RawSockaddrInet6
+	Mtu  uint32
+}
+
+type ICMPv6Filter struct {
+	X__icmp6_filt [8]uint32
+}
+
+const (
+	SizeofSockaddrInet4    = 0x10
+	SizeofSockaddrInet6    = 0x20
+	SizeofSockaddrAny      = 0xfc
+	SizeofSockaddrUnix     = 0x6e
+	SizeofSockaddrDatalink = 0xfc
+	SizeofLinger           = 0x8
+	SizeofIPMreq           = 0x8
+	SizeofIPv6Mreq         = 0x14
+	SizeofMsghdr           = 0x30
+	SizeofCmsghdr          = 0xc
+	SizeofInet6Pktinfo     = 0x14
+	SizeofIPv6MTUInfo      = 0x24
+	SizeofICMPv6Filter     = 0x20
+)
+
+type FdSet struct {
+	Bits [1024]int64
+}
+
+type Utsname struct {
+	Sysname  [257]int8
+	Nodename [257]int8
+	Release  [257]int8
+	Version  [257]int8
+	Machine  [257]int8
+}
+
+type Ustat_t struct {
+	Tfree     int64
+	Tinode    uint64
+	Fname     [6]int8
+	Fpack     [6]int8
+	Pad_cgo_0 [4]byte
+}
+
+const (
+	AT_FDCWD            = 0xffd19553
+	AT_SYMLINK_NOFOLLOW = 0x1000
+	AT_SYMLINK_FOLLOW   = 0x2000
+	AT_REMOVEDIR        = 0x1
+	AT_EACCESS          = 0x4
+)
+
+const (
+	SizeofIfMsghdr  = 0x54
+	SizeofIfData    = 0x44
+	SizeofIfaMsghdr = 0x14
+	SizeofRtMsghdr  = 0x4c
+	SizeofRtMetrics = 0x28
+)
+
+type IfMsghdr struct {
+	Msglen    uint16
+	Version   uint8
+	Type      uint8
+	Addrs     int32
+	Flags     int32
+	Index     uint16
+	Pad_cgo_0 [2]byte
+	Data      IfData
+}
+
+type IfData struct {
+	Type       uint8
+	Addrlen    uint8
+	Hdrlen     uint8
+	Pad_cgo_0  [1]byte
+	Mtu        uint32
+	Metric     uint32
+	Baudrate   uint32
+	Ipackets   uint32
+	Ierrors    uint32
+	Opackets   uint32
+	Oerrors    uint32
+	Collisions uint32
+	Ibytes     uint32
+	Obytes     uint32
+	Imcasts    uint32
+	Omcasts    uint32
+	Iqdrops    uint32
+	Noproto    uint32
+	Lastchange Timeval32
+}
+
+type IfaMsghdr struct {
+	Msglen    uint16
+	Version   uint8
+	Type      uint8
+	Addrs     int32
+	Flags     int32
+	Index     uint16
+	Pad_cgo_0 [2]byte
+	Metric    int32
+}
+
+type RtMsghdr struct {
+	Msglen    uint16
+	Version   uint8
+	Type      uint8
+	Index     uint16
+	Pad_cgo_0 [2]byte
+	Flags     int32
+	Addrs     int32
+	Pid       int32
+	Seq       int32
+	Errno     int32
+	Use       int32
+	Inits     uint32
+	Rmx       RtMetrics
+}
+
+type RtMetrics struct {
+	Locks    uint32
+	Mtu      uint32
+	Hopcount uint32
+	Expire   uint32
+	Recvpipe uint32
+	Sendpipe uint32
+	Ssthresh uint32
+	Rtt      uint32
+	Rttvar   uint32
+	Pksent   uint32
+}
+
+const (
+	SizeofBpfVersion = 0x4
+	SizeofBpfStat    = 0x80
+	SizeofBpfProgram = 0x10
+	SizeofBpfInsn    = 0x8
+	SizeofBpfHdr     = 0x14
+)
+
+type BpfVersion struct {
+	Major uint16
+	Minor uint16
+}
+
+type BpfStat struct {
+	Recv    uint64
+	Drop    uint64
+	Capt    uint64
+	Padding [13]uint64
+}
+
+type BpfProgram struct {
+	Len       uint32
+	Pad_cgo_0 [4]byte
+	Insns     *BpfInsn
+}
+
+type BpfInsn struct {
+	Code uint16
+	Jt   uint8
+	Jf   uint8
+	K    uint32
+}
+
+type BpfTimeval struct {
+	Sec  int32
+	Usec int32
+}
+
+type BpfHdr struct {
+	Tstamp    BpfTimeval
+	Caplen    uint32
+	Datalen   uint32
+	Hdrlen    uint16
+	Pad_cgo_0 [2]byte
+}
+
+const _SC_PAGESIZE = 0xb
+
+type Termios struct {
+	Iflag     uint32
+	Oflag     uint32
+	Cflag     uint32
+	Lflag     uint32
+	Cc        [19]uint8
+	Pad_cgo_0 [1]byte
+}
+
+type Termio struct {
+	Iflag     uint16
+	Oflag     uint16
+	Cflag     uint16
+	Lflag     uint16
+	Line      int8
+	Cc        [8]uint8
+	Pad_cgo_0 [1]byte
+}
+
+type Winsize struct {
+	Row    uint16
+	Col    uint16
+	Xpixel uint16
+	Ypixel uint16
+}
