@@ -164,4 +164,86 @@ func parseFloat(key, keytail string, values []string, target reflect.Value) {
 	f, err := strconv.ParseFloat(values[0], t.Bits())
 	if err != nil {
 		panic(TypeError{
-			Key:  kpath(key, k
+			Key:  kpath(key, keytail),
+			Type: t,
+			Err:  err,
+		})
+	}
+
+	target.SetFloat(f)
+}
+
+func parseString(key, keytail string, values []string, target reflect.Value) {
+	primitive(key, keytail, target.Type(), values)
+
+	target.SetString(values[0])
+}
+
+func parseSlice(key, keytail string, values []string, target reflect.Value) {
+	t := target.Type()
+
+	// BUG(carl): We currently do not handle slices of nested types. If
+	// support is needed, the implementation probably could be fleshed out.
+	if keytail != "[]" {
+		panic(NestingError{
+			Key:     kpath(key, keytail),
+			Type:    t,
+			Nesting: keytail,
+		})
+	}
+
+	slice := reflect.MakeSlice(t, len(values), len(values))
+	kp := kpath(key, keytail)
+	for i := range values {
+		// We actually cheat a little bit and modify the key so we can
+		// generate better debugging messages later
+		key := fmt.Sprintf("%s[%d]", kp, i)
+		parse(key, "", values[i:i+1], slice.Index(i))
+	}
+	target.Set(slice)
+}
+
+func parseMap(key, keytail string, values []string, target reflect.Value) {
+	t := target.Type()
+	mapkey, maptail := keyed(t, key, keytail)
+
+	// BUG(carl): We don't support any map keys except strings, although
+	// there's no reason we shouldn't be able to throw the value through our
+	// unparsing stack.
+	var mk reflect.Value
+	if t.Key().Kind() == reflect.String {
+		mk = reflect.ValueOf(mapkey).Convert(t.Key())
+	} else {
+		pebkac("key for map %v isn't a string (it's a %v).", t, t.Key())
+	}
+
+	if target.IsNil() {
+		target.Set(reflect.MakeMap(t))
+	}
+
+	val := target.MapIndex(mk)
+	if !val.IsValid() || !val.CanSet() {
+		// It's a teensy bit annoying that the value returned by
+		// MapIndex isn't Set()table if the key exists.
+		val = reflect.New(t.Elem()).Elem()
+	}
+	parse(key, maptail, values, val)
+	target.SetMapIndex(mk, val)
+}
+
+func parseStruct(key, keytail string, values []string, target reflect.Value) {
+	t := target.Type()
+	sk, skt := keyed(t, key, keytail)
+	cache := cacheStruct(t)
+
+	parseStructField(cache, key, sk, skt, values, target)
+}
+
+func parsePtr(key, keytail string, values []string, target reflect.Value) {
+	t := target.Type()
+
+	if target.IsNil() {
+		target.Set(reflect.New(t.Elem()))
+	}
+	parse(key, keytail, values, target.Elem())
+}
