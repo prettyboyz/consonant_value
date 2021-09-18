@@ -135,4 +135,162 @@ func sizeVarint(x uint64) (n int) {
 
 // EncodeFixed64 writes a 64-bit integer to the Buffer.
 // This is the format for the
-// fixed64, sfixe
+// fixed64, sfixed64, and double protocol buffer types.
+func (p *Buffer) EncodeFixed64(x uint64) error {
+	p.buf = append(p.buf,
+		uint8(x),
+		uint8(x>>8),
+		uint8(x>>16),
+		uint8(x>>24),
+		uint8(x>>32),
+		uint8(x>>40),
+		uint8(x>>48),
+		uint8(x>>56))
+	return nil
+}
+
+func sizeFixed64(x uint64) int {
+	return 8
+}
+
+// EncodeFixed32 writes a 32-bit integer to the Buffer.
+// This is the format for the
+// fixed32, sfixed32, and float protocol buffer types.
+func (p *Buffer) EncodeFixed32(x uint64) error {
+	p.buf = append(p.buf,
+		uint8(x),
+		uint8(x>>8),
+		uint8(x>>16),
+		uint8(x>>24))
+	return nil
+}
+
+func sizeFixed32(x uint64) int {
+	return 4
+}
+
+// EncodeZigzag64 writes a zigzag-encoded 64-bit integer
+// to the Buffer.
+// This is the format used for the sint64 protocol buffer type.
+func (p *Buffer) EncodeZigzag64(x uint64) error {
+	// use signed number to get arithmetic right shift.
+	return p.EncodeVarint(uint64((x << 1) ^ uint64((int64(x) >> 63))))
+}
+
+func sizeZigzag64(x uint64) int {
+	return sizeVarint(uint64((x << 1) ^ uint64((int64(x) >> 63))))
+}
+
+// EncodeZigzag32 writes a zigzag-encoded 32-bit integer
+// to the Buffer.
+// This is the format used for the sint32 protocol buffer type.
+func (p *Buffer) EncodeZigzag32(x uint64) error {
+	// use signed number to get arithmetic right shift.
+	return p.EncodeVarint(uint64((uint32(x) << 1) ^ uint32((int32(x) >> 31))))
+}
+
+func sizeZigzag32(x uint64) int {
+	return sizeVarint(uint64((uint32(x) << 1) ^ uint32((int32(x) >> 31))))
+}
+
+// EncodeRawBytes writes a count-delimited byte buffer to the Buffer.
+// This is the format used for the bytes protocol buffer
+// type and for embedded messages.
+func (p *Buffer) EncodeRawBytes(b []byte) error {
+	p.EncodeVarint(uint64(len(b)))
+	p.buf = append(p.buf, b...)
+	return nil
+}
+
+func sizeRawBytes(b []byte) int {
+	return sizeVarint(uint64(len(b))) +
+		len(b)
+}
+
+// EncodeStringBytes writes an encoded string to the Buffer.
+// This is the format used for the proto2 string type.
+func (p *Buffer) EncodeStringBytes(s string) error {
+	p.EncodeVarint(uint64(len(s)))
+	p.buf = append(p.buf, s...)
+	return nil
+}
+
+func sizeStringBytes(s string) int {
+	return sizeVarint(uint64(len(s))) +
+		len(s)
+}
+
+// Marshaler is the interface representing objects that can marshal themselves.
+type Marshaler interface {
+	Marshal() ([]byte, error)
+}
+
+// Marshal takes the protocol buffer
+// and encodes it into the wire format, returning the data.
+func Marshal(pb Message) ([]byte, error) {
+	// Can the object marshal itself?
+	if m, ok := pb.(Marshaler); ok {
+		return m.Marshal()
+	}
+	p := NewBuffer(nil)
+	err := p.Marshal(pb)
+	if p.buf == nil && err == nil {
+		// Return a non-nil slice on success.
+		return []byte{}, nil
+	}
+	return p.buf, err
+}
+
+// EncodeMessage writes the protocol buffer to the Buffer,
+// prefixed by a varint-encoded length.
+func (p *Buffer) EncodeMessage(pb Message) error {
+	t, base, err := getbase(pb)
+	if structPointer_IsNil(base) {
+		return ErrNil
+	}
+	if err == nil {
+		var state errorState
+		err = p.enc_len_struct(GetProperties(t.Elem()), base, &state)
+	}
+	return err
+}
+
+// Marshal takes the protocol buffer
+// and encodes it into the wire format, writing the result to the
+// Buffer.
+func (p *Buffer) Marshal(pb Message) error {
+	// Can the object marshal itself?
+	if m, ok := pb.(Marshaler); ok {
+		data, err := m.Marshal()
+		p.buf = append(p.buf, data...)
+		return err
+	}
+
+	t, base, err := getbase(pb)
+	if structPointer_IsNil(base) {
+		return ErrNil
+	}
+	if err == nil {
+		err = p.enc_struct(GetProperties(t.Elem()), base)
+	}
+
+	if collectStats {
+		(stats).Encode++ // Parens are to work around a goimports bug.
+	}
+
+	if len(p.buf) > maxMarshalSize {
+		return ErrTooLarge
+	}
+	return err
+}
+
+// Size returns the encoded size of a protocol buffer.
+func Size(pb Message) (n int) {
+	// Can the object marshal itself?  If so, Size is slow.
+	// TODO: add Size to Marshaler, or add a Sizer interface.
+	if m, ok := pb.(Marshaler); ok {
+		b, _ := m.Marshal()
+		return len(b)
+	}
+
+	t, base, err := getb
