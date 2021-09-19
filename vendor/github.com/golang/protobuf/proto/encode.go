@@ -471,4 +471,174 @@ func size_int64(p *Properties, base structPointer) (n int) {
 		return 0
 	}
 	x := word64_Get(v)
-	n += len(p.ta
+	n += len(p.tagcode)
+	n += p.valSize(x)
+	return
+}
+
+func size_proto3_int64(p *Properties, base structPointer) (n int) {
+	v := structPointer_Word64Val(base, p.field)
+	x := word64Val_Get(v)
+	if x == 0 && !p.oneof {
+		return 0
+	}
+	n += len(p.tagcode)
+	n += p.valSize(x)
+	return
+}
+
+// Encode a string.
+func (o *Buffer) enc_string(p *Properties, base structPointer) error {
+	v := *structPointer_String(base, p.field)
+	if v == nil {
+		return ErrNil
+	}
+	x := *v
+	o.buf = append(o.buf, p.tagcode...)
+	o.EncodeStringBytes(x)
+	return nil
+}
+
+func (o *Buffer) enc_proto3_string(p *Properties, base structPointer) error {
+	v := *structPointer_StringVal(base, p.field)
+	if v == "" {
+		return ErrNil
+	}
+	o.buf = append(o.buf, p.tagcode...)
+	o.EncodeStringBytes(v)
+	return nil
+}
+
+func size_string(p *Properties, base structPointer) (n int) {
+	v := *structPointer_String(base, p.field)
+	if v == nil {
+		return 0
+	}
+	x := *v
+	n += len(p.tagcode)
+	n += sizeStringBytes(x)
+	return
+}
+
+func size_proto3_string(p *Properties, base structPointer) (n int) {
+	v := *structPointer_StringVal(base, p.field)
+	if v == "" && !p.oneof {
+		return 0
+	}
+	n += len(p.tagcode)
+	n += sizeStringBytes(v)
+	return
+}
+
+// All protocol buffer fields are nillable, but be careful.
+func isNil(v reflect.Value) bool {
+	switch v.Kind() {
+	case reflect.Interface, reflect.Map, reflect.Ptr, reflect.Slice:
+		return v.IsNil()
+	}
+	return false
+}
+
+// Encode a message struct.
+func (o *Buffer) enc_struct_message(p *Properties, base structPointer) error {
+	var state errorState
+	structp := structPointer_GetStructPointer(base, p.field)
+	if structPointer_IsNil(structp) {
+		return ErrNil
+	}
+
+	// Can the object marshal itself?
+	if p.isMarshaler {
+		m := structPointer_Interface(structp, p.stype).(Marshaler)
+		data, err := m.Marshal()
+		if err != nil && !state.shouldContinue(err, nil) {
+			return err
+		}
+		o.buf = append(o.buf, p.tagcode...)
+		o.EncodeRawBytes(data)
+		return state.err
+	}
+
+	o.buf = append(o.buf, p.tagcode...)
+	return o.enc_len_struct(p.sprop, structp, &state)
+}
+
+func size_struct_message(p *Properties, base structPointer) int {
+	structp := structPointer_GetStructPointer(base, p.field)
+	if structPointer_IsNil(structp) {
+		return 0
+	}
+
+	// Can the object marshal itself?
+	if p.isMarshaler {
+		m := structPointer_Interface(structp, p.stype).(Marshaler)
+		data, _ := m.Marshal()
+		n0 := len(p.tagcode)
+		n1 := sizeRawBytes(data)
+		return n0 + n1
+	}
+
+	n0 := len(p.tagcode)
+	n1 := size_struct(p.sprop, structp)
+	n2 := sizeVarint(uint64(n1)) // size of encoded length
+	return n0 + n1 + n2
+}
+
+// Encode a group struct.
+func (o *Buffer) enc_struct_group(p *Properties, base structPointer) error {
+	var state errorState
+	b := structPointer_GetStructPointer(base, p.field)
+	if structPointer_IsNil(b) {
+		return ErrNil
+	}
+
+	o.EncodeVarint(uint64((p.Tag << 3) | WireStartGroup))
+	err := o.enc_struct(p.sprop, b)
+	if err != nil && !state.shouldContinue(err, nil) {
+		return err
+	}
+	o.EncodeVarint(uint64((p.Tag << 3) | WireEndGroup))
+	return state.err
+}
+
+func size_struct_group(p *Properties, base structPointer) (n int) {
+	b := structPointer_GetStructPointer(base, p.field)
+	if structPointer_IsNil(b) {
+		return 0
+	}
+
+	n += sizeVarint(uint64((p.Tag << 3) | WireStartGroup))
+	n += size_struct(p.sprop, b)
+	n += sizeVarint(uint64((p.Tag << 3) | WireEndGroup))
+	return
+}
+
+// Encode a slice of bools ([]bool).
+func (o *Buffer) enc_slice_bool(p *Properties, base structPointer) error {
+	s := *structPointer_BoolSlice(base, p.field)
+	l := len(s)
+	if l == 0 {
+		return ErrNil
+	}
+	for _, x := range s {
+		o.buf = append(o.buf, p.tagcode...)
+		v := uint64(0)
+		if x {
+			v = 1
+		}
+		p.valEnc(o, v)
+	}
+	return nil
+}
+
+func size_slice_bool(p *Properties, base structPointer) int {
+	s := *structPointer_BoolSlice(base, p.field)
+	l := len(s)
+	if l == 0 {
+		return 0
+	}
+	return l * (len(p.tagcode) + 1) // each bool takes exactly one byte
+}
+
+// Encode a slice of bools ([]bool) in packed format.
+func (o *Buffer) enc_slice_packed_bool(p *Properties, ba
