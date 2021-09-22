@@ -1302,4 +1302,61 @@ var zeroes [20]byte // longer than any conceivable sizeVarint
 
 // Encode a struct, preceded by its encoded length (as a varint).
 func (o *Buffer) enc_len_struct(prop *StructProperties, base structPointer, state *errorState) error {
-	return o.enc_len_thing(fu
+	return o.enc_len_thing(func() error { return o.enc_struct(prop, base) }, state)
+}
+
+// Encode something, preceded by its encoded length (as a varint).
+func (o *Buffer) enc_len_thing(enc func() error, state *errorState) error {
+	iLen := len(o.buf)
+	o.buf = append(o.buf, 0, 0, 0, 0) // reserve four bytes for length
+	iMsg := len(o.buf)
+	err := enc()
+	if err != nil && !state.shouldContinue(err, nil) {
+		return err
+	}
+	lMsg := len(o.buf) - iMsg
+	lLen := sizeVarint(uint64(lMsg))
+	switch x := lLen - (iMsg - iLen); {
+	case x > 0: // actual length is x bytes larger than the space we reserved
+		// Move msg x bytes right.
+		o.buf = append(o.buf, zeroes[:x]...)
+		copy(o.buf[iMsg+x:], o.buf[iMsg:iMsg+lMsg])
+	case x < 0: // actual length is x bytes smaller than the space we reserved
+		// Move msg x bytes left.
+		copy(o.buf[iMsg+x:], o.buf[iMsg:iMsg+lMsg])
+		o.buf = o.buf[:len(o.buf)+x] // x is negative
+	}
+	// Encode the length in the reserved space.
+	o.buf = o.buf[:iLen]
+	o.EncodeVarint(uint64(lMsg))
+	o.buf = o.buf[:len(o.buf)+lMsg]
+	return state.err
+}
+
+// errorState maintains the first error that occurs and updates that error
+// with additional context.
+type errorState struct {
+	err error
+}
+
+// shouldContinue reports whether encoding should continue upon encountering the
+// given error. If the error is RequiredNotSetError, shouldContinue returns true
+// and, if this is the first appearance of that error, remembers it for future
+// reporting.
+//
+// If prop is not nil, it may update any error with additional context about the
+// field with the error.
+func (s *errorState) shouldContinue(err error, prop *Properties) bool {
+	// Ignore unset required fields.
+	reqNotSet, ok := err.(*RequiredNotSetError)
+	if !ok {
+		return false
+	}
+	if s.err == nil {
+		if prop != nil {
+			err = &RequiredNotSetError{prop.Name + "." + reqNotSet.field}
+		}
+		s.err = err
+	}
+	return true
+}
