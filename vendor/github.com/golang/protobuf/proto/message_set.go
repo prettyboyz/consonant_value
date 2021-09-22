@@ -147,4 +147,146 @@ func skipVarint(buf []byte) []byte {
 	return buf[i+1:]
 }
 
-// MarshalMessageSet encodes the extension map represented by m in the message set wire f
+// MarshalMessageSet encodes the extension map represented by m in the message set wire format.
+// It is called by generated Marshal methods on protocol buffer messages with the message_set_wire_format option.
+func MarshalMessageSet(exts interface{}) ([]byte, error) {
+	var m map[int32]Extension
+	switch exts := exts.(type) {
+	case *XXX_InternalExtensions:
+		if err := encodeExtensions(exts); err != nil {
+			return nil, err
+		}
+		m, _ = exts.extensionsRead()
+	case map[int32]Extension:
+		if err := encodeExtensionsMap(exts); err != nil {
+			return nil, err
+		}
+		m = exts
+	default:
+		return nil, errors.New("proto: not an extension map")
+	}
+
+	// Sort extension IDs to provide a deterministic encoding.
+	// See also enc_map in encode.go.
+	ids := make([]int, 0, len(m))
+	for id := range m {
+		ids = append(ids, int(id))
+	}
+	sort.Ints(ids)
+
+	ms := &messageSet{Item: make([]*_MessageSet_Item, 0, len(m))}
+	for _, id := range ids {
+		e := m[int32(id)]
+		// Remove the wire type and field number varint, as well as the length varint.
+		msg := skipVarint(skipVarint(e.enc))
+
+		ms.Item = append(ms.Item, &_MessageSet_Item{
+			TypeId:  Int32(int32(id)),
+			Message: msg,
+		})
+	}
+	return Marshal(ms)
+}
+
+// UnmarshalMessageSet decodes the extension map encoded in buf in the message set wire format.
+// It is called by generated Unmarshal methods on protocol buffer messages with the message_set_wire_format option.
+func UnmarshalMessageSet(buf []byte, exts interface{}) error {
+	var m map[int32]Extension
+	switch exts := exts.(type) {
+	case *XXX_InternalExtensions:
+		m = exts.extensionsWrite()
+	case map[int32]Extension:
+		m = exts
+	default:
+		return errors.New("proto: not an extension map")
+	}
+
+	ms := new(messageSet)
+	if err := Unmarshal(buf, ms); err != nil {
+		return err
+	}
+	for _, item := range ms.Item {
+		id := *item.TypeId
+		msg := item.Message
+
+		// Restore wire type and field number varint, plus length varint.
+		// Be careful to preserve duplicate items.
+		b := EncodeVarint(uint64(id)<<3 | WireBytes)
+		if ext, ok := m[id]; ok {
+			// Existing data; rip off the tag and length varint
+			// so we join the new data correctly.
+			// We can assume that ext.enc is set because we are unmarshaling.
+			o := ext.enc[len(b):]   // skip wire type and field number
+			_, n := DecodeVarint(o) // calculate length of length varint
+			o = o[n:]               // skip length varint
+			msg = append(o, msg...) // join old data and new data
+		}
+		b = append(b, EncodeVarint(uint64(len(msg)))...)
+		b = append(b, msg...)
+
+		m[id] = Extension{enc: b}
+	}
+	return nil
+}
+
+// MarshalMessageSetJSON encodes the extension map represented by m in JSON format.
+// It is called by generated MarshalJSON methods on protocol buffer messages with the message_set_wire_format option.
+func MarshalMessageSetJSON(exts interface{}) ([]byte, error) {
+	var m map[int32]Extension
+	switch exts := exts.(type) {
+	case *XXX_InternalExtensions:
+		m, _ = exts.extensionsRead()
+	case map[int32]Extension:
+		m = exts
+	default:
+		return nil, errors.New("proto: not an extension map")
+	}
+	var b bytes.Buffer
+	b.WriteByte('{')
+
+	// Process the map in key order for deterministic output.
+	ids := make([]int32, 0, len(m))
+	for id := range m {
+		ids = append(ids, id)
+	}
+	sort.Sort(int32Slice(ids)) // int32Slice defined in text.go
+
+	for i, id := range ids {
+		ext := m[id]
+		if i > 0 {
+			b.WriteByte(',')
+		}
+
+		msd, ok := messageSetMap[id]
+		if !ok {
+			// Unknown type; we can't render it, so skip it.
+			continue
+		}
+		fmt.Fprintf(&b, `"[%s]":`, msd.name)
+
+		x := ext.value
+		if x == nil {
+			x = reflect.New(msd.t.Elem()).Interface()
+			if err := Unmarshal(ext.enc, x.(Message)); err != nil {
+				return nil, err
+			}
+		}
+		d, err := json.Marshal(x)
+		if err != nil {
+			return nil, err
+		}
+		b.Write(d)
+	}
+	b.WriteByte('}')
+	return b.Bytes(), nil
+}
+
+// UnmarshalMessageSetJSON decodes the extension map encoded in buf in JSON format.
+// It is called by generated UnmarshalJSON methods on protocol buffer messages with the message_set_wire_format option.
+func UnmarshalMessageSetJSON(buf []byte, exts interface{}) error {
+	// Common-case fast path.
+	if len(buf) == 0 || bytes.Equal(buf, []byte("{}")) {
+		return nil
+	}
+
+	// This is fairly tricky, and it's not
