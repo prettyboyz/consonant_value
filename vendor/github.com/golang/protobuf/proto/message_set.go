@@ -289,4 +289,23 @@ func UnmarshalMessageSetJSON(buf []byte, exts interface{}) error {
 		return nil
 	}
 
-	// This is fairly tricky, and it's not
+	// This is fairly tricky, and it's not clear that it is needed.
+	return errors.New("TODO: UnmarshalMessageSetJSON not yet implemented")
+}
+
+// A global registry of types that can be used in a MessageSet.
+
+var messageSetMap = make(map[int32]messageSetDesc)
+
+type messageSetDesc struct {
+	t    reflect.Type // pointer to struct
+	name string
+}
+
+// RegisterMessageSetType is called from the generated code.
+func RegisterMessageSetType(m Message, fieldNum int32, name string) {
+	messageSetMap[fieldNum] = messageSetDesc{
+		t:    reflect.TypeOf(m),
+		name: name,
+	}
+}
