@@ -847,3 +847,9 @@ func MarshalText(w io.Writer, pb Message) error { return defaultTextMarshaler.Ma
 
 // MarshalTextString is the same as MarshalText, but returns the string directly.
 func MarshalTextString(pb Message) string { return defaultTextMarshaler.Text(pb) }
+
+// CompactText writes a given protocol buffer in compact text format (one line).
+func CompactText(w io.Writer, pb Message) error { return compactTextMarshaler.Marshal(w, pb) }
+
+// CompactTextString is the same as CompactText, but returns the string directly.
+func CompactTextString(pb Message) string { return compactTextMarshaler.Text(pb) }
