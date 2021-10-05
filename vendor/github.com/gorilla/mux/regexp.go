@@ -76,4 +76,148 @@ func newRouteRegexp(tpl string, matchHost, matchPrefix, matchQuery, strictSlash,
 		fmt.Fprintf(pattern, "%s(?P<%s>%s)", regexp.QuoteMeta(raw), varGroupName(i/2), patt)
 
 		// Build the reverse template.
-		fmt.Fprintf(reverse, "%s%%s",
+		fmt.Fprintf(reverse, "%s%%s", raw)
+
+		// Append variable name and compiled pattern.
+		varsN[i/2] = name
+		varsR[i/2], err = regexp.Compile(fmt.Sprintf("^%s$", patt))
+		if err != nil {
+			return nil, err
+		}
+	}
+	// Add the remaining.
+	raw := tpl[end:]
+	pattern.WriteString(regexp.QuoteMeta(raw))
+	if strictSlash {
+		pattern.WriteString("[/]?")
+	}
+	if matchQuery {
+		// Add the default pattern if the query value is empty
+		if queryVal := strings.SplitN(template, "=", 2)[1]; queryVal == "" {
+			pattern.WriteString(defaultPattern)
+		}
+	}
+	if !matchPrefix {
+		pattern.WriteByte('$')
+	}
+	reverse.WriteString(raw)
+	if endSlash {
+		reverse.WriteByte('/')
+	}
+	// Compile full regexp.
+	reg, errCompile := regexp.Compile(pattern.String())
+	if errCompile != nil {
+		return nil, errCompile
+	}
+
+	// Check for capturing groups which used to work in older versions
+	if reg.NumSubexp() != len(idxs)/2 {
+		panic(fmt.Sprintf("route %s contains capture groups in its regexp. ", template) +
+			"Only non-capturing groups are accepted: e.g. (?:pattern) instead of (pattern)")
+	}
+
+	// Done!
+	return &routeRegexp{
+		template:       template,
+		matchHost:      matchHost,
+		matchQuery:     matchQuery,
+		strictSlash:    strictSlash,
+		useEncodedPath: useEncodedPath,
+		regexp:         reg,
+		reverse:        reverse.String(),
+		varsN:          varsN,
+		varsR:          varsR,
+	}, nil
+}
+
+// routeRegexp stores a regexp to match a host or path and information to
+// collect and validate route variables.
+type routeRegexp struct {
+	// The unmodified template.
+	template string
+	// True for host match, false for path or query string match.
+	matchHost bool
+	// True for query string match, false for path and host match.
+	matchQuery bool
+	// The strictSlash value defined on the route, but disabled if PathPrefix was used.
+	strictSlash bool
+	// Determines whether to use encoded path from getPath function or unencoded
+	// req.URL.Path for path matching
+	useEncodedPath bool
+	// Expanded regexp.
+	regexp *regexp.Regexp
+	// Reverse template.
+	reverse string
+	// Variable names.
+	varsN []string
+	// Variable regexps (validators).
+	varsR []*regexp.Regexp
+}
+
+// Match matches the regexp against the URL host or path.
+func (r *routeRegexp) Match(req *http.Request, match *RouteMatch) bool {
+	if !r.matchHost {
+		if r.matchQuery {
+			return r.matchQueryString(req)
+		}
+		path := req.URL.Path
+		if r.useEncodedPath {
+			path = getPath(req)
+		}
+		return r.regexp.MatchString(path)
+	}
+
+	return r.regexp.MatchString(getHost(req))
+}
+
+// url builds a URL part using the given values.
+func (r *routeRegexp) url(values map[string]string) (string, error) {
+	urlValues := make([]interface{}, len(r.varsN))
+	for k, v := range r.varsN {
+		value, ok := values[v]
+		if !ok {
+			return "", fmt.Errorf("mux: missing route variable %q", v)
+		}
+		urlValues[k] = value
+	}
+	rv := fmt.Sprintf(r.reverse, urlValues...)
+	if !r.regexp.MatchString(rv) {
+		// The URL is checked against the full regexp, instead of checking
+		// individual variables. This is faster but to provide a good error
+		// message, we check individual regexps if the URL doesn't match.
+		for k, v := range r.varsN {
+			if !r.varsR[k].MatchString(values[v]) {
+				return "", fmt.Errorf(
+					"mux: variable %q doesn't match, expected %q", values[v],
+					r.varsR[k].String())
+			}
+		}
+	}
+	return rv, nil
+}
+
+// getURLQuery returns a single query parameter from a request URL.
+// For a URL with foo=bar&baz=ding, we return only the relevant key
+// value pair for the routeRegexp.
+func (r *routeRegexp) getURLQuery(req *http.Request) string {
+	if !r.matchQuery {
+		return ""
+	}
+	templateKey := strings.SplitN(r.template, "=", 2)[0]
+	for key, vals := range req.URL.Query() {
+		if key == templateKey && len(vals) > 0 {
+			return key + "=" + vals[0]
+		}
+	}
+	return ""
+}
+
+func (r *routeRegexp) matchQueryString(req *http.Request) bool {
+	return r.regexp.MatchString(r.getURLQuery(req))
+}
+
+// braceIndices returns the first level curly brace indices from a string.
+// It returns an error in case of unbalanced braces.
+func braceIndices(s string) ([]int, error) {
+	var level, idx int
+	va
