@@ -220,4 +220,104 @@ func (r *routeRegexp) matchQueryString(req *http.Request) bool {
 // It returns an error in case of unbalanced braces.
 func braceIndices(s string) ([]int, error) {
 	var level, idx int
-	va
+	var idxs []int
+	for i := 0; i < len(s); i++ {
+		switch s[i] {
+		case '{':
+			if level++; level == 1 {
+				idx = i
+			}
+		case '}':
+			if level--; level == 0 {
+				idxs = append(idxs, idx, i+1)
+			} else if level < 0 {
+				return nil, fmt.Errorf("mux: unbalanced braces in %q", s)
+			}
+		}
+	}
+	if level != 0 {
+		return nil, fmt.Errorf("mux: unbalanced braces in %q", s)
+	}
+	return idxs, nil
+}
+
+// varGroupName builds a capturing group name for the indexed variable.
+func varGroupName(idx int) string {
+	return "v" + strconv.Itoa(idx)
+}
+
+// ----------------------------------------------------------------------------
+// routeRegexpGroup
+// ----------------------------------------------------------------------------
+
+// routeRegexpGroup groups the route matchers that carry variables.
+type routeRegexpGroup struct {
+	host    *routeRegexp
+	path    *routeRegexp
+	queries []*routeRegexp
+}
+
+// setMatch extracts the variables from the URL once a route matches.
+func (v *routeRegexpGroup) setMatch(req *http.Request, m *RouteMatch, r *Route) {
+	// Store host variables.
+	if v.host != nil {
+		host := getHost(req)
+		matches := v.host.regexp.FindStringSubmatchIndex(host)
+		if len(matches) > 0 {
+			extractVars(host, matches, v.host.varsN, m.Vars)
+		}
+	}
+	path := req.URL.Path
+	if r.useEncodedPath {
+		path = getPath(req)
+	}
+	// Store path variables.
+	if v.path != nil {
+		matches := v.path.regexp.FindStringSubmatchIndex(path)
+		if len(matches) > 0 {
+			extractVars(path, matches, v.path.varsN, m.Vars)
+			// Check if we should redirect.
+			if v.path.strictSlash {
+				p1 := strings.HasSuffix(path, "/")
+				p2 := strings.HasSuffix(v.path.template, "/")
+				if p1 != p2 {
+					u, _ := url.Parse(req.URL.String())
+					if p1 {
+						u.Path = u.Path[:len(u.Path)-1]
+					} else {
+						u.Path += "/"
+					}
+					m.Handler = http.RedirectHandler(u.String(), 301)
+				}
+			}
+		}
+	}
+	// Store query string variables.
+	for _, q := range v.queries {
+		queryURL := q.getURLQuery(req)
+		matches := q.regexp.FindStringSubmatchIndex(queryURL)
+		if len(matches) > 0 {
+			extractVars(queryURL, matches, q.varsN, m.Vars)
+		}
+	}
+}
+
+// getHost tries its best to return the request host.
+func getHost(r *http.Request) string {
+	if r.URL.IsAbs() {
+		return r.URL.Host
+	}
+	host := r.Host
+	// Slice off any port information.
+	if i := strings.Index(host, ":"); i != -1 {
+		host = host[:i]
+	}
+	return host
+
+}
+
+func extractVars(input string, matches []int, names []string, output map[string]string) {
+	for i, name := range names {
+		output[name] = input[matches[2*i+2]:matches[2*i+3]]
+	}
+}
