@@ -330,4 +330,128 @@ func (r *Route) Path(tpl string) *Route {
 
 // PathPrefix -----------------------------------------------------------------
 
-// PathPrefix adds a matcher for the URL path pre
+// PathPrefix adds a matcher for the URL path prefix. This matches if the given
+// template is a prefix of the full URL path. See Route.Path() for details on
+// the tpl argument.
+//
+// Note that it does not treat slashes specially ("/foobar/" will be matched by
+// the prefix "/foo") so you may want to use a trailing slash here.
+//
+// Also note that the setting of Router.StrictSlash() has no effect on routes
+// with a PathPrefix matcher.
+func (r *Route) PathPrefix(tpl string) *Route {
+	r.err = r.addRegexpMatcher(tpl, false, true, false)
+	return r
+}
+
+// Query ----------------------------------------------------------------------
+
+// Queries adds a matcher for URL query values.
+// It accepts a sequence of key/value pairs. Values may define variables.
+// For example:
+//
+//     r := mux.NewRouter()
+//     r.Queries("foo", "bar", "id", "{id:[0-9]+}")
+//
+// The above route will only match if the URL contains the defined queries
+// values, e.g.: ?foo=bar&id=42.
+//
+// It the value is an empty string, it will match any value if the key is set.
+//
+// Variables can define an optional regexp pattern to be matched:
+//
+// - {name} matches anything until the next slash.
+//
+// - {name:pattern} matches the given regexp pattern.
+func (r *Route) Queries(pairs ...string) *Route {
+	length := len(pairs)
+	if length%2 != 0 {
+		r.err = fmt.Errorf(
+			"mux: number of parameters must be multiple of 2, got %v", pairs)
+		return nil
+	}
+	for i := 0; i < length; i += 2 {
+		if r.err = r.addRegexpMatcher(pairs[i]+"="+pairs[i+1], false, false, true); r.err != nil {
+			return r
+		}
+	}
+
+	return r
+}
+
+// Schemes --------------------------------------------------------------------
+
+// schemeMatcher matches the request against URL schemes.
+type schemeMatcher []string
+
+func (m schemeMatcher) Match(r *http.Request, match *RouteMatch) bool {
+	return matchInArray(m, r.URL.Scheme)
+}
+
+// Schemes adds a matcher for URL schemes.
+// It accepts a sequence of schemes to be matched, e.g.: "http", "https".
+func (r *Route) Schemes(schemes ...string) *Route {
+	for k, v := range schemes {
+		schemes[k] = strings.ToLower(v)
+	}
+	return r.addMatcher(schemeMatcher(schemes))
+}
+
+// BuildVarsFunc --------------------------------------------------------------
+
+// BuildVarsFunc is the function signature used by custom build variable
+// functions (which can modify route variables before a route's URL is built).
+type BuildVarsFunc func(map[string]string) map[string]string
+
+// BuildVarsFunc adds a custom function to be used to modify build variables
+// before a route's URL is built.
+func (r *Route) BuildVarsFunc(f BuildVarsFunc) *Route {
+	r.buildVarsFunc = f
+	return r
+}
+
+// Subrouter ------------------------------------------------------------------
+
+// Subrouter creates a subrouter for the route.
+//
+// It will test the inner routes only if the parent route matched. For example:
+//
+//     r := mux.NewRouter()
+//     s := r.Host("www.example.com").Subrouter()
+//     s.HandleFunc("/products/", ProductsHandler)
+//     s.HandleFunc("/products/{key}", ProductHandler)
+//     s.HandleFunc("/articles/{category}/{id:[0-9]+}"), ArticleHandler)
+//
+// Here, the routes registered in the subrouter won't be tested if the host
+// doesn't match.
+func (r *Route) Subrouter() *Router {
+	router := &Router{parent: r, strictSlash: r.strictSlash}
+	r.addMatcher(router)
+	return router
+}
+
+// ----------------------------------------------------------------------------
+// URL building
+// ----------------------------------------------------------------------------
+
+// URL builds a URL for the route.
+//
+// It accepts a sequence of key/value pairs for the route variables. For
+// example, given this route:
+//
+//     r := mux.NewRouter()
+//     r.HandleFunc("/articles/{category}/{id:[0-9]+}", ArticleHandler).
+//       Name("article")
+//
+// ...a URL for it can be built using:
+//
+//     url, err := r.Get("article").URL("category", "technology", "id", "42")
+//
+// ...which will return an url.URL with the following path:
+//
+//     "/articles/technology/42"
+//
+// This also works for host variables:
+//
+//     r := mux.NewRouter()
+//     r.Host("{sub
