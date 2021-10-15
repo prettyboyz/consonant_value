@@ -454,4 +454,150 @@ func (r *Route) Subrouter() *Router {
 // This also works for host variables:
 //
 //     r := mux.NewRouter()
-//     r.Host("{sub
+//     r.Host("{subdomain}.domain.com").
+//       HandleFunc("/articles/{category}/{id:[0-9]+}", ArticleHandler).
+//       Name("article")
+//
+//     // url.String() will be "http://news.domain.com/articles/technology/42"
+//     url, err := r.Get("article").URL("subdomain", "news",
+//                                      "category", "technology",
+//                                      "id", "42")
+//
+// All variables defined in the route are required, and their values must
+// conform to the corresponding patterns.
+func (r *Route) URL(pairs ...string) (*url.URL, error) {
+	if r.err != nil {
+		return nil, r.err
+	}
+	if r.regexp == nil {
+		return nil, errors.New("mux: route doesn't have a host or path")
+	}
+	values, err := r.prepareVars(pairs...)
+	if err != nil {
+		return nil, err
+	}
+	var scheme, host, path string
+	if r.regexp.host != nil {
+		// Set a default scheme.
+		scheme = "http"
+		if host, err = r.regexp.host.url(values); err != nil {
+			return nil, err
+		}
+	}
+	if r.regexp.path != nil {
+		if path, err = r.regexp.path.url(values); err != nil {
+			return nil, err
+		}
+	}
+	return &url.URL{
+		Scheme: scheme,
+		Host:   host,
+		Path:   path,
+	}, nil
+}
+
+// URLHost builds the host part of the URL for a route. See Route.URL().
+//
+// The route must have a host defined.
+func (r *Route) URLHost(pairs ...string) (*url.URL, error) {
+	if r.err != nil {
+		return nil, r.err
+	}
+	if r.regexp == nil || r.regexp.host == nil {
+		return nil, errors.New("mux: route doesn't have a host")
+	}
+	values, err := r.prepareVars(pairs...)
+	if err != nil {
+		return nil, err
+	}
+	host, err := r.regexp.host.url(values)
+	if err != nil {
+		return nil, err
+	}
+	return &url.URL{
+		Scheme: "http",
+		Host:   host,
+	}, nil
+}
+
+// URLPath builds the path part of the URL for a route. See Route.URL().
+//
+// The route must have a path defined.
+func (r *Route) URLPath(pairs ...string) (*url.URL, error) {
+	if r.err != nil {
+		return nil, r.err
+	}
+	if r.regexp == nil || r.regexp.path == nil {
+		return nil, errors.New("mux: route doesn't have a path")
+	}
+	values, err := r.prepareVars(pairs...)
+	if err != nil {
+		return nil, err
+	}
+	path, err := r.regexp.path.url(values)
+	if err != nil {
+		return nil, err
+	}
+	return &url.URL{
+		Path: path,
+	}, nil
+}
+
+// GetPathTemplate returns the template used to build the
+// route match.
+// This is useful for building simple REST API documentation and for instrumentation
+// against third-party services.
+// An error will be returned if the route does not define a path.
+func (r *Route) GetPathTemplate() (string, error) {
+	if r.err != nil {
+		return "", r.err
+	}
+	if r.regexp == nil || r.regexp.path == nil {
+		return "", errors.New("mux: route doesn't have a path")
+	}
+	return r.regexp.path.template, nil
+}
+
+// GetHostTemplate returns the template used to build the
+// route match.
+// This is useful for building simple REST API documentation and for instrumentation
+// against third-party services.
+// An error will be returned if the route does not define a host.
+func (r *Route) GetHostTemplate() (string, error) {
+	if r.err != nil {
+		return "", r.err
+	}
+	if r.regexp == nil || r.regexp.host == nil {
+		return "", errors.New("mux: route doesn't have a host")
+	}
+	return r.regexp.host.template, nil
+}
+
+// prepareVars converts the route variable pairs into a map. If the route has a
+// BuildVarsFunc, it is invoked.
+func (r *Route) prepareVars(pairs ...string) (map[string]string, error) {
+	m, err := mapFromPairsToString(pairs...)
+	if err != nil {
+		return nil, err
+	}
+	return r.buildVars(m), nil
+}
+
+func (r *Route) buildVars(m map[string]string) map[string]string {
+	if r.parent != nil {
+		m = r.parent.buildVars(m)
+	}
+	if r.buildVarsFunc != nil {
+		m = r.buildVarsFunc(m)
+	}
+	return m
+}
+
+// ----------------------------------------------------------------------------
+// parentRoute
+// ----------------------------------------------------------------------------
+
+// parentRoute allows routes to know about parent host and path definitions.
+type parentRoute interface {
+	getNamedRoutes() map[string]*Route
+	getRegexp
