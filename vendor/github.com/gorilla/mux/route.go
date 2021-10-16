@@ -600,4 +600,37 @@ func (r *Route) buildVars(m map[string]string) map[string]string {
 // parentRoute allows routes to know about parent host and path definitions.
 type parentRoute interface {
 	getNamedRoutes() map[string]*Route
-	getRegexp
+	getRegexpGroup() *routeRegexpGroup
+	buildVars(map[string]string) map[string]string
+}
+
+// getNamedRoutes returns the map where named routes are registered.
+func (r *Route) getNamedRoutes() map[string]*Route {
+	if r.parent == nil {
+		// During tests router is not always set.
+		r.parent = NewRouter()
+	}
+	return r.parent.getNamedRoutes()
+}
+
+// getRegexpGroup returns regexp definitions from this route.
+func (r *Route) getRegexpGroup() *routeRegexpGroup {
+	if r.regexp == nil {
+		if r.parent == nil {
+			// During tests router is not always set.
+			r.parent = NewRouter()
+		}
+		regexp := r.parent.getRegexpGroup()
+		if regexp == nil {
+			r.regexp = new(routeRegexpGroup)
+		} else {
+			// Copy.
+			r.regexp = &routeRegexpGroup{
+				host:    regexp.host,
+				path:    regexp.path,
+				queries: regexp.queries,
+			}
+		}
+	}
+	return r.regexp
+}
