@@ -9,4 +9,8 @@ import (
 
 const Enabled = true
 
-var logger = log
+var logger = log.New(os.Stdout, "|DEBUG| ", 0)
+
+func Printf(f string, args ...interface{}) {
+	logger.Printf(f, args...)
+}
