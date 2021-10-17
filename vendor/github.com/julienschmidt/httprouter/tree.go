@@ -577,4 +577,80 @@ walk: // outer loop for walking the tree
 					k++
 				}
 
-				// add param value to case insensitive pa
+				// add param value to case insensitive path
+				ciPath = append(ciPath, path[:k]...)
+
+				// we need to go deeper!
+				if k < len(path) {
+					if len(n.children) > 0 {
+						// continue with child node
+						n = n.children[0]
+						loNPath = strings.ToLower(n.path)
+						loPath = loPath[k:]
+						path = path[k:]
+						continue
+					}
+
+					// ... but we can't
+					if fixTrailingSlash && len(path) == k+1 {
+						return ciPath, true
+					}
+					return ciPath, false
+				}
+
+				if n.handle != nil {
+					return ciPath, true
+				} else if fixTrailingSlash && len(n.children) == 1 {
+					// No handle found. Check if a handle for this path + a
+					// trailing slash exists
+					n = n.children[0]
+					if n.path == "/" && n.handle != nil {
+						return append(ciPath, '/'), true
+					}
+				}
+				return ciPath, false
+
+			case catchAll:
+				return append(ciPath, path...), true
+
+			default:
+				panic("invalid node type")
+			}
+		} else {
+			// We should have reached the node containing the handle.
+			// Check if this node has a handle registered.
+			if n.handle != nil {
+				return ciPath, true
+			}
+
+			// No handle found.
+			// Try to fix the path by adding a trailing slash
+			if fixTrailingSlash {
+				for i := 0; i < len(n.indices); i++ {
+					if n.indices[i] == '/' {
+						n = n.children[i]
+						if (len(n.path) == 1 && n.handle != nil) ||
+							(n.nType == catchAll && n.children[0].handle != nil) {
+							return append(ciPath, '/'), true
+						}
+						return ciPath, false
+					}
+				}
+			}
+			return ciPath, false
+		}
+	}
+
+	// Nothing found.
+	// Try to fix the path by adding / removing a trailing slash
+	if fixTrailingSlash {
+		if path == "/" {
+			return ciPath, true
+		}
+		if len(loPath)+1 == len(loNPath) && loNPath[len(loPath)] == '/' &&
+			loPath[1:] == loNPath[1:len(loPath)] && n.handle != nil {
+			return append(ciPath, n.path...), true
+		}
+	}
+	return ciPath, false
+}
