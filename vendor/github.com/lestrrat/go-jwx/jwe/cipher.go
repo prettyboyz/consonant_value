@@ -157,3 +157,32 @@ func (c AesContentCipher) decrypt(cek, iv, ciphertxt, tag, aad []byte) (plaintex
 	// Open may panic (argh!), so protect ourselves from that
 	defer func() {
 		if e := recover(); e != nil {
+			switch e.(type) {
+			case error:
+				err = e.(error)
+			case string:
+				err = errors.New(e.(string))
+			default:
+				err = fmt.Errorf("%s", e)
+			}
+			return
+		}
+	}()
+
+	combined := make([]byte, len(ciphertxt)+len(tag))
+	copy(combined, ciphertxt)
+	copy(combined[len(ciphertxt):], tag)
+
+	if debug.Enabled {
+		debug.Printf("AesContentCipher.decrypt: combined = %x (%d)", combined, len(combined))
+	}
+
+	plaintext, err = aead.Open(nil, iv, combined, aad)
+	return
+}
+
+func NewRsaContentCipher(alg jwa.ContentEncryptionAlgorithm, pubkey *rsa.PublicKey) (*RsaContentCipher, error) {
+	return &RsaContentCipher{
+		pubkey: pubkey,
+	}, nil
+}
