@@ -122,3 +122,19 @@ type EcdsaPublicKey struct {
 	Curve jwa.EllipticCurveAlgorithm `json:"crv"`
 	X     buffer.Buffer              `json:"x"`
 	Y     buffer.Buffer              `json:"y"`
+}
+
+// EcdsaPrivateKey is a type of JWK generated from ECDH-ES private keys
+type EcdsaPrivateKey struct {
+	*EcdsaPublicKey
+	D buffer.Buffer `json:"d"`
+}
+
+// EcdhesPublicKey is a type of JWK generated from ECDH-ES public keys
+type EcdhesPublicKey struct {
+	KeyEncryption     jwa.KeyEncryptionAlgorithm     `json:"alg"`
+	ContentEncryption jwa.ContentEncryptionAlgorithm `json:"enc"`
+	PublicKey         Key                            `json:"epk"`
+	UInfo             buffer.Buffer                  `json:"apu,omitempty"`
+	VInfo             buffer.Buffer                  `json:"apv,omitempty"`
+}
