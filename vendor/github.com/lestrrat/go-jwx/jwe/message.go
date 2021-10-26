@@ -219,4 +219,193 @@ func (h *Header) Merge(h2 *Header) (*Header, error) {
 
 	h3.EssentialHeader.Merge(h2.EssentialHeader)
 
-	for k, v := range h2.PrivateParams
+	for k, v := range h2.PrivateParams {
+		h3.PrivateParams[k] = v
+	}
+
+	return h3, nil
+}
+
+// Merge merges the current header with another.
+func (h *EssentialHeader) Merge(h2 *EssentialHeader) {
+	if h2.AgreementPartyUInfo.Len() != 0 {
+		h.AgreementPartyUInfo = h2.AgreementPartyUInfo
+	}
+
+	if h2.AgreementPartyVInfo.Len() != 0 {
+		h.AgreementPartyVInfo = h2.AgreementPartyVInfo
+	}
+
+	if h2.Algorithm != "" {
+		h.Algorithm = h2.Algorithm
+	}
+
+	if h2.ContentEncryption != "" {
+		h.ContentEncryption = h2.ContentEncryption
+	}
+
+	if h2.ContentType != "" {
+		h.ContentType = h2.ContentType
+	}
+
+	if h2.Compression != "" {
+		h.Compression = h2.Compression
+	}
+
+	if h2.Critical != nil {
+		h.Critical = h2.Critical
+	}
+
+	if h2.EphemeralPublicKey != nil {
+		h.EphemeralPublicKey = h2.EphemeralPublicKey
+	}
+
+	if h2.Jwk != nil {
+		h.Jwk = h2.Jwk
+	}
+
+	if h2.JwkSetURL != nil {
+		h.JwkSetURL = h2.JwkSetURL
+	}
+
+	if h2.KeyID != "" {
+		h.KeyID = h2.KeyID
+	}
+
+	if h2.Type != "" {
+		h.Type = h2.Type
+	}
+
+	if h2.X509Url != nil {
+		h.X509Url = h2.X509Url
+	}
+
+	if h2.X509CertChain != nil {
+		h.X509CertChain = h2.X509CertChain
+	}
+
+	if h2.X509CertThumbprint != "" {
+		h.X509CertThumbprint = h2.X509CertThumbprint
+	}
+
+	if h2.X509CertThumbprintS256 != "" {
+		h.X509CertThumbprintS256 = h2.X509CertThumbprintS256
+	}
+}
+
+// Copy copies the other heder over this one
+func (h *Header) Copy(h2 *Header) error {
+	if h == nil {
+		return errors.New("copy destination is nil")
+	}
+	if h2 == nil {
+		return errors.New("copy target is nil")
+	}
+
+	h.EssentialHeader.Copy(h2.EssentialHeader)
+
+	for k, v := range h2.PrivateParams {
+		h.PrivateParams[k] = v
+	}
+
+	return nil
+}
+
+// Copy copies the other heder over this one
+func (h *EssentialHeader) Copy(h2 *EssentialHeader) {
+	h.AgreementPartyUInfo = h2.AgreementPartyUInfo
+	h.AgreementPartyVInfo = h2.AgreementPartyVInfo
+	h.Algorithm = h2.Algorithm
+	h.ContentEncryption = h2.ContentEncryption
+	h.ContentType = h2.ContentType
+	h.Compression = h2.Compression
+	h.Critical = h2.Critical
+	h.EphemeralPublicKey = h2.EphemeralPublicKey
+	h.Jwk = h2.Jwk
+	h.JwkSetURL = h2.JwkSetURL
+	h.KeyID = h2.KeyID
+	h.Type = h2.Type
+	h.X509Url = h2.X509Url
+	h.X509CertChain = h2.X509CertChain
+	h.X509CertThumbprint = h2.X509CertThumbprint
+	h.X509CertThumbprintS256 = h2.X509CertThumbprintS256
+}
+
+// MarshalJSON generates the JSON representation of this header
+func (h Header) MarshalJSON() ([]byte, error) {
+	return emap.MergeMarshal(h.EssentialHeader, h.PrivateParams)
+}
+
+// UnmarshalJSON parses the JSON buffer into a Header
+func (h *Header) UnmarshalJSON(data []byte) error {
+	if h.EssentialHeader == nil {
+		h.EssentialHeader = &EssentialHeader{}
+	}
+	if h.PrivateParams == nil {
+		h.PrivateParams = map[string]interface{}{}
+	}
+
+	if err := json.Unmarshal(data, h.EssentialHeader); err != nil {
+		return err
+	}
+
+	m := map[string]interface{}{}
+	if err := json.Unmarshal(data, &m); err != nil {
+		return err
+	}
+	for _, n := range []string{"alg", "apu", "apv", "enc", "cty", "zip", "crit", "epk", "jwk", "jku", "kid", "typ", "x5u", "x5c", "x5t", "x5t#S256"} {
+		delete(m, n)
+	}
+
+	for name, value := range m {
+		if err := h.Set(name, value); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// Base64Encode creates the base64 encoded version of the JSON
+// representation of this header
+func (e EncodedHeader) Base64Encode() ([]byte, error) {
+	buf, err := json.Marshal(e.Header)
+	if err != nil {
+		return nil, err
+	}
+
+	buf, err = buffer.Buffer(buf).Base64Encode()
+	if err != nil {
+		return nil, err
+	}
+
+	return buf, nil
+}
+
+// MarshalJSON generates the JSON representation of this header
+func (e EncodedHeader) MarshalJSON() ([]byte, error) {
+	buf, err := e.Base64Encode()
+	if err != nil {
+		return nil, err
+	}
+	return json.Marshal(string(buf))
+}
+
+// UnmarshalJSON parses the JSON buffer into a Header
+func (e *EncodedHeader) UnmarshalJSON(buf []byte) error {
+	b := buffer.Buffer{}
+	// base646 json string -> json object representation of header
+	if err := json.Unmarshal(buf, &b); err != nil {
+		return err
+	}
+
+	if err := json.Unmarshal(b.Bytes(), &e.Header); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// NewMessage creates a new message
+func NewMessage() *Message {
+	return &Message{
+		ProtectedHeader: 
