@@ -408,4 +408,127 @@ func (e *EncodedHeader) UnmarshalJSON(buf []byte) error {
 // NewMessage creates a new message
 func NewMessage() *Message {
 	return &Message{
-		ProtectedHeader: 
+		ProtectedHeader:   NewEncodedHeader(),
+		UnprotectedHeader: NewHeader(),
+	}
+}
+
+// Decrypt decrypts the message using the specified algorithm and key
+func (m *Message) Decrypt(alg jwa.KeyEncryptionAlgorithm, key interface{}) ([]byte, error) {
+	var err error
+
+	if len(m.Recipients) == 0 {
+		return nil, errors.New("no recipients, can not proceed with decrypt")
+	}
+
+	enc := m.ProtectedHeader.ContentEncryption
+
+	h := NewHeader()
+	if err := h.Copy(m.ProtectedHeader.Header); err != nil {
+		return nil, err
+	}
+	h, err = h.Merge(m.UnprotectedHeader)
+	if err != nil {
+		if debug.Enabled {
+			debug.Printf("failed to merge unprotected header")
+		}
+		return nil, err
+	}
+
+	aad, err := m.AuthenticatedData.Base64Encode()
+	if err != nil {
+		return nil, err
+	}
+	ciphertext := m.CipherText.Bytes()
+	iv := m.InitializationVector.Bytes()
+	tag := m.Tag.Bytes()
+
+	cipher, err := buildContentCipher(enc)
+	if err != nil {
+		return nil, fmt.Errorf("unsupported content cipher algorithm '%s'", enc)
+	}
+	keysize := cipher.KeySize()
+
+	var plaintext []byte
+	for _, recipient := range m.Recipients {
+		if debug.Enabled {
+			debug.Printf("Attempting to check if we can decode for recipient (alg = %s)", recipient.Header.Algorithm)
+		}
+		if recipient.Header.Algorithm != alg {
+			continue
+		}
+
+		h2 := NewHeader()
+		if err := h2.Copy(h); err != nil {
+			if debug.Enabled {
+				debug.Printf("failed to copy header: %s", err)
+			}
+			continue
+		}
+
+		h2, err := h2.Merge(recipient.Header)
+		if err != nil {
+			if debug.Enabled {
+				debug.Printf("Failed to merge! %s", err)
+			}
+			continue
+		}
+
+		k, err := BuildKeyDecrypter(h2.Algorithm, h2, key, keysize)
+		if err != nil {
+			if debug.Enabled {
+				debug.Printf("failed to create key decrypter: %s", err)
+			}
+			continue
+		}
+
+		cek, err := k.KeyDecrypt(recipient.EncryptedKey.Bytes())
+		if err != nil {
+			if debug.Enabled {
+				debug.Printf("failed to decrypt key: %s", err)
+			}
+			continue
+		}
+
+		plaintext, err = cipher.decrypt(cek, iv, ciphertext, tag, aad)
+		if err == nil {
+			break
+		}
+		if debug.Enabled {
+			debug.Printf("DecryptMessage: failed to decrypt using %s: %s", h2.Algorithm, err)
+		}
+		// Keep looping because there might be another key with the same algo
+	}
+
+	if plaintext == nil {
+		return nil, errors.New("failed to find matching recipient to decrypt key")
+	}
+
+	if h.Compression == jwa.Deflate {
+		output := bytes.Buffer{}
+		w, _ := flate.NewWriter(&output, 1)
+		in := plaintext
+		for len(in) > 0 {
+			n, err := w.Write(in)
+			if err != nil {
+				return nil, err
+			}
+			in = in[n:]
+		}
+		if err := w.Close(); err != nil {
+			return nil, err
+		}
+		plaintext = output.Bytes()
+	}
+
+	return plaintext, nil
+}
+
+func buildContentCipher(alg jwa.ContentEncryptionAlgorithm) (ContentCipher, error) {
+	switch alg {
+	case jwa.A128GCM, jwa.A192GCM, jwa.A256GCM, jwa.A128CBC_HS256, jwa.A192CBC_HS384, jwa.A256CBC_HS512:
+		return NewAesContentCipher(alg)
+	}
+
+	return nil, ErrUnsupportedAlgorithm
+}
