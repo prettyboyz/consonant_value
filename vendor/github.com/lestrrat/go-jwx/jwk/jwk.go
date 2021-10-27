@@ -175,4 +175,146 @@ func constructEcdsaPublicKey(m map[string]interface{}) (*EcdsaPublicKey, error) 
 
 	crvstr, err := r.GetString("crv")
 	if err != nil {
-		return nil, 
+		return nil, err
+	}
+	crv := jwa.EllipticCurveAlgorithm(crvstr)
+
+	x, err := r.GetBuffer("x")
+	if err != nil {
+		return nil, err
+	}
+
+	if x.Len() != crv.Size() {
+		return nil, errors.New("size of x does not match crv size")
+	}
+
+	y, err := r.GetBuffer("y")
+	if err != nil {
+		return nil, err
+	}
+
+	if y.Len() != crv.Size() {
+		return nil, errors.New("size of y does not match crv size")
+	}
+
+	return &EcdsaPublicKey{
+		EssentialHeader: e,
+		Curve:           jwa.EllipticCurveAlgorithm(crv),
+		X:               x,
+		Y:               y,
+	}, nil
+}
+
+func constructEcdsaPrivateKey(m map[string]interface{}) (*EcdsaPrivateKey, error) {
+	pubkey, err := constructEcdsaPublicKey(m)
+	if err != nil {
+		return nil, err
+	}
+
+	r := emap.Hmap(m)
+	d, err := r.GetBuffer("d")
+	if err != nil {
+		return nil, err
+	}
+
+	return &EcdsaPrivateKey{
+		EcdsaPublicKey: pubkey,
+		D:              d,
+	}, nil
+}
+
+func constructRsaPublicKey(m map[string]interface{}) (*RsaPublicKey, error) {
+	e, err := constructEssentialHeader(m)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, name := range []string{"n", "e"} {
+		v, ok := m[name]
+		if !ok {
+			return nil, errors.New("missing parameter '" + name + "'")
+		}
+		if _, ok := v.(string); !ok {
+			return nil, errors.New("missing parameter '" + name + "'")
+		}
+	}
+
+	k := &RsaPublicKey{EssentialHeader: e}
+
+	r := emap.Hmap(m)
+	if v, err := r.GetBuffer("e"); err == nil {
+		k.E = v
+	}
+
+	if v, err := r.GetBuffer("n"); err == nil {
+		k.N = v
+	}
+
+	return k, nil
+}
+
+func constructRsaPrivateKey(m map[string]interface{}) (*RsaPrivateKey, error) {
+	for _, name := range []string{"d", "q", "p"} {
+		v, ok := m[name]
+		if !ok {
+			return nil, errors.New("missing parameter '" + name + "'")
+		}
+		if _, ok := v.(string); !ok {
+			return nil, errors.New("missing parameter '" + name + "'")
+		}
+	}
+
+	pubkey, err := constructRsaPublicKey(m)
+	if err != nil {
+		return nil, err
+	}
+
+	k := &RsaPrivateKey{RsaPublicKey: pubkey}
+
+	r := emap.Hmap(m)
+	if v, err := r.GetBuffer("d"); err == nil {
+		k.D = v
+	}
+
+	if v, err := r.GetBuffer("p"); err == nil {
+		k.P = v
+	}
+
+	if v, err := r.GetBuffer("q"); err == nil {
+		k.Q = v
+	}
+
+	if v, err := r.GetBuffer("dp"); err == nil {
+		k.Dp = v
+	}
+
+	if v, err := r.GetBuffer("dq"); err == nil {
+		k.Dq = v
+	}
+
+	if v, err := r.GetBuffer("qi"); err == nil {
+		k.Qi = v
+	}
+
+	return k, nil
+}
+
+// Alg returns the algorithm in the header
+func (e EssentialHeader) Alg() string {
+	return e.Algorithm
+}
+
+// Kid returns the key ID in the header
+func (e EssentialHeader) Kid() string {
+	return e.KeyID
+}
+
+// Kty returns the key type in the header
+func (e EssentialHeader) Kty() jwa.KeyType {
+	return e.KeyType
+}
+
+// Use returns the key use in the header
+func (e EssentialHeader) Use() string {
+	return e.KeyUsage
+}
