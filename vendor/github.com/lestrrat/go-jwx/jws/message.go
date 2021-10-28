@@ -173,4 +173,159 @@ func (h *EssentialHeader) Merge(h2 *EssentialHeader) {
 	}
 }
 
-// Copy copies the other he
+// Copy copies the other heder over this one
+func (h *Header) Copy(h2 *Header) error {
+	if h == nil {
+		return errors.New("copy destination is nil")
+	}
+	if h2 == nil {
+		return errors.New("copy target is nil")
+	}
+
+	h.EssentialHeader.Copy(h2.EssentialHeader)
+
+	for k, v := range h2.PrivateParams {
+		h.PrivateParams[k] = v
+	}
+
+	return nil
+}
+
+// Copy copies the other heder over this one
+func (h *EssentialHeader) Copy(h2 *EssentialHeader) {
+	h.Algorithm = h2.Algorithm
+	h.ContentType = h2.ContentType
+	h.Jwk = h2.Jwk
+	h.JwkSetURL = h2.JwkSetURL
+	h.KeyID = h2.KeyID
+	h.Type = h2.Type
+	h.X509Url = h2.X509Url
+	h.X509CertChain = h2.X509CertChain
+	h.X509CertThumbprint = h2.X509CertThumbprint
+	h.X509CertThumbprintS256 = h2.X509CertThumbprintS256
+}
+
+// MarshalJSON generates the JSON representation of this header
+func (h Header) MarshalJSON() ([]byte, error) {
+	return emap.MergeMarshal(h.EssentialHeader, h.PrivateParams)
+}
+
+// UnmarshalJSON parses the JSON buffer into a Header
+func (h *Header) UnmarshalJSON(data []byte) error {
+	if h.EssentialHeader == nil {
+		h.EssentialHeader = &EssentialHeader{}
+	}
+	if h.PrivateParams == nil {
+		h.PrivateParams = map[string]interface{}{}
+	}
+	return emap.MergeUnmarshal(data, h.EssentialHeader, &h.PrivateParams)
+}
+
+// Construct walks through the map (most likely parsed from a JSON buffer)
+// and populates the necessary fields on this header
+func (h *EssentialHeader) Construct(m map[string]interface{}) error {
+	r := emap.Hmap(m)
+	if alg, err := r.GetString("alg"); err == nil {
+		h.Algorithm = jwa.SignatureAlgorithm(alg)
+	}
+	if h.Algorithm == "" {
+		h.Algorithm = jwa.NoSignature
+	}
+	h.ContentType, _ = r.GetString("cty")
+	h.KeyID, _ = r.GetString("kid")
+	h.Type, _ = r.GetString("typ")
+	h.X509CertThumbprint, _ = r.GetString("x5t")
+	h.X509CertThumbprintS256, _ = r.GetString("x5t#256")
+	if v, err := r.GetStringSlice("crit"); err != nil {
+		h.Critical = v
+	}
+	if v, err := r.GetStringSlice("x5c"); err != nil {
+		h.X509CertChain = v
+	}
+	if v, err := r.GetByteSlice("jwk"); err == nil {
+		if jwks, err := jwk.Parse(v); err == nil {
+			if len(jwks.Keys) != 1 {
+				// The spec says "a JWK", so I believe this should represent
+				// one JWK. check for that, and if not, return an error because
+				// the JWS is probably invalid (XXX: send in a PR if there are
+				// cases where this must work in the wild)
+				return errors.New("expected a single JWK in this field")
+			}
+			h.Jwk = jwks.Keys[0]
+		}
+	}
+	if v, err := r.GetString("jku"); err == nil {
+		u, err := url.Parse(v)
+		if err == nil {
+			h.JwkSetURL = u
+		}
+	}
+
+	if v, err := r.GetString("x5u"); err == nil {
+		u, err := url.Parse(v)
+		if err == nil {
+			h.X509Url = u
+		}
+	}
+
+	return nil
+}
+
+// Base64Encode creates the base64 encoded version of the JSON
+// representation of this header
+func (h Header) Base64Encode() ([]byte, error) {
+	b, err := json.Marshal(h)
+	if err != nil {
+		return nil, err
+	}
+
+	return buffer.Buffer(b).Base64Encode()
+}
+
+// MarshalJSON generates the JSON representation of this header
+func (e EncodedHeader) MarshalJSON() ([]byte, error) {
+	buf, err := json.Marshal(e.Header)
+	if err != nil {
+		return nil, err
+	}
+
+	buf, err = buffer.Buffer(buf).Base64Encode()
+	if err != nil {
+		return nil, err
+	}
+
+	return json.Marshal(string(buf))
+}
+
+// UnmarshalJSON parses the JSON buffer into a Header
+func (e *EncodedHeader) UnmarshalJSON(buf []byte) error {
+	b := buffer.Buffer{}
+	// base646 json string -> json object representation of header
+	if err := json.Unmarshal(buf, &b); err != nil {
+		return err
+	}
+
+	if err := json.Unmarshal(b.Bytes(), &e.Header); err != nil {
+		return err
+	}
+
+	e.Source = b
+
+	return nil
+}
+
+// NewSignature creates a new Signature
+func NewSignature() *Signature {
+	h1 := NewHeader()
+	h2 := NewHeader()
+	return &Signature{
+		PublicHeader:    h1,
+		ProtectedHeader: &EncodedHeader{Header: h2},
+	}
+}
+
+// MergedHeaders returns the merged header for this signature
+func (s Signature) MergedHeaders() MergedHeader {
+	return MergedHeader{
+		ProtectedHeader: s.ProtectedHeader,
+		PublicHeader:    s.P
