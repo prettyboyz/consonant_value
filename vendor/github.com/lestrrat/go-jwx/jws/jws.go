@@ -152,4 +152,179 @@ func Verify(buf []byte, alg jwa.SignatureAlgorithm, key interface{}) ([]byte, er
 		}
 
 		ecdsaverify, err := NewEcdsaVerify(alg, pubkey)
-		
+		if err != nil {
+			return nil, err
+		}
+		verifier = ecdsaverify
+	default:
+		return nil, ErrUnsupportedAlgorithm
+	}
+
+	if err := verifier.Verify(msg); err != nil {
+		return nil, err
+	}
+
+	return msg.Payload.Bytes(), nil
+}
+
+// VerifyWithJKU verifies the JWS message using a remote JWK
+// file represented in the url.
+func VerifyWithJKU(buf []byte, jwkurl string) ([]byte, error) {
+	key, err := jwk.FetchHTTP(jwkurl)
+	if err != nil {
+		return nil, err
+	}
+
+	return VerifyWithJWKSet(buf, key, nil)
+}
+
+var errVerifyFailed = errors.New("failed to verify with key")
+
+func verifyMessageWithJWK(m *Message, key jwk.Key) error {
+	keyval, err := key.Materialize()
+	if err != nil {
+		return err
+	}
+
+	alg := jwa.SignatureAlgorithm(key.Alg())
+
+	var verifier Verifier
+	switch key.Kty() {
+	case jwa.RSA:
+		pubkey, ok := keyval.(*rsa.PublicKey)
+		if !ok {
+			return errors.New("invalid key: *rsa.PublicKey is required")
+		}
+		verifier, err = NewRsaVerify(alg, pubkey)
+		if err != nil {
+			return err
+		}
+	case jwa.EC:
+		pubkey, ok := keyval.(*ecdsa.PublicKey)
+		if !ok {
+			return errors.New("invalid key: *ecdsa.PublicKey is required")
+		}
+		verifier, err = NewEcdsaVerify(alg, pubkey)
+		if err != nil {
+			return err
+		}
+	case jwa.OctetSeq:
+		sharedkey, ok := keyval.([]byte)
+		if !ok {
+			return errors.New("invalid key: []byte is required")
+		}
+		verifier, err = NewHmacVerify(alg, sharedkey)
+		if err != nil {
+			return err
+		}
+	default:
+		// don't know what this is...
+		return errors.New("unknown signature algorithm")
+	}
+
+	if err := verifier.Verify(m); err != nil {
+		// we return a stock "failed to verify" error so callers
+		// can differentiate between other errors and Verify() failing
+		// note: this masks potential errors within Verify(), but ... hmmm
+		return errVerifyFailed
+	}
+
+	return nil
+}
+
+// VerifyWithJWK verifies the JWS message using the specified JWK
+func VerifyWithJWK(buf []byte, key jwk.Key) ([]byte, error) {
+	m, err := Parse(buf)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := verifyMessageWithJWK(m, key); err != nil {
+		return nil, err
+	}
+	return m.Payload.Bytes(), nil
+}
+
+// VerifyWithJWKSet verifies the JWS message using JWK key set.
+// By default it will only pick up keys that have the "use" key
+// set to either "sig" or "enc", but you can override it by
+// providing a keyaccept function.
+func VerifyWithJWKSet(buf []byte, keyset *jwk.Set, keyaccept JWKAcceptFunc) ([]byte, error) {
+	m, err := Parse(buf)
+	if err != nil {
+		return nil, err
+	}
+
+	if keyaccept == nil {
+		keyaccept = DefaultJWKAcceptor
+	}
+
+	for _, key := range keyset.Keys {
+		if !keyaccept(key) {
+			continue
+		}
+
+		switch err := verifyMessageWithJWK(m, key); err {
+		case nil:
+			return m.Payload.Bytes(), nil
+		case errVerifyFailed:
+			continue
+		default:
+			return nil, err
+		}
+	}
+
+	return nil, errors.New("failed to verify with any of the keys")
+}
+
+// Parse parses the given buffer and creates a jws.Message struct.
+// The input can be in either compact or full JSON serialization.
+func Parse(buf []byte) (*Message, error) {
+	buf = bytes.TrimSpace(buf)
+	if len(buf) == 0 {
+		return nil, errors.New("empty buffer")
+	}
+
+	if buf[0] == '{' {
+		return parseJSON(buf)
+	}
+	return parseCompact(buf)
+}
+
+// ParseString is the same as Parse, but take in a string
+func ParseString(s string) (*Message, error) {
+	return Parse([]byte(s))
+}
+
+func parseJSON(buf []byte) (*Message, error) {
+	m := struct {
+		*Message
+		*Signature
+	}{}
+
+	if err := json.Unmarshal(buf, &m); err != nil {
+		return nil, err
+	}
+
+	// if the "signature" field exist, treat it as a flattened
+	if m.Signature != nil {
+		if len(m.Message.Signatures) != 0 {
+			return nil, errors.New("invalid message: mixed flattened/full json serialization")
+		}
+
+		m.Message.Signatures = []Signature{*m.Signature}
+	}
+
+	for _, sig := range m.Message.Signatures {
+		if sig.ProtectedHeader.Algorithm == "" {
+			sig.ProtectedHeader.Algorithm = jwa.NoSignature
+		}
+	}
+
+	return m.Message, nil
+}
+
+// parseCompact parses a JWS value serialized via compact serialization.
+func parseCompact(buf []byte) (*Message, error) {
+	parts := bytes.Split(buf, []byte{'.'})
+	if len(parts)
