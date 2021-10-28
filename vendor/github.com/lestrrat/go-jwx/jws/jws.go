@@ -327,4 +327,39 @@ func parseJSON(buf []byte) (*Message, error) {
 // parseCompact parses a JWS value serialized via compact serialization.
 func parseCompact(buf []byte) (*Message, error) {
 	parts := bytes.Split(buf, []byte{'.'})
-	if len(parts)
+	if len(parts) != 3 {
+		return nil, ErrInvalidCompactPartsCount
+	}
+
+	enc := base64.RawURLEncoding
+
+	hdrbuf, err := buffer.FromBase64(parts[0])
+	if err != nil {
+		return nil, err
+	}
+
+	hdr := &EncodedHeader{Header: NewHeader()}
+	if err := json.Unmarshal(hdrbuf.Bytes(), hdr.Header); err != nil {
+		return nil, err
+	}
+	hdr.Source = hdrbuf
+
+	payload, err := buffer.FromBase64(parts[1])
+	if err != nil {
+		return nil, err
+	}
+
+	signature := make([]byte, enc.DecodedLen(len(parts[2])))
+	if _, err := enc.Decode(signature, parts[2]); err != nil {
+		return nil, err
+	}
+
+	s := NewSignature()
+	s.Signature = signature
+	s.ProtectedHeader = hdr
+	m := &Message{
+		Payload:    buffer.Buffer(payload),
+		Signatures: []Signature{*s},
+	}
+	return m, nil
+}
