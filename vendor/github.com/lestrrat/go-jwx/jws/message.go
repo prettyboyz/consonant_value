@@ -328,4 +328,45 @@ func NewSignature() *Signature {
 func (s Signature) MergedHeaders() MergedHeader {
 	return MergedHeader{
 		ProtectedHeader: s.ProtectedHeader,
-		PublicHeader:    s.P
+		PublicHeader:    s.PublicHeader,
+	}
+}
+
+// KeyID returns the key ID (kid) for this signature
+func (h MergedHeader) KeyID() string {
+	if hp := h.ProtectedHeader; hp != nil {
+		if hp.KeyID != "" {
+			return hp.KeyID
+		}
+	}
+
+	if hp := h.PublicHeader; hp != nil {
+		if hp.KeyID != "" {
+			return hp.KeyID
+		}
+	}
+
+	return ""
+}
+
+// Algorithm returns the algorithm used for this signature
+func (h MergedHeader) Algorithm() jwa.SignatureAlgorithm {
+	if hp := h.ProtectedHeader; hp != nil {
+		return hp.Algorithm
+	}
+	return jwa.NoSignature
+}
+
+// LookupSignature looks up a particular signature entry using
+// the `kid` value
+func (m Message) LookupSignature(kid string) []Signature {
+	sigs := []Signature{}
+	for _, sig := range m.Signatures {
+		if sig.MergedHeaders().KeyID() != kid {
+			continue
+		}
+
+		sigs = append(sigs, sig)
+	}
+	return sigs
+}
