@@ -139,4 +139,133 @@ func New(options Options) *Cors {
 	// Allowed Headers
 	if len(options.AllowedHeaders) == 0 {
 		// Use sensible defaults
-		c.allowedHeaders = []string{"Origi
+		c.allowedHeaders = []string{"Origin", "Accept", "Content-Type"}
+	} else {
+		// Origin is always appended as some browsers will always request for this header at preflight
+		c.allowedHeaders = convert(append(options.AllowedHeaders, "Origin"), http.CanonicalHeaderKey)
+		for _, h := range options.AllowedHeaders {
+			if h == "*" {
+				c.allowedHeadersAll = true
+				c.allowedHeaders = nil
+				break
+			}
+		}
+	}
+
+	// Allowed Methods
+	if len(options.AllowedMethods) == 0 {
+		// Default is spec's "simple" methods
+		c.allowedMethods = []string{"GET", "POST"}
+	} else {
+		c.allowedMethods = convert(options.AllowedMethods, strings.ToUpper)
+	}
+
+	return c
+}
+
+// Default creates a new Cors handler with default options
+func Default() *Cors {
+	return New(Options{})
+}
+
+// Handler apply the CORS specification on the request, and add relevant CORS headers
+// as necessary.
+func (c *Cors) Handler(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "OPTIONS" {
+			c.logf("Handler: Preflight request")
+			c.handlePreflight(w, r)
+			// Preflight requests are standalone and should stop the chain as some other
+			// middleware may not handle OPTIONS requests correctly. One typical example
+			// is authentication middleware ; OPTIONS requests won't carry authentication
+			// headers (see #1)
+			if c.optionPassthrough {
+				h.ServeHTTP(w, r)
+			} else {
+				w.WriteHeader(http.StatusOK)
+			}
+		} else {
+			c.logf("Handler: Actual request")
+			c.handleActualRequest(w, r)
+			h.ServeHTTP(w, r)
+		}
+	})
+}
+
+// HandlerC is net/context aware handler
+func (c *Cors) HandlerC(h xhandler.HandlerC) xhandler.HandlerC {
+	return xhandler.HandlerFuncC(func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+		if r.Method == "OPTIONS" {
+			c.logf("Handler: Preflight request")
+			c.handlePreflight(w, r)
+			// Preflight requests are standalone and should stop the chain as some other
+			// middleware may not handle OPTIONS requests correctly. One typical example
+			// is authentication middleware ; OPTIONS requests won't carry authentication
+			// headers (see #1)
+			if c.optionPassthrough {
+				h.ServeHTTPC(ctx, w, r)
+			} else {
+				w.WriteHeader(http.StatusOK)
+			}
+		} else {
+			c.logf("Handler: Actual request")
+			c.handleActualRequest(w, r)
+			h.ServeHTTPC(ctx, w, r)
+		}
+	})
+}
+
+// HandlerFunc provides Martini compatible handler
+func (c *Cors) HandlerFunc(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "OPTIONS" {
+		c.logf("HandlerFunc: Preflight request")
+		c.handlePreflight(w, r)
+	} else {
+		c.logf("HandlerFunc: Actual request")
+		c.handleActualRequest(w, r)
+	}
+}
+
+// Negroni compatible interface
+func (c *Cors) ServeHTTP(w http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
+	if r.Method == "OPTIONS" {
+		c.logf("ServeHTTP: Preflight request")
+		c.handlePreflight(w, r)
+		// Preflight requests are standalone and should stop the chain as some other
+		// middleware may not handle OPTIONS requests correctly. One typical example
+		// is authentication middleware ; OPTIONS requests won't carry authentication
+		// headers (see #1)
+		if c.optionPassthrough {
+			next(w, r)
+		} else {
+			w.WriteHeader(http.StatusOK)
+		}
+	} else {
+		c.logf("ServeHTTP: Actual request")
+		c.handleActualRequest(w, r)
+		next(w, r)
+	}
+}
+
+// handlePreflight handles pre-flight CORS requests
+func (c *Cors) handlePreflight(w http.ResponseWriter, r *http.Request) {
+	headers := w.Header()
+	origin := r.Header.Get("Origin")
+
+	if r.Method != "OPTIONS" {
+		c.logf("  Preflight aborted: %s!=OPTIONS", r.Method)
+		return
+	}
+	// Always set Vary headers
+	// see https://github.com/rs/cors/issues/10,
+	//     https://github.com/rs/cors/commit/dbdca4d95feaa7511a46e6f1efb3b3aa505bc43f#commitcomment-12352001
+	headers.Add("Vary", "Origin")
+	headers.Add("Vary", "Access-Control-Request-Method")
+	headers.Add("Vary", "Access-Control-Request-Headers")
+
+	if origin == "" {
+		c.logf("  Preflight aborted: empty origin")
+		return
+	}
+	if !c.isOriginAllowed(origin) {
+		c.logf("  Preflight aborted: origin '%s' not
