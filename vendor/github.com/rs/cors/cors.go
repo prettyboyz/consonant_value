@@ -268,4 +268,129 @@ func (c *Cors) handlePreflight(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if !c.isOriginAllowed(origin) {
-		c.logf("  Preflight aborted: origin '%s' not
+		c.logf("  Preflight aborted: origin '%s' not allowed", origin)
+		return
+	}
+
+	reqMethod := r.Header.Get("Access-Control-Request-Method")
+	if !c.isMethodAllowed(reqMethod) {
+		c.logf("  Preflight aborted: method '%s' not allowed", reqMethod)
+		return
+	}
+	reqHeaders := parseHeaderList(r.Header.Get("Access-Control-Request-Headers"))
+	if !c.areHeadersAllowed(reqHeaders) {
+		c.logf("  Preflight aborted: headers '%v' not allowed", reqHeaders)
+		return
+	}
+	headers.Set("Access-Control-Allow-Origin", origin)
+	// Spec says: Since the list of methods can be unbounded, simply returning the method indicated
+	// by Access-Control-Request-Method (if supported) can be enough
+	headers.Set("Access-Control-Allow-Methods", strings.ToUpper(reqMethod))
+	if len(reqHeaders) > 0 {
+
+		// Spec says: Since the list of headers can be unbounded, simply returning supported headers
+		// from Access-Control-Request-Headers can be enough
+		headers.Set("Access-Control-Allow-Headers", strings.Join(reqHeaders, ", "))
+	}
+	if c.allowCredentials {
+		headers.Set("Access-Control-Allow-Credentials", "true")
+	}
+	if c.maxAge > 0 {
+		headers.Set("Access-Control-Max-Age", strconv.Itoa(c.maxAge))
+	}
+	c.logf("  Preflight response headers: %v", headers)
+}
+
+// handleActualRequest handles simple cross-origin requests, actual request or redirects
+func (c *Cors) handleActualRequest(w http.ResponseWriter, r *http.Request) {
+	headers := w.Header()
+	origin := r.Header.Get("Origin")
+
+	if r.Method == "OPTIONS" {
+		c.logf("  Actual request no headers added: method == %s", r.Method)
+		return
+	}
+	// Always set Vary, see https://github.com/rs/cors/issues/10
+	headers.Add("Vary", "Origin")
+	if origin == "" {
+		c.logf("  Actual request no headers added: missing origin")
+		return
+	}
+	if !c.isOriginAllowed(origin) {
+		c.logf("  Actual request no headers added: origin '%s' not allowed", origin)
+		return
+	}
+
+	// Note that spec does define a way to specifically disallow a simple method like GET or
+	// POST. Access-Control-Allow-Methods is only used for pre-flight requests and the
+	// spec doesn't instruct to check the allowed methods for simple cross-origin requests.
+	// We think it's a nice feature to be able to have control on those methods though.
+	if !c.isMethodAllowed(r.Method) {
+		c.logf("  Actual request no headers added: method '%s' not allowed", r.Method)
+
+		return
+	}
+	headers.Set("Access-Control-Allow-Origin", origin)
+	if len(c.exposedHeaders) > 0 {
+		headers.Set("Access-Control-Expose-Headers", strings.Join(c.exposedHeaders, ", "))
+	}
+	if c.allowCredentials {
+		headers.Set("Access-Control-Allow-Credentials", "true")
+	}
+	c.logf("  Actual response added headers: %v", headers)
+}
+
+// convenience method. checks if debugging is turned on before printing
+func (c *Cors) logf(format string, a ...interface{}) {
+	if c.Log != nil {
+		c.Log.Printf(format, a...)
+	}
+}
+
+// isOriginAllowed checks if a given origin is allowed to perform cross-domain requests
+// on the endpoint
+func (c *Cors) isOriginAllowed(origin string) bool {
+	if c.allowOriginFunc != nil {
+		return c.allowOriginFunc(origin)
+	}
+	if c.allowedOriginsAll {
+		return true
+	}
+	origin = strings.ToLower(origin)
+	for _, o := range c.allowedOrigins {
+		if o == origin {
+			return true
+		}
+	}
+	for _, w := range c.allowedWOrigins {
+		if w.match(origin) {
+			return true
+		}
+	}
+	return false
+}
+
+// isMethodAllowed checks if a given method can be used as part of a cross-domain request
+// on the endpoing
+func (c *Cors) isMethodAllowed(method string) bool {
+	if len(c.allowedMethods) == 0 {
+		// If no method allowed, always return false, even for preflight request
+		return false
+	}
+	method = strings.ToUpper(method)
+	if method == "OPTIONS" {
+		// Always allow preflight requests
+		return true
+	}
+	for _, m := range c.allowedMethods {
+		if m == method {
+			return true
+		}
+	}
+	return false
+}
+
+// areHeadersAllowed checks if a given list of headers are allowed to used within
+// a cross-domain request.
+func (c *Cors) areHeadersAllowed(requestedHeaders []string) bool {
+	if c.allowedHeadersAll
