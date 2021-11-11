@@ -393,4 +393,20 @@ func (c *Cors) isMethodAllowed(method string) bool {
 // areHeadersAllowed checks if a given list of headers are allowed to used within
 // a cross-domain request.
 func (c *Cors) areHeadersAllowed(requestedHeaders []string) bool {
-	if c.allowedHeadersAll
+	if c.allowedHeadersAll || len(requestedHeaders) == 0 {
+		return true
+	}
+	for _, header := range requestedHeaders {
+		header = http.CanonicalHeaderKey(header)
+		found := false
+		for _, h := range c.allowedHeaders {
+			if h == header {
+				found = true
+			}
+		}
+		if !found {
+			return false
+		}
+	}
+	return true
+}
