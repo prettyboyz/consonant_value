@@ -15,3 +15,7 @@ type InputSourceContext interface {
 	String(name string) (string, error)
 	StringSlice(name string) ([]string, error)
 	IntSlice(name string) ([]int, error)
+	Generic(name string) (cli.Generic, error)
+	Bool(name string) (bool, error)
+	BoolT(name string) (bool, error)
+}
