@@ -221,4 +221,202 @@ func (a *App) Run(arguments []string) (err error) {
 
 	if a.After != nil {
 		defer func() {
-			if afterErr := a.After(context); afterErr != n
+			if afterErr := a.After(context); afterErr != nil {
+				if err != nil {
+					err = NewMultiError(err, afterErr)
+				} else {
+					err = afterErr
+				}
+			}
+		}()
+	}
+
+	if a.Before != nil {
+		beforeErr := a.Before(context)
+		if beforeErr != nil {
+			fmt.Fprintf(a.Writer, "%v\n\n", beforeErr)
+			ShowAppHelp(context)
+			HandleExitCoder(beforeErr)
+			err = beforeErr
+			return err
+		}
+	}
+
+	args := context.Args()
+	if args.Present() {
+		name := args.First()
+		c := a.Command(name)
+		if c != nil {
+			return c.Run(context)
+		}
+	}
+
+	if a.Action == nil {
+		a.Action = helpCommand.Action
+	}
+
+	// Run default Action
+	err = HandleAction(a.Action, context)
+
+	HandleExitCoder(err)
+	return err
+}
+
+// RunAndExitOnError calls .Run() and exits non-zero if an error was returned
+//
+// Deprecated: instead you should return an error that fulfills cli.ExitCoder
+// to cli.App.Run. This will cause the application to exit with the given eror
+// code in the cli.ExitCoder
+func (a *App) RunAndExitOnError() {
+	if err := a.Run(os.Args); err != nil {
+		fmt.Fprintln(a.errWriter(), err)
+		OsExiter(1)
+	}
+}
+
+// RunAsSubcommand invokes the subcommand given the context, parses ctx.Args() to
+// generate command-specific flags
+func (a *App) RunAsSubcommand(ctx *Context) (err error) {
+	// append help to commands
+	if len(a.Commands) > 0 {
+		if a.Command(helpCommand.Name) == nil && !a.HideHelp {
+			a.Commands = append(a.Commands, helpCommand)
+			if (HelpFlag != BoolFlag{}) {
+				a.appendFlag(HelpFlag)
+			}
+		}
+	}
+
+	newCmds := []Command{}
+	for _, c := range a.Commands {
+		if c.HelpName == "" {
+			c.HelpName = fmt.Sprintf("%s %s", a.HelpName, c.Name)
+		}
+		newCmds = append(newCmds, c)
+	}
+	a.Commands = newCmds
+
+	// parse flags
+	set, err := flagSet(a.Name, a.Flags)
+	if err != nil {
+		return err
+	}
+
+	set.SetOutput(ioutil.Discard)
+	err = set.Parse(ctx.Args().Tail())
+	nerr := normalizeFlags(a.Flags, set)
+	context := NewContext(a, set, ctx)
+
+	if nerr != nil {
+		fmt.Fprintln(a.Writer, nerr)
+		fmt.Fprintln(a.Writer)
+		if len(a.Commands) > 0 {
+			ShowSubcommandHelp(context)
+		} else {
+			ShowCommandHelp(ctx, context.Args().First())
+		}
+		return nerr
+	}
+
+	if checkCompletions(context) {
+		return nil
+	}
+
+	if err != nil {
+		if a.OnUsageError != nil {
+			err = a.OnUsageError(context, err, true)
+			HandleExitCoder(err)
+			return err
+		}
+		fmt.Fprintf(a.Writer, "%s %s\n\n", "Incorrect Usage.", err.Error())
+		ShowSubcommandHelp(context)
+		return err
+	}
+
+	if len(a.Commands) > 0 {
+		if checkSubcommandHelp(context) {
+			return nil
+		}
+	} else {
+		if checkCommandHelp(ctx, context.Args().First()) {
+			return nil
+		}
+	}
+
+	if a.After != nil {
+		defer func() {
+			afterErr := a.After(context)
+			if afterErr != nil {
+				HandleExitCoder(err)
+				if err != nil {
+					err = NewMultiError(err, afterErr)
+				} else {
+					err = afterErr
+				}
+			}
+		}()
+	}
+
+	if a.Before != nil {
+		beforeErr := a.Before(context)
+		if beforeErr != nil {
+			HandleExitCoder(beforeErr)
+			err = beforeErr
+			return err
+		}
+	}
+
+	args := context.Args()
+	if args.Present() {
+		name := args.First()
+		c := a.Command(name)
+		if c != nil {
+			return c.Run(context)
+		}
+	}
+
+	// Run default Action
+	err = HandleAction(a.Action, context)
+
+	HandleExitCoder(err)
+	return err
+}
+
+// Command returns the named command on App. Returns nil if the command does not exist
+func (a *App) Command(name string) *Command {
+	for _, c := range a.Commands {
+		if c.HasName(name) {
+			return &c
+		}
+	}
+
+	return nil
+}
+
+// Categories returns a slice containing all the categories with the commands they contain
+func (a *App) Categories() CommandCategories {
+	return a.categories
+}
+
+// VisibleCategories returns a slice of categories and commands that are
+// Hidden=false
+func (a *App) VisibleCategories() []*CommandCategory {
+	ret := []*CommandCategory{}
+	for _, category := range a.categories {
+		if visible := func() *CommandCategory {
+			for _, command := range category.Commands {
+				if !command.Hidden {
+					return category
+				}
+			}
+			return nil
+		}(); visible != nil {
+			ret = append(ret, visible)
+		}
+	}
+	return ret
+}
+
+// VisibleCommands returns a slice of the Commands with Hidden=false
+func (a *App) VisibleCommands() []Command {
+	ret := 
