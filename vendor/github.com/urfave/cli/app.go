@@ -419,4 +419,74 @@ func (a *App) VisibleCategories() []*CommandCategory {
 
 // VisibleCommands returns a slice of the Commands with Hidden=false
 func (a *App) VisibleCommands() []Command {
-	ret := 
+	ret := []Command{}
+	for _, command := range a.Commands {
+		if !command.Hidden {
+			ret = append(ret, command)
+		}
+	}
+	return ret
+}
+
+// VisibleFlags returns a slice of the Flags with Hidden=false
+func (a *App) VisibleFlags() []Flag {
+	return visibleFlags(a.Flags)
+}
+
+func (a *App) hasFlag(flag Flag) bool {
+	for _, f := range a.Flags {
+		if flag == f {
+			return true
+		}
+	}
+
+	return false
+}
+
+func (a *App) errWriter() io.Writer {
+
+	// When the app ErrWriter is nil use the package level one.
+	if a.ErrWriter == nil {
+		return ErrWriter
+	}
+
+	return a.ErrWriter
+}
+
+func (a *App) appendFlag(flag Flag) {
+	if !a.hasFlag(flag) {
+		a.Flags = append(a.Flags, flag)
+	}
+}
+
+// Author represents someone who has contributed to a cli project.
+type Author struct {
+	Name  string // The Authors name
+	Email string // The Authors email
+}
+
+// String makes Author comply to the Stringer interface, to allow an easy print in the templating process
+func (a Author) String() string {
+	e := ""
+	if a.Email != "" {
+		e = " <" + a.Email + ">"
+	}
+
+	return fmt.Sprintf("%v%v", a.Name, e)
+}
+
+// HandleAction attempts to figure out which Action signature was used.  If
+// it's an ActionFunc or a func with the legacy signature for Action, the func
+// is run!
+func HandleAction(action interface{}, context *Context) (err error) {
+	if a, ok := action.(ActionFunc); ok {
+		return a(context)
+	} else if a, ok := action.(func(*Context) error); ok {
+		return a(context)
+	} else if a, ok := action.(func(*Context)); ok { // deprecated function signature
+		a(context)
+		return nil
+	} else {
+		return errInvalidActionType
+	}
+}
