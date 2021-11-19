@@ -712,3 +712,89 @@ func stringifyFlag(f Flag) string {
 	case IntSliceFlag:
 		return withEnvHint(fv.FieldByName("EnvVar").String(),
 			stringifyIntSliceFlag(f.(IntSliceFlag)))
+	case Int64SliceFlag:
+		return withEnvHint(fv.FieldByName("EnvVar").String(),
+			stringifyInt64SliceFlag(f.(Int64SliceFlag)))
+	case StringSliceFlag:
+		return withEnvHint(fv.FieldByName("EnvVar").String(),
+			stringifyStringSliceFlag(f.(StringSliceFlag)))
+	}
+
+	placeholder, usage := unquoteUsage(fv.FieldByName("Usage").String())
+
+	needsPlaceholder := false
+	defaultValueString := ""
+	val := fv.FieldByName("Value")
+
+	if val.IsValid() {
+		needsPlaceholder = true
+		defaultValueString = fmt.Sprintf(" (default: %v)", val.Interface())
+
+		if val.Kind() == reflect.String && val.String() != "" {
+			defaultValueString = fmt.Sprintf(" (default: %q)", val.String())
+		}
+	}
+
+	if defaultValueString == " (default: )" {
+		defaultValueString = ""
+	}
+
+	if needsPlaceholder && placeholder == "" {
+		placeholder = defaultPlaceholder
+	}
+
+	usageWithDefault := strings.TrimSpace(fmt.Sprintf("%s%s", usage, defaultValueString))
+
+	return withEnvHint(fv.FieldByName("EnvVar").String(),
+		fmt.Sprintf("%s\t%s", prefixedNames(fv.FieldByName("Name").String(), placeholder), usageWithDefault))
+}
+
+func stringifyIntSliceFlag(f IntSliceFlag) string {
+	defaultVals := []string{}
+	if f.Value != nil && len(f.Value.Value()) > 0 {
+		for _, i := range f.Value.Value() {
+			defaultVals = append(defaultVals, fmt.Sprintf("%d", i))
+		}
+	}
+
+	return stringifySliceFlag(f.Usage, f.Name, defaultVals)
+}
+
+func stringifyInt64SliceFlag(f Int64SliceFlag) string {
+	defaultVals := []string{}
+	if f.Value != nil && len(f.Value.Value()) > 0 {
+		for _, i := range f.Value.Value() {
+			defaultVals = append(defaultVals, fmt.Sprintf("%d", i))
+		}
+	}
+
+	return stringifySliceFlag(f.Usage, f.Name, defaultVals)
+}
+
+func stringifyStringSliceFlag(f StringSliceFlag) string {
+	defaultVals := []string{}
+	if f.Value != nil && len(f.Value.Value()) > 0 {
+		for _, s := range f.Value.Value() {
+			if len(s) > 0 {
+				defaultVals = append(defaultVals, fmt.Sprintf("%q", s))
+			}
+		}
+	}
+
+	return stringifySliceFlag(f.Usage, f.Name, defaultVals)
+}
+
+func stringifySliceFlag(usage, name string, defaultVals []string) string {
+	placeholder, usage := unquoteUsage(usage)
+	if placeholder == "" {
+		placeholder = defaultPlaceholder
+	}
+
+	defaultVal := ""
+	if len(defaultVals) > 0 {
+		defaultVal = fmt.Sprintf(" (default: %s)", strings.Join(defaultVals, ", "))
+	}
+
+	usageWithDefault := strings.TrimSpace(fmt.Sprintf("%s%s", usage, defaultVal))
+	return fmt.Sprintf("%s\t%s", prefixedNames(name, placeholder), usageWithDefault)
+}
