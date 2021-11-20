@@ -26,4 +26,11 @@ func systemdInit() {
 	}
 
 	// Prevent fds from leaking to our children
-	for i := 0; i < systemdNumFds; 
+	for i := 0; i < systemdNumFds; i++ {
+		syscall.CloseOnExec(systemdMinFd + i)
+	}
+}
+
+func usingSystemd() bool {
+	return systemdNumFds > 0
+}
