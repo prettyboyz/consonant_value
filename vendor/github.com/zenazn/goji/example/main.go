@@ -123,3 +123,56 @@ func GetUser(c web.C, w http.ResponseWriter, r *http.Request) {
 	}
 
 	user.Write(w, handle)
+
+	io.WriteString(w, "\nGreets:\n")
+	for i := len(Greets) - 1; i >= 0; i-- {
+		if Greets[i].User == handle {
+			Greets[i].Write(w)
+		}
+	}
+}
+
+// GetGreet finds a particular greet by ID (GET "/greets/\d+"). Does no bounds
+// checking, so will probably panic.
+func GetGreet(c web.C, w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.Atoi(c.URLParams["id"])
+	if err != nil {
+		http.Error(w, http.StatusText(404), 404)
+		return
+	}
+	// This will panic if id is too big. Try it out!
+	greet := Greets[id]
+
+	io.WriteString(w, "Gritter\n======\n\n")
+	greet.Write(w)
+}
+
+// WaitForIt is a particularly slow handler (GET "/waitforit"). Try loading this
+// endpoint and initiating a graceful shutdown (Ctrl-C) or Einhorn reload. The
+// old server will stop accepting new connections and will attempt to kill
+// outstanding idle (keep-alive) connections, but will patiently stick around
+// for this endpoint to finish. How kind of it!
+func WaitForIt(w http.ResponseWriter, r *http.Request) {
+	io.WriteString(w, "This is going to be legend... (wait for it)\n")
+	if fl, ok := w.(http.Flusher); ok {
+		fl.Flush()
+	}
+	time.Sleep(15 * time.Second)
+	io.WriteString(w, "...dary! Legendary!\n")
+}
+
+// AdminRoot is root (GET "/admin/root"). Much secret. Very administrate. Wow.
+func AdminRoot(w http.ResponseWriter, r *http.Request) {
+	io.WriteString(w, "Gritter\n======\n\nSuper secret admin page!\n")
+}
+
+// AdminFinances would answer the question 'How are we doing?'
+// (GET "/admin/finances")
+func AdminFinances(w http.ResponseWriter, r *http.Request) {
+	io.WriteString(w, "Gritter\n======\n\nWe're broke! :(\n")
+}
+
+// NotFound is a 404 handler.
+func NotFound(w http.ResponseWriter, r *http.Request) {
+	http.Error(w, "Umm... have you tried turning it off and on again?", 404)
+}
