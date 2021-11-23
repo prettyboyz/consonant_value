@@ -121,3 +121,59 @@ func (t *T) CloseIdle() error {
 // Once a listener has been drained, there is no way to re-enable it. You
 // probably want to Close the listener before draining it, otherwise new
 // connections will be accepted and immediately closed.
+func (t *T) Drain() error {
+	for i := range t.shards {
+		t.shards[i].closeConns(false, true)
+	}
+	for i := range t.shards {
+		t.shards[i].wait()
+	}
+	return nil
+}
+
+// DrainAll closes all connections currently tracked by this listener (both idle
+// and in-use connections), and prevents new connections from being accepted.
+// Disowned connections are not closed.
+func (t *T) DrainAll() error {
+	for i := range t.shards {
+		t.shards[i].closeConns(true, true)
+	}
+	for i := range t.shards {
+		t.shards[i].wait()
+	}
+	return nil
+}
+
+var errNotManaged = errors.New("listener: passed net.Conn is not managed by this package")
+
+// Disown causes a connection to no longer be tracked by the listener. The
+// passed connection must have been returned by a call to Accept from this
+// listener.
+func Disown(c net.Conn) error {
+	if cn, ok := c.(*conn); ok {
+		return cn.disown()
+	}
+	return errNotManaged
+}
+
+// MarkIdle marks the given connection as being idle, and therefore eligible for
+// closing at any time. The passed connection must have been returned by a call
+// to Accept from this listener.
+func MarkIdle(c net.Conn) error {
+	if cn, ok := c.(*conn); ok {
+		cn.markIdle()
+		return nil
+	}
+	return errNotManaged
+}
+
+// MarkInUse marks this connection as being in use, removing it from the set of
+// connections which are eligible for closing. The passed connection must have
+// been returned by a call to Accept from this listener.
+func MarkInUse(c net.Conn) error {
+	if cn, ok := c.(*conn); ok {
+		cn.markInUse()
+		return nil
+	}
+	return errNotManaged
+}
