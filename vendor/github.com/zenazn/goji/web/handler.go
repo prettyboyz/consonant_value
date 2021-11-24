@@ -26,4 +26,17 @@ func (h handlerFuncWrap) ServeHTTPC(c C, w http.ResponseWriter, r *http.Request)
 }
 
 func parseHandler(h HandlerType) Handler {
-	sw
+	switch f := h.(type) {
+	case func(c C, w http.ResponseWriter, r *http.Request):
+		return handlerFuncWrap{f}
+	case func(w http.ResponseWriter, r *http.Request):
+		return netHTTPHandlerFuncWrap{f}
+	case Handler:
+		return f
+	case http.Handler:
+		return netHTTPHandlerWrap{f}
+	default:
+		log.Fatalf(unknownHandler, h)
+		panic("log.Fatalf does not return")
+	}
+}
