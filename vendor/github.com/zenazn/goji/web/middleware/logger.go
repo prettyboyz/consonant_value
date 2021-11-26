@@ -58,3 +58,35 @@ func printStart(reqID string, r *http.Request) {
 	buf.WriteString(r.RemoteAddr)
 
 	log.Print(buf.String())
+}
+
+func printEnd(reqID string, w mutil.WriterProxy, dt time.Duration) {
+	var buf bytes.Buffer
+
+	if reqID != "" {
+		cW(&buf, bBlack, "[%s] ", reqID)
+	}
+	buf.WriteString("Returning ")
+	status := w.Status()
+	if status < 200 {
+		cW(&buf, bBlue, "%03d", status)
+	} else if status < 300 {
+		cW(&buf, bGreen, "%03d", status)
+	} else if status < 400 {
+		cW(&buf, bCyan, "%03d", status)
+	} else if status < 500 {
+		cW(&buf, bYellow, "%03d", status)
+	} else {
+		cW(&buf, bRed, "%03d", status)
+	}
+	buf.WriteString(" in ")
+	if dt < 500*time.Millisecond {
+		cW(&buf, nGreen, "%s", dt)
+	} else if dt < 5*time.Second {
+		cW(&buf, nYellow, "%s", dt)
+	} else {
+		cW(&buf, nRed, "%s", dt)
+	}
+
+	log.Print(buf.String())
+}
