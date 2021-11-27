@@ -102,4 +102,53 @@ func (rt *router) getMatch(c *C, w http.ResponseWriter, r *http.Request) Match {
 	sort.Strings(methodsList)
 
 	if c.Env == nil {
-		c.En
+		c.Env = map[interface{}]interface{}{
+			ValidMethodsKey: methodsList,
+		}
+	} else {
+		c.Env[ValidMethodsKey] = methodsList
+	}
+	return Match{Handler: rt.notFound}
+}
+
+func (rt *router) route(c *C, w http.ResponseWriter, r *http.Request) {
+	match := GetMatch(*c)
+	if match.Handler == nil {
+		match = rt.getMatch(c, w, r)
+	}
+	match.Handler.ServeHTTPC(*c, w, r)
+}
+
+func (rt *router) handleUntyped(p PatternType, m method, h HandlerType) {
+	rt.handle(ParsePattern(p), m, parseHandler(h))
+}
+
+func (rt *router) handle(p Pattern, m method, h Handler) {
+	rt.lock.Lock()
+	defer rt.lock.Unlock()
+
+	// Calculate the sorted insertion point, because there's no reason to do
+	// swapping hijinks if we're already making a copy. We need to use
+	// bubble sort because we can only compare adjacent elements.
+	pp := p.Prefix()
+	var i int
+	for i = len(rt.routes); i > 0; i-- {
+		rip := rt.routes[i-1].prefix
+		if rip <= pp || strings.HasPrefix(rip, pp) {
+			break
+		}
+	}
+
+	newRoutes := make([]route, len(rt.routes)+1)
+	copy(newRoutes, rt.routes[:i])
+	newRoutes[i] = route{
+		prefix:  pp,
+		method:  m,
+		pattern: p,
+		handler: h,
+	}
+	copy(newRoutes[i+1:], rt.routes[i:])
+
+	rt.setMachine(nil)
+	rt.routes = newRoutes
+}
