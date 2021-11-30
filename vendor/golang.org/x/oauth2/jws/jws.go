@@ -78,4 +78,105 @@ func (c *ClaimSet) encode() (string, error) {
 	// Marshal private claim set and then append it to b.
 	prv, err := json.Marshal(c.PrivateClaims)
 	if err != nil {
-		return "", fmt.Errorf("jws: invalid map of private cla
+		return "", fmt.Errorf("jws: invalid map of private claims %v", c.PrivateClaims)
+	}
+
+	// Concatenate public and private claim JSON objects.
+	if !bytes.HasSuffix(b, []byte{'}'}) {
+		return "", fmt.Errorf("jws: invalid JSON %s", b)
+	}
+	if !bytes.HasPrefix(prv, []byte{'{'}) {
+		return "", fmt.Errorf("jws: invalid JSON %s", prv)
+	}
+	b[len(b)-1] = ','         // Replace closing curly brace with a comma.
+	b = append(b, prv[1:]...) // Append private claims.
+	return base64.RawURLEncoding.EncodeToString(b), nil
+}
+
+// Header represents the header for the signed JWS payloads.
+type Header struct {
+	// The algorithm used for signature.
+	Algorithm string `json:"alg"`
+
+	// Represents the token type.
+	Typ string `json:"typ"`
+
+	// The optional hint of which key is being used.
+	KeyID string `json:"kid,omitempty"`
+}
+
+func (h *Header) encode() (string, error) {
+	b, err := json.Marshal(h)
+	if err != nil {
+		return "", err
+	}
+	return base64.RawURLEncoding.EncodeToString(b), nil
+}
+
+// Decode decodes a claim set from a JWS payload.
+func Decode(payload string) (*ClaimSet, error) {
+	// decode returned id token to get expiry
+	s := strings.Split(payload, ".")
+	if len(s) < 2 {
+		// TODO(jbd): Provide more context about the error.
+		return nil, errors.New("jws: invalid token received")
+	}
+	decoded, err := base64.RawURLEncoding.DecodeString(s[1])
+	if err != nil {
+		return nil, err
+	}
+	c := &ClaimSet{}
+	err = json.NewDecoder(bytes.NewBuffer(decoded)).Decode(c)
+	return c, err
+}
+
+// Signer returns a signature for the given data.
+type Signer func(data []byte) (sig []byte, err error)
+
+// EncodeWithSigner encodes a header and claim set with the provided signer.
+func EncodeWithSigner(header *Header, c *ClaimSet, sg Signer) (string, error) {
+	head, err := header.encode()
+	if err != nil {
+		return "", err
+	}
+	cs, err := c.encode()
+	if err != nil {
+		return "", err
+	}
+	ss := fmt.Sprintf("%s.%s", head, cs)
+	sig, err := sg([]byte(ss))
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("%s.%s", ss, base64.RawURLEncoding.EncodeToString(sig)), nil
+}
+
+// Encode encodes a signed JWS with provided header and claim set.
+// This invokes EncodeWithSigner using crypto/rsa.SignPKCS1v15 with the given RSA private key.
+func Encode(header *Header, c *ClaimSet, key *rsa.PrivateKey) (string, error) {
+	sg := func(data []byte) (sig []byte, err error) {
+		h := sha256.New()
+		h.Write(data)
+		return rsa.SignPKCS1v15(rand.Reader, key, crypto.SHA256, h.Sum(nil))
+	}
+	return EncodeWithSigner(header, c, sg)
+}
+
+// Verify tests whether the provided JWT token's signature was produced by the private key
+// associated with the supplied public key.
+func Verify(token string, key *rsa.PublicKey) error {
+	parts := strings.Split(token, ".")
+	if len(parts) != 3 {
+		return errors.New("jws: invalid token received, token must have 3 parts")
+	}
+
+	signedContent := parts[0] + "." + parts[1]
+	signatureString, err := base64.RawURLEncoding.DecodeString(parts[2])
+	if err != nil {
+		return err
+	}
+
+	h := sha256.New()
+	h.Write([]byte(signedContent))
+	return rsa.VerifyPKCS1v15(key, crypto.SHA256, h.Sum(nil), []byte(signatureString))
+}
