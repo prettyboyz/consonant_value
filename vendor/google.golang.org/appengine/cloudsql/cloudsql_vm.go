@@ -4,4 +4,13 @@
 
 // +build !appengine
 
-pack
+package cloudsql
+
+import (
+	"errors"
+	"net"
+)
+
+func connect(instance string) (net.Conn, error) {
+	return nil, errors.New(`cloudsql: not supported in App Engine "flexible environment"`)
+}
