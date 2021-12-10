@@ -159,4 +159,146 @@ func (s *app) bundle(tarFile string) (err error) {
 	}
 
 	if err := tw.Close(); err != nil {
-		return fmt.Errorf("unable to close tar 
+		return fmt.Errorf("unable to close tar file %v: %v", tarFile, err)
+	}
+	return nil
+}
+
+// synthesizeMain generates a new main func and writes it to the tarball.
+func synthesizeMain(tw *tar.Writer, appFiles []string) error {
+	appMap := make(map[string]bool)
+	for _, f := range appFiles {
+		appMap[f] = true
+	}
+	var f string
+	for i := 0; i < 100; i++ {
+		f = fmt.Sprintf("app_main%d.go", i)
+		if !appMap[filepath.Join(*rootDir, f)] {
+			break
+		}
+	}
+	if appMap[filepath.Join(*rootDir, f)] {
+		return fmt.Errorf("unable to find unique name for %v", f)
+	}
+	hdr := &tar.Header{
+		Name: f,
+		Mode: 0644,
+		Size: int64(len(newMain)),
+	}
+	if err := tw.WriteHeader(hdr); err != nil {
+		return fmt.Errorf("unable to write header for %v: %v", f, err)
+	}
+	if _, err := tw.Write([]byte(newMain)); err != nil {
+		return fmt.Errorf("unable to write %v to tar file: %v", f, err)
+	}
+	return nil
+}
+
+// imports returns a map of all import directories (recursively) used by the app.
+// The return value maps full directory names to original import names.
+func imports(ctxt *build.Context, srcDir string, gopath []string) (map[string]string, error) {
+	pkg, err := ctxt.ImportDir(srcDir, 0)
+	if err != nil {
+		return nil, fmt.Errorf("unable to analyze source: %v", err)
+	}
+
+	// Resolve all non-standard-library imports
+	result := make(map[string]string)
+	for _, v := range pkg.Imports {
+		if !strings.Contains(v, ".") {
+			continue
+		}
+		src, err := findInGopath(v, gopath)
+		if err != nil {
+			return nil, fmt.Errorf("unable to find import %v in gopath %v: %v", v, gopath, err)
+		}
+		result[src] = v
+		im, err := imports(ctxt, src, gopath)
+		if err != nil {
+			return nil, fmt.Errorf("unable to parse package %v: %v", src, err)
+		}
+		for k, v := range im {
+			result[k] = v
+		}
+	}
+	return result, nil
+}
+
+// findInGopath searches the gopath for the named import directory.
+func findInGopath(dir string, gopath []string) (string, error) {
+	for _, v := range gopath {
+		dst := filepath.Join(v, "src", dir)
+		if _, err := os.Stat(dst); err == nil {
+			return dst, nil
+		}
+	}
+	return "", fmt.Errorf("unable to find package %v in gopath %v", dir, gopath)
+}
+
+// copyTree copies srcDir to tar file dstDir, ignoring skipFiles.
+func copyTree(tw *tar.Writer, dstDir, srcDir string) error {
+	entries, err := ioutil.ReadDir(srcDir)
+	if err != nil {
+		return fmt.Errorf("unable to read dir %v: %v", srcDir, err)
+	}
+	for _, entry := range entries {
+		n := entry.Name()
+		if skipFiles[n] {
+			continue
+		}
+		s := filepath.Join(srcDir, n)
+		d := filepath.Join(dstDir, n)
+		if entry.IsDir() {
+			if err := copyTree(tw, d, s); err != nil {
+				return fmt.Errorf("unable to copy dir %v to %v: %v", s, d, err)
+			}
+			continue
+		}
+		if err := copyFile(tw, d, s); err != nil {
+			return fmt.Errorf("unable to copy dir %v to %v: %v", s, d, err)
+		}
+	}
+	return nil
+}
+
+// copyFile copies src to tar file dst.
+func copyFile(tw *tar.Writer, dst, src string) error {
+	s, err := os.Open(src)
+	if err != nil {
+		return fmt.Errorf("unable to open %v: %v", src, err)
+	}
+	defer s.Close()
+	fi, err := s.Stat()
+	if err != nil {
+		return fmt.Errorf("unable to stat %v: %v", src, err)
+	}
+
+	hdr, err := tar.FileInfoHeader(fi, dst)
+	if err != nil {
+		return fmt.Errorf("unable to create tar header for %v: %v", dst, err)
+	}
+	hdr.Name = dst
+	if err := tw.WriteHeader(hdr); err != nil {
+		return fmt.Errorf("unable to write header for %v: %v", dst, err)
+	}
+	_, err = io.Copy(tw, s)
+	if err != nil {
+		return fmt.Errorf("unable to copy %v to %v: %v", src, dst, err)
+	}
+	return nil
+}
+
+// checkMain verifies that there is a single "main" function.
+// It also returns a list of all Go source files in the app.
+func checkMain(ctxt *build.Context) (bool, []string, error) {
+	pkg, err := ctxt.ImportDir(*rootDir, 0)
+	if err != nil {
+		return false, nil, fmt.Errorf("unable to analyze source: %v", err)
+	}
+	if !pkg.IsCommand() {
+		errorf("Your app's package needs to be changed from %q to \"main\".\n", pkg.Name)
+	}
+	// Search for a "func main"
+	var hasMain bool
+	var appFiles []string
+	for _,
