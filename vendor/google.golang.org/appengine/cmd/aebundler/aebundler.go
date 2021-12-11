@@ -301,4 +301,42 @@ func checkMain(ctxt *build.Context) (bool, []string, error) {
 	// Search for a "func main"
 	var hasMain bool
 	var appFiles []string
-	for _,
+	for _, f := range pkg.GoFiles {
+		n := filepath.Join(*rootDir, f)
+		appFiles = append(appFiles, n)
+		if hasMain, err = readFile(n); err != nil {
+			return false, nil, fmt.Errorf("error parsing %q: %v", n, err)
+		}
+	}
+	return hasMain, appFiles, nil
+}
+
+// isMain returns whether the given function declaration is a main function.
+// Such a function must be called "main", not have a receiver, and have no arguments or return types.
+func isMain(f *ast.FuncDecl) bool {
+	ft := f.Type
+	return f.Name.Name == "main" && f.Recv == nil && ft.Params.NumFields() == 0 && ft.Results.NumFields() == 0
+}
+
+// readFile reads and parses the Go source code file and returns whether it has a main function.
+func readFile(filename string) (hasMain bool, err error) {
+	var src []byte
+	src, err = ioutil.ReadFile(filename)
+	if err != nil {
+		return
+	}
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, filename, src, 0)
+	for _, decl := range file.Decls {
+		funcDecl, ok := decl.(*ast.FuncDecl)
+		if !ok {
+			continue
+		}
+		if !isMain(funcDecl) {
+			continue
+		}
+		hasMain = true
+		break
+	}
+	return
+}
