@@ -216,4 +216,94 @@ func (k *Key) Encode() string {
 		panic(err)
 	}
 
-	// Tra
+	// Trailing padding is stripped.
+	return strings.TrimRight(base64.URLEncoding.EncodeToString(b), "=")
+}
+
+// DecodeKey decodes a key from the opaque representation returned by Encode.
+func DecodeKey(encoded string) (*Key, error) {
+	// Re-add padding.
+	if m := len(encoded) % 4; m != 0 {
+		encoded += strings.Repeat("=", 4-m)
+	}
+
+	b, err := base64.URLEncoding.DecodeString(encoded)
+	if err != nil {
+		return nil, err
+	}
+
+	ref := new(pb.Reference)
+	if err := proto.Unmarshal(b, ref); err != nil {
+		return nil, err
+	}
+
+	return protoToKey(ref)
+}
+
+// NewIncompleteKey creates a new incomplete key.
+// kind cannot be empty.
+func NewIncompleteKey(c context.Context, kind string, parent *Key) *Key {
+	return NewKey(c, kind, "", 0, parent)
+}
+
+// NewKey creates a new key.
+// kind cannot be empty.
+// Either one or both of stringID and intID must be zero. If both are zero,
+// the key returned is incomplete.
+// parent must either be a complete key or nil.
+func NewKey(c context.Context, kind, stringID string, intID int64, parent *Key) *Key {
+	// If there's a parent key, use its namespace.
+	// Otherwise, use any namespace attached to the context.
+	var namespace string
+	if parent != nil {
+		namespace = parent.namespace
+	} else {
+		namespace = internal.NamespaceFromContext(c)
+	}
+
+	return &Key{
+		kind:      kind,
+		stringID:  stringID,
+		intID:     intID,
+		parent:    parent,
+		appID:     internal.FullyQualifiedAppID(c),
+		namespace: namespace,
+	}
+}
+
+// AllocateIDs returns a range of n integer IDs with the given kind and parent
+// combination. kind cannot be empty; parent may be nil. The IDs in the range
+// returned will not be used by the datastore's automatic ID sequence generator
+// and may be used with NewKey without conflict.
+//
+// The range is inclusive at the low end and exclusive at the high end. In
+// other words, valid intIDs x satisfy low <= x && x < high.
+//
+// If no error is returned, low + n == high.
+func AllocateIDs(c context.Context, kind string, parent *Key, n int) (low, high int64, err error) {
+	if kind == "" {
+		return 0, 0, errors.New("datastore: AllocateIDs given an empty kind")
+	}
+	if n < 0 {
+		return 0, 0, fmt.Errorf("datastore: AllocateIDs given a negative count: %d", n)
+	}
+	if n == 0 {
+		return 0, 0, nil
+	}
+	req := &pb.AllocateIdsRequest{
+		ModelKey: keyToProto("", NewIncompleteKey(c, kind, parent)),
+		Size:     proto.Int64(int64(n)),
+	}
+	res := &pb.AllocateIdsResponse{}
+	if err := internal.Call(c, "datastore_v3", "AllocateIds", req, res); err != nil {
+		return 0, 0, err
+	}
+	// The protobuf is inclusive at both ends. Idiomatic Go (e.g. slices, for loops)
+	// is inclusive at the low end and exclusive at the high end, so we add 1.
+	low = res.GetStart()
+	high = res.GetEnd() + 1
+	if low+int64(n) != high {
+		return 0, 0, fmt.Errorf("datastore: internal error: could not allocate %d IDs", n)
+	}
+	return low, high, nil
+}
