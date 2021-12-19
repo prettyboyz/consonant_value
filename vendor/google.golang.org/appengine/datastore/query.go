@@ -436,4 +436,134 @@ func callNext(c context.Context, res *pb.QueryResult, offset, limit int32) error
 // interface, non-pointer type P such that P or *P implements PropertyLoadSaver.
 //
 // As a special case, *PropertyList is an invalid type for dst, even though a
-// PropertyList is a slice of structs. It is treated as invalid to
+// PropertyList is a slice of structs. It is treated as invalid to avoid being
+// mistakenly passed when *[]PropertyList was intended.
+//
+// The keys returned by GetAll will be in a 1-1 correspondence with the entities
+// added to dst.
+//
+// If q is a ``keys-only'' query, GetAll ignores dst and only returns the keys.
+//
+// The running time and number of API calls made by GetAll scale linearly with
+// with the sum of the query's offset and limit. Unless the result count is
+// expected to be small, it is best to specify a limit; otherwise GetAll will
+// continue until it finishes collecting results or the provided context
+// expires.
+func (q *Query) GetAll(c context.Context, dst interface{}) ([]*Key, error) {
+	var (
+		dv               reflect.Value
+		mat              multiArgType
+		elemType         reflect.Type
+		errFieldMismatch error
+	)
+	if !q.keysOnly {
+		dv = reflect.ValueOf(dst)
+		if dv.Kind() != reflect.Ptr || dv.IsNil() {
+			return nil, ErrInvalidEntityType
+		}
+		dv = dv.Elem()
+		mat, elemType = checkMultiArg(dv)
+		if mat == multiArgTypeInvalid || mat == multiArgTypeInterface {
+			return nil, ErrInvalidEntityType
+		}
+	}
+
+	var keys []*Key
+	for t := q.Run(c); ; {
+		k, e, err := t.next()
+		if err == Done {
+			break
+		}
+		if err != nil {
+			return keys, err
+		}
+		if !q.keysOnly {
+			ev := reflect.New(elemType)
+			if elemType.Kind() == reflect.Map {
+				// This is a special case. The zero values of a map type are
+				// not immediately useful; they have to be make'd.
+				//
+				// Funcs and channels are similar, in that a zero value is not useful,
+				// but even a freshly make'd channel isn't useful: there's no fixed
+				// channel buffer size that is always going to be large enough, and
+				// there's no goroutine to drain the other end. Theoretically, these
+				// types could be supported, for example by sniffing for a constructor
+				// method or requiring prior registration, but for now it's not a
+				// frequent enough concern to be worth it. Programmers can work around
+				// it by explicitly using Iterator.Next instead of the Query.GetAll
+				// convenience method.
+				x := reflect.MakeMap(elemType)
+				ev.Elem().Set(x)
+			}
+			if err = loadEntity(ev.Interface(), e); err != nil {
+				if _, ok := err.(*ErrFieldMismatch); ok {
+					// We continue loading entities even in the face of field mismatch errors.
+					// If we encounter any other error, that other error is returned. Otherwise,
+					// an ErrFieldMismatch is returned.
+					errFieldMismatch = err
+				} else {
+					return keys, err
+				}
+			}
+			if mat != multiArgTypeStructPtr {
+				ev = ev.Elem()
+			}
+			dv.Set(reflect.Append(dv, ev))
+		}
+		keys = append(keys, k)
+	}
+	return keys, errFieldMismatch
+}
+
+// Run runs the query in the given context.
+func (q *Query) Run(c context.Context) *Iterator {
+	if q.err != nil {
+		return &Iterator{err: q.err}
+	}
+	t := &Iterator{
+		c:      c,
+		limit:  q.limit,
+		q:      q,
+		prevCC: q.start,
+	}
+	var req pb.Query
+	if err := q.toProto(&req, internal.FullyQualifiedAppID(c)); err != nil {
+		t.err = err
+		return t
+	}
+	if err := internal.Call(c, "datastore_v3", "RunQuery", &req, &t.res); err != nil {
+		t.err = err
+		return t
+	}
+	offset := q.offset - t.res.GetSkippedResults()
+	for offset > 0 && t.res.GetMoreResults() {
+		t.prevCC = t.res.CompiledCursor
+		if err := callNext(t.c, &t.res, offset, t.limit); err != nil {
+			t.err = err
+			break
+		}
+		skip := t.res.GetSkippedResults()
+		if skip < 0 {
+			t.err = errors.New("datastore: internal error: negative number of skipped_results")
+			break
+		}
+		offset -= skip
+	}
+	if offset < 0 {
+		t.err = errors.New("datastore: internal error: query offset was overshot")
+	}
+	return t
+}
+
+// Iterator is the result of running a query.
+type Iterator struct {
+	c   context.Context
+	err error
+	// res is the result of the most recent RunQuery or Next API call.
+	res pb.QueryResult
+	// i is how many elements of res.Result we have iterated over.
+	i int
+	// limit is the limit on the number of results this iterator should return.
+	// A negative value means unlimited.
+	limit int32
+	// q is the original query which yield
