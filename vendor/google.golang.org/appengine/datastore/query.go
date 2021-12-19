@@ -566,4 +566,130 @@ type Iterator struct {
 	// limit is the limit on the number of results this iterator should return.
 	// A negative value means unlimited.
 	limit int32
-	// q is the original query which yield
+	// q is the original query which yielded this iterator.
+	q *Query
+	// prevCC is the compiled cursor that marks the end of the previous batch
+	// of results.
+	prevCC *pb.CompiledCursor
+}
+
+// Done is returned when a query iteration has completed.
+var Done = errors.New("datastore: query has no more results")
+
+// Next returns the key of the next result. When there are no more results,
+// Done is returned as the error.
+//
+// If the query is not keys only and dst is non-nil, it also loads the entity
+// stored for that key into the struct pointer or PropertyLoadSaver dst, with
+// the same semantics and possible errors as for the Get function.
+func (t *Iterator) Next(dst interface{}) (*Key, error) {
+	k, e, err := t.next()
+	if err != nil {
+		return nil, err
+	}
+	if dst != nil && !t.q.keysOnly {
+		err = loadEntity(dst, e)
+	}
+	return k, err
+}
+
+func (t *Iterator) next() (*Key, *pb.EntityProto, error) {
+	if t.err != nil {
+		return nil, nil, t.err
+	}
+
+	// Issue datastore_v3/Next RPCs as necessary.
+	for t.i == len(t.res.Result) {
+		if !t.res.GetMoreResults() {
+			t.err = Done
+			return nil, nil, t.err
+		}
+		t.prevCC = t.res.CompiledCursor
+		if err := callNext(t.c, &t.res, 0, t.limit); err != nil {
+			t.err = err
+			return nil, nil, t.err
+		}
+		if t.res.GetSkippedResults() != 0 {
+			t.err = errors.New("datastore: internal error: iterator has skipped results")
+			return nil, nil, t.err
+		}
+		t.i = 0
+		if t.limit >= 0 {
+			t.limit -= int32(len(t.res.Result))
+			if t.limit < 0 {
+				t.err = errors.New("datastore: internal error: query returned more results than the limit")
+				return nil, nil, t.err
+			}
+		}
+	}
+
+	// Extract the key from the t.i'th element of t.res.Result.
+	e := t.res.Result[t.i]
+	t.i++
+	if e.Key == nil {
+		return nil, nil, errors.New("datastore: internal error: server did not return a key")
+	}
+	k, err := protoToKey(e.Key)
+	if err != nil || k.Incomplete() {
+		return nil, nil, errors.New("datastore: internal error: server returned an invalid key")
+	}
+	return k, e, nil
+}
+
+// Cursor returns a cursor for the iterator's current location.
+func (t *Iterator) Cursor() (Cursor, error) {
+	if t.err != nil && t.err != Done {
+		return Cursor{}, t.err
+	}
+	// If we are at either end of the current batch of results,
+	// return the compiled cursor at that end.
+	skipped := t.res.GetSkippedResults()
+	if t.i == 0 && skipped == 0 {
+		if t.prevCC == nil {
+			// A nil pointer (of type *pb.CompiledCursor) means no constraint:
+			// passing it as the end cursor of a new query means unlimited results
+			// (glossing over the integer limit parameter for now).
+			// A non-nil pointer to an empty pb.CompiledCursor means the start:
+			// passing it as the end cursor of a new query means 0 results.
+			// If prevCC was nil, then the original query had no start cursor, but
+			// Iterator.Cursor should return "the start" instead of unlimited.
+			return Cursor{&zeroCC}, nil
+		}
+		return Cursor{t.prevCC}, nil
+	}
+	if t.i == len(t.res.Result) {
+		return Cursor{t.res.CompiledCursor}, nil
+	}
+	// Otherwise, re-run the query offset to this iterator's position, starting from
+	// the most recent compiled cursor. This is done on a best-effort basis, as it
+	// is racy; if a concurrent process has added or removed entities, then the
+	// cursor returned may be inconsistent.
+	q := t.q.clone()
+	q.start = t.prevCC
+	q.offset = skipped + int32(t.i)
+	q.limit = 0
+	q.keysOnly = len(q.projection) == 0
+	t1 := q.Run(t.c)
+	_, _, err := t1.next()
+	if err != Done {
+		if err == nil {
+			err = fmt.Errorf("datastore: internal error: zero-limit query did not have zero results")
+		}
+		return Cursor{}, err
+	}
+	return Cursor{t1.res.CompiledCursor}, nil
+}
+
+var zeroCC pb.CompiledCursor
+
+// Cursor is an iterator's position. It can be converted to and from an opaque
+// string. A cursor can be used from different HTTP requests, but only with a
+// query with the same kind, ancestor, filter and order constraints.
+type Cursor struct {
+	cc *pb.CompiledCursor
+}
+
+// String returns a base-64 string representation of a cursor.
+func (c Cursor) String() string {
+	if c.cc == nil {
+		retur
