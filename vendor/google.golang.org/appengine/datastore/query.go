@@ -322,4 +322,118 @@ func (q *Query) toProto(dst *pb.Query, appID string) error {
 	if q.limit >= 0 {
 		dst.Limit = proto.Int32(q.limit)
 	}
-	if 
+	if q.offset != 0 {
+		dst.Offset = proto.Int32(q.offset)
+	}
+	dst.CompiledCursor = q.start
+	dst.EndCompiledCursor = q.end
+	dst.Compile = proto.Bool(true)
+	return nil
+}
+
+// Count returns the number of results for the query.
+//
+// The running time and number of API calls made by Count scale linearly with
+// the sum of the query's offset and limit. Unless the result count is
+// expected to be small, it is best to specify a limit; otherwise Count will
+// continue until it finishes counting or the provided context expires.
+func (q *Query) Count(c context.Context) (int, error) {
+	// Check that the query is well-formed.
+	if q.err != nil {
+		return 0, q.err
+	}
+
+	// Run a copy of the query, with keysOnly true (if we're not a projection,
+	// since the two are incompatible), and an adjusted offset. We also set the
+	// limit to zero, as we don't want any actual entity data, just the number
+	// of skipped results.
+	newQ := q.clone()
+	newQ.keysOnly = len(newQ.projection) == 0
+	newQ.limit = 0
+	if q.limit < 0 {
+		// If the original query was unlimited, set the new query's offset to maximum.
+		newQ.offset = math.MaxInt32
+	} else {
+		newQ.offset = q.offset + q.limit
+		if newQ.offset < 0 {
+			// Do the best we can, in the presence of overflow.
+			newQ.offset = math.MaxInt32
+		}
+	}
+	req := &pb.Query{}
+	if err := newQ.toProto(req, internal.FullyQualifiedAppID(c)); err != nil {
+		return 0, err
+	}
+	res := &pb.QueryResult{}
+	if err := internal.Call(c, "datastore_v3", "RunQuery", req, res); err != nil {
+		return 0, err
+	}
+
+	// n is the count we will return. For example, suppose that our original
+	// query had an offset of 4 and a limit of 2008: the count will be 2008,
+	// provided that there are at least 2012 matching entities. However, the
+	// RPCs will only skip 1000 results at a time. The RPC sequence is:
+	//   call RunQuery with (offset, limit) = (2012, 0)  // 2012 == newQ.offset
+	//   response has (skippedResults, moreResults) = (1000, true)
+	//   n += 1000  // n == 1000
+	//   call Next     with (offset, limit) = (1012, 0)  // 1012 == newQ.offset - n
+	//   response has (skippedResults, moreResults) = (1000, true)
+	//   n += 1000  // n == 2000
+	//   call Next     with (offset, limit) = (12, 0)    // 12 == newQ.offset - n
+	//   response has (skippedResults, moreResults) = (12, false)
+	//   n += 12    // n == 2012
+	//   // exit the loop
+	//   n -= 4     // n == 2008
+	var n int32
+	for {
+		// The QueryResult should have no actual entity data, just skipped results.
+		if len(res.Result) != 0 {
+			return 0, errors.New("datastore: internal error: Count request returned too much data")
+		}
+		n += res.GetSkippedResults()
+		if !res.GetMoreResults() {
+			break
+		}
+		if err := callNext(c, res, newQ.offset-n, 0); err != nil {
+			return 0, err
+		}
+	}
+	n -= q.offset
+	if n < 0 {
+		// If the offset was greater than the number of matching entities,
+		// return 0 instead of negative.
+		n = 0
+	}
+	return int(n), nil
+}
+
+// callNext issues a datastore_v3/Next RPC to advance a cursor, such as that
+// returned by a query with more results.
+func callNext(c context.Context, res *pb.QueryResult, offset, limit int32) error {
+	if res.Cursor == nil {
+		return errors.New("datastore: internal error: server did not return a cursor")
+	}
+	req := &pb.NextRequest{
+		Cursor: res.Cursor,
+	}
+	if limit >= 0 {
+		req.Count = proto.Int32(limit)
+	}
+	if offset != 0 {
+		req.Offset = proto.Int32(offset)
+	}
+	if res.CompiledCursor != nil {
+		req.Compile = proto.Bool(true)
+	}
+	res.Reset()
+	return internal.Call(c, "datastore_v3", "Next", req, res)
+}
+
+// GetAll runs the query in the given context and returns all keys that match
+// that query, as well as appending the values to dst.
+//
+// dst must have type *[]S or *[]*S or *[]P, for some struct type S or some non-
+// interface, non-pointer type P such that P or *P implements PropertyLoadSaver.
+//
+// As a special case, *PropertyList is an invalid type for dst, even though a
+// PropertyList is a slice of structs. It is treated as invalid to
