@@ -93,4 +93,17 @@ func handleSign(w http.ResponseWriter, r *http.Request) {
 	}
 	ctx := appengine.NewContext(r)
 	g := &Greeting{
-		Content: r.For
+		Content: r.FormValue("content"),
+		Date:    time.Now(),
+	}
+	if u := user.Current(ctx); u != nil {
+		g.Author = u.String()
+	}
+	key := datastore.NewIncompleteKey(ctx, "Greeting", guestbookKey(ctx))
+	if _, err := datastore.Put(ctx, key, g); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	// Redirect with 303 which causes the subsequent request to use GET.
+	http.Redirect(w, r, "/", http.StatusSeeOther)
+}
