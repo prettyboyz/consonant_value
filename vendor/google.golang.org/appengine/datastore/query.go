@@ -692,4 +692,33 @@ type Cursor struct {
 // String returns a base-64 string representation of a cursor.
 func (c Cursor) String() string {
 	if c.cc == nil {
-		retur
+		return ""
+	}
+	b, err := proto.Marshal(c.cc)
+	if err != nil {
+		// The only way to construct a Cursor with a non-nil cc field is to
+		// unmarshal from the byte representation. We panic if the unmarshal
+		// succeeds but the marshaling of the unchanged protobuf value fails.
+		panic(fmt.Sprintf("datastore: internal error: malformed cursor: %v", err))
+	}
+	return strings.TrimRight(base64.URLEncoding.EncodeToString(b), "=")
+}
+
+// Decode decodes a cursor from its base-64 string representation.
+func DecodeCursor(s string) (Cursor, error) {
+	if s == "" {
+		return Cursor{&zeroCC}, nil
+	}
+	if n := len(s) % 4; n != 0 {
+		s += strings.Repeat("=", 4-n)
+	}
+	b, err := base64.URLEncoding.DecodeString(s)
+	if err != nil {
+		return Cursor{}, err
+	}
+	cc := &pb.CompiledCursor{}
+	if err := proto.Unmarshal(b, cc); err != nil {
+		return Cursor{}, err
+	}
+	return Cursor{cc}, nil
+}
