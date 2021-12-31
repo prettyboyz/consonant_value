@@ -249,4 +249,99 @@ func (m *CloneBlobRequest) GetBlobKey() []byte {
 	return nil
 }
 
-fun
+func (m *CloneBlobRequest) GetMimeType() []byte {
+	if m != nil {
+		return m.MimeType
+	}
+	return nil
+}
+
+func (m *CloneBlobRequest) GetTargetAppId() []byte {
+	if m != nil {
+		return m.TargetAppId
+	}
+	return nil
+}
+
+type CloneBlobResponse struct {
+	BlobKey          []byte `protobuf:"bytes,1,req,name=blob_key" json:"blob_key,omitempty"`
+	XXX_unrecognized []byte `json:"-"`
+}
+
+func (m *CloneBlobResponse) Reset()         { *m = CloneBlobResponse{} }
+func (m *CloneBlobResponse) String() string { return proto.CompactTextString(m) }
+func (*CloneBlobResponse) ProtoMessage()    {}
+
+func (m *CloneBlobResponse) GetBlobKey() []byte {
+	if m != nil {
+		return m.BlobKey
+	}
+	return nil
+}
+
+type DecodeBlobKeyRequest struct {
+	BlobKey          []string `protobuf:"bytes,1,rep,name=blob_key" json:"blob_key,omitempty"`
+	XXX_unrecognized []byte   `json:"-"`
+}
+
+func (m *DecodeBlobKeyRequest) Reset()         { *m = DecodeBlobKeyRequest{} }
+func (m *DecodeBlobKeyRequest) String() string { return proto.CompactTextString(m) }
+func (*DecodeBlobKeyRequest) ProtoMessage()    {}
+
+func (m *DecodeBlobKeyRequest) GetBlobKey() []string {
+	if m != nil {
+		return m.BlobKey
+	}
+	return nil
+}
+
+type DecodeBlobKeyResponse struct {
+	Decoded          []string `protobuf:"bytes,1,rep,name=decoded" json:"decoded,omitempty"`
+	XXX_unrecognized []byte   `json:"-"`
+}
+
+func (m *DecodeBlobKeyResponse) Reset()         { *m = DecodeBlobKeyResponse{} }
+func (m *DecodeBlobKeyResponse) String() string { return proto.CompactTextString(m) }
+func (*DecodeBlobKeyResponse) ProtoMessage()    {}
+
+func (m *DecodeBlobKeyResponse) GetDecoded() []string {
+	if m != nil {
+		return m.Decoded
+	}
+	return nil
+}
+
+type CreateEncodedGoogleStorageKeyRequest struct {
+	Filename         *string `protobuf:"bytes,1,req,name=filename" json:"filename,omitempty"`
+	XXX_unrecognized []byte  `json:"-"`
+}
+
+func (m *CreateEncodedGoogleStorageKeyRequest) Reset()         { *m = CreateEncodedGoogleStorageKeyRequest{} }
+func (m *CreateEncodedGoogleStorageKeyRequest) String() string { return proto.CompactTextString(m) }
+func (*CreateEncodedGoogleStorageKeyRequest) ProtoMessage()    {}
+
+func (m *CreateEncodedGoogleStorageKeyRequest) GetFilename() string {
+	if m != nil && m.Filename != nil {
+		return *m.Filename
+	}
+	return ""
+}
+
+type CreateEncodedGoogleStorageKeyResponse struct {
+	BlobKey          *string `protobuf:"bytes,1,req,name=blob_key" json:"blob_key,omitempty"`
+	XXX_unrecognized []byte  `json:"-"`
+}
+
+func (m *CreateEncodedGoogleStorageKeyResponse) Reset()         { *m = CreateEncodedGoogleStorageKeyResponse{} }
+func (m *CreateEncodedGoogleStorageKeyResponse) String() string { return proto.CompactTextString(m) }
+func (*CreateEncodedGoogleStorageKeyResponse) ProtoMessage()    {}
+
+func (m *CreateEncodedGoogleStorageKeyResponse) GetBlobKey() string {
+	if m != nil && m.BlobKey != nil {
+		return *m.BlobKey
+	}
+	return ""
+}
+
+func init() {
+}
