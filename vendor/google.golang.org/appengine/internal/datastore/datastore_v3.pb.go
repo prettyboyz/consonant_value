@@ -54,4 +54,148 @@ import proto "github.com/golang/protobuf/proto"
 import fmt "fmt"
 import math "math"
 
-// Reference imports to
+// Reference imports to suppress errors if they are not otherwise used.
+var _ = proto.Marshal
+var _ = fmt.Errorf
+var _ = math.Inf
+
+type Property_Meaning int32
+
+const (
+	Property_NO_MEANING       Property_Meaning = 0
+	Property_BLOB             Property_Meaning = 14
+	Property_TEXT             Property_Meaning = 15
+	Property_BYTESTRING       Property_Meaning = 16
+	Property_ATOM_CATEGORY    Property_Meaning = 1
+	Property_ATOM_LINK        Property_Meaning = 2
+	Property_ATOM_TITLE       Property_Meaning = 3
+	Property_ATOM_CONTENT     Property_Meaning = 4
+	Property_ATOM_SUMMARY     Property_Meaning = 5
+	Property_ATOM_AUTHOR      Property_Meaning = 6
+	Property_GD_WHEN          Property_Meaning = 7
+	Property_GD_EMAIL         Property_Meaning = 8
+	Property_GEORSS_POINT     Property_Meaning = 9
+	Property_GD_IM            Property_Meaning = 10
+	Property_GD_PHONENUMBER   Property_Meaning = 11
+	Property_GD_POSTALADDRESS Property_Meaning = 12
+	Property_GD_RATING        Property_Meaning = 13
+	Property_BLOBKEY          Property_Meaning = 17
+	Property_ENTITY_PROTO     Property_Meaning = 19
+	Property_INDEX_VALUE      Property_Meaning = 18
+)
+
+var Property_Meaning_name = map[int32]string{
+	0:  "NO_MEANING",
+	14: "BLOB",
+	15: "TEXT",
+	16: "BYTESTRING",
+	1:  "ATOM_CATEGORY",
+	2:  "ATOM_LINK",
+	3:  "ATOM_TITLE",
+	4:  "ATOM_CONTENT",
+	5:  "ATOM_SUMMARY",
+	6:  "ATOM_AUTHOR",
+	7:  "GD_WHEN",
+	8:  "GD_EMAIL",
+	9:  "GEORSS_POINT",
+	10: "GD_IM",
+	11: "GD_PHONENUMBER",
+	12: "GD_POSTALADDRESS",
+	13: "GD_RATING",
+	17: "BLOBKEY",
+	19: "ENTITY_PROTO",
+	18: "INDEX_VALUE",
+}
+var Property_Meaning_value = map[string]int32{
+	"NO_MEANING":       0,
+	"BLOB":             14,
+	"TEXT":             15,
+	"BYTESTRING":       16,
+	"ATOM_CATEGORY":    1,
+	"ATOM_LINK":        2,
+	"ATOM_TITLE":       3,
+	"ATOM_CONTENT":     4,
+	"ATOM_SUMMARY":     5,
+	"ATOM_AUTHOR":      6,
+	"GD_WHEN":          7,
+	"GD_EMAIL":         8,
+	"GEORSS_POINT":     9,
+	"GD_IM":            10,
+	"GD_PHONENUMBER":   11,
+	"GD_POSTALADDRESS": 12,
+	"GD_RATING":        13,
+	"BLOBKEY":          17,
+	"ENTITY_PROTO":     19,
+	"INDEX_VALUE":      18,
+}
+
+func (x Property_Meaning) Enum() *Property_Meaning {
+	p := new(Property_Meaning)
+	*p = x
+	return p
+}
+func (x Property_Meaning) String() string {
+	return proto.EnumName(Property_Meaning_name, int32(x))
+}
+func (x *Property_Meaning) UnmarshalJSON(data []byte) error {
+	value, err := proto.UnmarshalJSONEnum(Property_Meaning_value, data, "Property_Meaning")
+	if err != nil {
+		return err
+	}
+	*x = Property_Meaning(value)
+	return nil
+}
+
+type Property_FtsTokenizationOption int32
+
+const (
+	Property_HTML Property_FtsTokenizationOption = 1
+	Property_ATOM Property_FtsTokenizationOption = 2
+)
+
+var Property_FtsTokenizationOption_name = map[int32]string{
+	1: "HTML",
+	2: "ATOM",
+}
+var Property_FtsTokenizationOption_value = map[string]int32{
+	"HTML": 1,
+	"ATOM": 2,
+}
+
+func (x Property_FtsTokenizationOption) Enum() *Property_FtsTokenizationOption {
+	p := new(Property_FtsTokenizationOption)
+	*p = x
+	return p
+}
+func (x Property_FtsTokenizationOption) String() string {
+	return proto.EnumName(Property_FtsTokenizationOption_name, int32(x))
+}
+func (x *Property_FtsTokenizationOption) UnmarshalJSON(data []byte) error {
+	value, err := proto.UnmarshalJSONEnum(Property_FtsTokenizationOption_value, data, "Property_FtsTokenizationOption")
+	if err != nil {
+		return err
+	}
+	*x = Property_FtsTokenizationOption(value)
+	return nil
+}
+
+type EntityProto_Kind int32
+
+const (
+	EntityProto_GD_CONTACT EntityProto_Kind = 1
+	EntityProto_GD_EVENT   EntityProto_Kind = 2
+	EntityProto_GD_MESSAGE EntityProto_Kind = 3
+)
+
+var EntityProto_Kind_name = map[int32]string{
+	1: "GD_CONTACT",
+	2: "GD_EVENT",
+	3: "GD_MESSAGE",
+}
+var EntityProto_Kind_value = map[string]int32{
+	"GD_CONTACT": 1,
+	"GD_EVENT":   2,
+	"GD_MESSAGE": 3,
+}
+
+func (x EntityProto_Kind) Enum() *Enti
