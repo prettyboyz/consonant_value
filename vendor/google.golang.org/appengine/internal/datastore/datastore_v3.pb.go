@@ -513,4 +513,126 @@ var PutRequest_AutoIdPolicy_value = map[string]int32{
 	"SEQUENTIAL": 1,
 }
 
-func (x PutRequest_AutoIdPolicy) Enum() *PutRequest_Au
+func (x PutRequest_AutoIdPolicy) Enum() *PutRequest_AutoIdPolicy {
+	p := new(PutRequest_AutoIdPolicy)
+	*p = x
+	return p
+}
+func (x PutRequest_AutoIdPolicy) String() string {
+	return proto.EnumName(PutRequest_AutoIdPolicy_name, int32(x))
+}
+func (x *PutRequest_AutoIdPolicy) UnmarshalJSON(data []byte) error {
+	value, err := proto.UnmarshalJSONEnum(PutRequest_AutoIdPolicy_value, data, "PutRequest_AutoIdPolicy")
+	if err != nil {
+		return err
+	}
+	*x = PutRequest_AutoIdPolicy(value)
+	return nil
+}
+
+type Action struct {
+	XXX_unrecognized []byte `json:"-"`
+}
+
+func (m *Action) Reset()         { *m = Action{} }
+func (m *Action) String() string { return proto.CompactTextString(m) }
+func (*Action) ProtoMessage()    {}
+
+type PropertyValue struct {
+	Int64Value       *int64                        `protobuf:"varint,1,opt,name=int64Value" json:"int64Value,omitempty"`
+	BooleanValue     *bool                         `protobuf:"varint,2,opt,name=booleanValue" json:"booleanValue,omitempty"`
+	StringValue      *string                       `protobuf:"bytes,3,opt,name=stringValue" json:"stringValue,omitempty"`
+	DoubleValue      *float64                      `protobuf:"fixed64,4,opt,name=doubleValue" json:"doubleValue,omitempty"`
+	Pointvalue       *PropertyValue_PointValue     `protobuf:"group,5,opt,name=PointValue" json:"pointvalue,omitempty"`
+	Uservalue        *PropertyValue_UserValue      `protobuf:"group,8,opt,name=UserValue" json:"uservalue,omitempty"`
+	Referencevalue   *PropertyValue_ReferenceValue `protobuf:"group,12,opt,name=ReferenceValue" json:"referencevalue,omitempty"`
+	XXX_unrecognized []byte                        `json:"-"`
+}
+
+func (m *PropertyValue) Reset()         { *m = PropertyValue{} }
+func (m *PropertyValue) String() string { return proto.CompactTextString(m) }
+func (*PropertyValue) ProtoMessage()    {}
+
+func (m *PropertyValue) GetInt64Value() int64 {
+	if m != nil && m.Int64Value != nil {
+		return *m.Int64Value
+	}
+	return 0
+}
+
+func (m *PropertyValue) GetBooleanValue() bool {
+	if m != nil && m.BooleanValue != nil {
+		return *m.BooleanValue
+	}
+	return false
+}
+
+func (m *PropertyValue) GetStringValue() string {
+	if m != nil && m.StringValue != nil {
+		return *m.StringValue
+	}
+	return ""
+}
+
+func (m *PropertyValue) GetDoubleValue() float64 {
+	if m != nil && m.DoubleValue != nil {
+		return *m.DoubleValue
+	}
+	return 0
+}
+
+func (m *PropertyValue) GetPointvalue() *PropertyValue_PointValue {
+	if m != nil {
+		return m.Pointvalue
+	}
+	return nil
+}
+
+func (m *PropertyValue) GetUservalue() *PropertyValue_UserValue {
+	if m != nil {
+		return m.Uservalue
+	}
+	return nil
+}
+
+func (m *PropertyValue) GetReferencevalue() *PropertyValue_ReferenceValue {
+	if m != nil {
+		return m.Referencevalue
+	}
+	return nil
+}
+
+type PropertyValue_PointValue struct {
+	X                *float64 `protobuf:"fixed64,6,req,name=x" json:"x,omitempty"`
+	Y                *float64 `protobuf:"fixed64,7,req,name=y" json:"y,omitempty"`
+	XXX_unrecognized []byte   `json:"-"`
+}
+
+func (m *PropertyValue_PointValue) Reset()         { *m = PropertyValue_PointValue{} }
+func (m *PropertyValue_PointValue) String() string { return proto.CompactTextString(m) }
+func (*PropertyValue_PointValue) ProtoMessage()    {}
+
+func (m *PropertyValue_PointValue) GetX() float64 {
+	if m != nil && m.X != nil {
+		return *m.X
+	}
+	return 0
+}
+
+func (m *PropertyValue_PointValue) GetY() float64 {
+	if m != nil && m.Y != nil {
+		return *m.Y
+	}
+	return 0
+}
+
+type PropertyValue_UserValue struct {
+	Email             *string `protobuf:"bytes,9,req,name=email" json:"email,omitempty"`
+	AuthDomain        *string `protobuf:"bytes,10,req,name=auth_domain" json:"auth_domain,omitempty"`
+	Nickname          *string `protobuf:"bytes,11,opt,name=nickname" json:"nickname,omitempty"`
+	FederatedIdentity *string `protobuf:"bytes,21,opt,name=federated_identity" json:"federated_identity,omitempty"`
+	FederatedProvider *string `protobuf:"bytes,22,opt,name=federated_provider" json:"federated_provider,omitempty"`
+	XXX_unrecognized  []byte  `json:"-"`
+}
+
+func (m *PropertyValue_UserValue) Reset()         { *m 
