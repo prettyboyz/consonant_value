@@ -198,4 +198,171 @@ var EntityProto_Kind_value = map[string]int32{
 	"GD_MESSAGE": 3,
 }
 
-func (x EntityProto_Kind) Enum() *Enti
+func (x EntityProto_Kind) Enum() *EntityProto_Kind {
+	p := new(EntityProto_Kind)
+	*p = x
+	return p
+}
+func (x EntityProto_Kind) String() string {
+	return proto.EnumName(EntityProto_Kind_name, int32(x))
+}
+func (x *EntityProto_Kind) UnmarshalJSON(data []byte) error {
+	value, err := proto.UnmarshalJSONEnum(EntityProto_Kind_value, data, "EntityProto_Kind")
+	if err != nil {
+		return err
+	}
+	*x = EntityProto_Kind(value)
+	return nil
+}
+
+type Index_Property_Direction int32
+
+const (
+	Index_Property_ASCENDING  Index_Property_Direction = 1
+	Index_Property_DESCENDING Index_Property_Direction = 2
+)
+
+var Index_Property_Direction_name = map[int32]string{
+	1: "ASCENDING",
+	2: "DESCENDING",
+}
+var Index_Property_Direction_value = map[string]int32{
+	"ASCENDING":  1,
+	"DESCENDING": 2,
+}
+
+func (x Index_Property_Direction) Enum() *Index_Property_Direction {
+	p := new(Index_Property_Direction)
+	*p = x
+	return p
+}
+func (x Index_Property_Direction) String() string {
+	return proto.EnumName(Index_Property_Direction_name, int32(x))
+}
+func (x *Index_Property_Direction) UnmarshalJSON(data []byte) error {
+	value, err := proto.UnmarshalJSONEnum(Index_Property_Direction_value, data, "Index_Property_Direction")
+	if err != nil {
+		return err
+	}
+	*x = Index_Property_Direction(value)
+	return nil
+}
+
+type CompositeIndex_State int32
+
+const (
+	CompositeIndex_WRITE_ONLY CompositeIndex_State = 1
+	CompositeIndex_READ_WRITE CompositeIndex_State = 2
+	CompositeIndex_DELETED    CompositeIndex_State = 3
+	CompositeIndex_ERROR      CompositeIndex_State = 4
+)
+
+var CompositeIndex_State_name = map[int32]string{
+	1: "WRITE_ONLY",
+	2: "READ_WRITE",
+	3: "DELETED",
+	4: "ERROR",
+}
+var CompositeIndex_State_value = map[string]int32{
+	"WRITE_ONLY": 1,
+	"READ_WRITE": 2,
+	"DELETED":    3,
+	"ERROR":      4,
+}
+
+func (x CompositeIndex_State) Enum() *CompositeIndex_State {
+	p := new(CompositeIndex_State)
+	*p = x
+	return p
+}
+func (x CompositeIndex_State) String() string {
+	return proto.EnumName(CompositeIndex_State_name, int32(x))
+}
+func (x *CompositeIndex_State) UnmarshalJSON(data []byte) error {
+	value, err := proto.UnmarshalJSONEnum(CompositeIndex_State_value, data, "CompositeIndex_State")
+	if err != nil {
+		return err
+	}
+	*x = CompositeIndex_State(value)
+	return nil
+}
+
+type Snapshot_Status int32
+
+const (
+	Snapshot_INACTIVE Snapshot_Status = 0
+	Snapshot_ACTIVE   Snapshot_Status = 1
+)
+
+var Snapshot_Status_name = map[int32]string{
+	0: "INACTIVE",
+	1: "ACTIVE",
+}
+var Snapshot_Status_value = map[string]int32{
+	"INACTIVE": 0,
+	"ACTIVE":   1,
+}
+
+func (x Snapshot_Status) Enum() *Snapshot_Status {
+	p := new(Snapshot_Status)
+	*p = x
+	return p
+}
+func (x Snapshot_Status) String() string {
+	return proto.EnumName(Snapshot_Status_name, int32(x))
+}
+func (x *Snapshot_Status) UnmarshalJSON(data []byte) error {
+	value, err := proto.UnmarshalJSONEnum(Snapshot_Status_value, data, "Snapshot_Status")
+	if err != nil {
+		return err
+	}
+	*x = Snapshot_Status(value)
+	return nil
+}
+
+type Query_Hint int32
+
+const (
+	Query_ORDER_FIRST    Query_Hint = 1
+	Query_ANCESTOR_FIRST Query_Hint = 2
+	Query_FILTER_FIRST   Query_Hint = 3
+)
+
+var Query_Hint_name = map[int32]string{
+	1: "ORDER_FIRST",
+	2: "ANCESTOR_FIRST",
+	3: "FILTER_FIRST",
+}
+var Query_Hint_value = map[string]int32{
+	"ORDER_FIRST":    1,
+	"ANCESTOR_FIRST": 2,
+	"FILTER_FIRST":   3,
+}
+
+func (x Query_Hint) Enum() *Query_Hint {
+	p := new(Query_Hint)
+	*p = x
+	return p
+}
+func (x Query_Hint) String() string {
+	return proto.EnumName(Query_Hint_name, int32(x))
+}
+func (x *Query_Hint) UnmarshalJSON(data []byte) error {
+	value, err := proto.UnmarshalJSONEnum(Query_Hint_value, data, "Query_Hint")
+	if err != nil {
+		return err
+	}
+	*x = Query_Hint(value)
+	return nil
+}
+
+type Query_Filter_Operator int32
+
+const (
+	Query_Filter_LESS_THAN             Query_Filter_Operator = 1
+	Query_Filter_LESS_THAN_OR_EQUAL    Query_Filter_Operator = 2
+	Query_Filter_GREATER_THAN          Query_Filter_Operator = 3
+	Query_Filter_GREATER_THAN_OR_EQUAL Query_Filter_Operator = 4
+	Query_Filter_EQUAL                 Query_Filter_Operator = 5
+	Query_Filter_IN                    Query_Filter_Operator = 6
+	Query_F
