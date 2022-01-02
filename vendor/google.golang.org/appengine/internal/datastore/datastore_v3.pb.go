@@ -365,4 +365,152 @@ const (
 	Query_Filter_GREATER_THAN_OR_EQUAL Query_Filter_Operator = 4
 	Query_Filter_EQUAL                 Query_Filter_Operator = 5
 	Query_Filter_IN                    Query_Filter_Operator = 6
-	Query_F
+	Query_Filter_EXISTS                Query_Filter_Operator = 7
+)
+
+var Query_Filter_Operator_name = map[int32]string{
+	1: "LESS_THAN",
+	2: "LESS_THAN_OR_EQUAL",
+	3: "GREATER_THAN",
+	4: "GREATER_THAN_OR_EQUAL",
+	5: "EQUAL",
+	6: "IN",
+	7: "EXISTS",
+}
+var Query_Filter_Operator_value = map[string]int32{
+	"LESS_THAN":             1,
+	"LESS_THAN_OR_EQUAL":    2,
+	"GREATER_THAN":          3,
+	"GREATER_THAN_OR_EQUAL": 4,
+	"EQUAL":                 5,
+	"IN":                    6,
+	"EXISTS":                7,
+}
+
+func (x Query_Filter_Operator) Enum() *Query_Filter_Operator {
+	p := new(Query_Filter_Operator)
+	*p = x
+	return p
+}
+func (x Query_Filter_Operator) String() string {
+	return proto.EnumName(Query_Filter_Operator_name, int32(x))
+}
+func (x *Query_Filter_Operator) UnmarshalJSON(data []byte) error {
+	value, err := proto.UnmarshalJSONEnum(Query_Filter_Operator_value, data, "Query_Filter_Operator")
+	if err != nil {
+		return err
+	}
+	*x = Query_Filter_Operator(value)
+	return nil
+}
+
+type Query_Order_Direction int32
+
+const (
+	Query_Order_ASCENDING  Query_Order_Direction = 1
+	Query_Order_DESCENDING Query_Order_Direction = 2
+)
+
+var Query_Order_Direction_name = map[int32]string{
+	1: "ASCENDING",
+	2: "DESCENDING",
+}
+var Query_Order_Direction_value = map[string]int32{
+	"ASCENDING":  1,
+	"DESCENDING": 2,
+}
+
+func (x Query_Order_Direction) Enum() *Query_Order_Direction {
+	p := new(Query_Order_Direction)
+	*p = x
+	return p
+}
+func (x Query_Order_Direction) String() string {
+	return proto.EnumName(Query_Order_Direction_name, int32(x))
+}
+func (x *Query_Order_Direction) UnmarshalJSON(data []byte) error {
+	value, err := proto.UnmarshalJSONEnum(Query_Order_Direction_value, data, "Query_Order_Direction")
+	if err != nil {
+		return err
+	}
+	*x = Query_Order_Direction(value)
+	return nil
+}
+
+type Error_ErrorCode int32
+
+const (
+	Error_BAD_REQUEST                  Error_ErrorCode = 1
+	Error_CONCURRENT_TRANSACTION       Error_ErrorCode = 2
+	Error_INTERNAL_ERROR               Error_ErrorCode = 3
+	Error_NEED_INDEX                   Error_ErrorCode = 4
+	Error_TIMEOUT                      Error_ErrorCode = 5
+	Error_PERMISSION_DENIED            Error_ErrorCode = 6
+	Error_BIGTABLE_ERROR               Error_ErrorCode = 7
+	Error_COMMITTED_BUT_STILL_APPLYING Error_ErrorCode = 8
+	Error_CAPABILITY_DISABLED          Error_ErrorCode = 9
+	Error_TRY_ALTERNATE_BACKEND        Error_ErrorCode = 10
+	Error_SAFE_TIME_TOO_OLD            Error_ErrorCode = 11
+)
+
+var Error_ErrorCode_name = map[int32]string{
+	1:  "BAD_REQUEST",
+	2:  "CONCURRENT_TRANSACTION",
+	3:  "INTERNAL_ERROR",
+	4:  "NEED_INDEX",
+	5:  "TIMEOUT",
+	6:  "PERMISSION_DENIED",
+	7:  "BIGTABLE_ERROR",
+	8:  "COMMITTED_BUT_STILL_APPLYING",
+	9:  "CAPABILITY_DISABLED",
+	10: "TRY_ALTERNATE_BACKEND",
+	11: "SAFE_TIME_TOO_OLD",
+}
+var Error_ErrorCode_value = map[string]int32{
+	"BAD_REQUEST":                  1,
+	"CONCURRENT_TRANSACTION":       2,
+	"INTERNAL_ERROR":               3,
+	"NEED_INDEX":                   4,
+	"TIMEOUT":                      5,
+	"PERMISSION_DENIED":            6,
+	"BIGTABLE_ERROR":               7,
+	"COMMITTED_BUT_STILL_APPLYING": 8,
+	"CAPABILITY_DISABLED":          9,
+	"TRY_ALTERNATE_BACKEND":        10,
+	"SAFE_TIME_TOO_OLD":            11,
+}
+
+func (x Error_ErrorCode) Enum() *Error_ErrorCode {
+	p := new(Error_ErrorCode)
+	*p = x
+	return p
+}
+func (x Error_ErrorCode) String() string {
+	return proto.EnumName(Error_ErrorCode_name, int32(x))
+}
+func (x *Error_ErrorCode) UnmarshalJSON(data []byte) error {
+	value, err := proto.UnmarshalJSONEnum(Error_ErrorCode_value, data, "Error_ErrorCode")
+	if err != nil {
+		return err
+	}
+	*x = Error_ErrorCode(value)
+	return nil
+}
+
+type PutRequest_AutoIdPolicy int32
+
+const (
+	PutRequest_CURRENT    PutRequest_AutoIdPolicy = 0
+	PutRequest_SEQUENTIAL PutRequest_AutoIdPolicy = 1
+)
+
+var PutRequest_AutoIdPolicy_name = map[int32]string{
+	0: "CURRENT",
+	1: "SEQUENTIAL",
+}
+var PutRequest_AutoIdPolicy_value = map[string]int32{
+	"CURRENT":    0,
+	"SEQUENTIAL": 1,
+}
+
+func (x PutRequest_AutoIdPolicy) Enum() *PutRequest_Au
