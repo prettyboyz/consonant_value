@@ -747,4 +747,157 @@ type Property struct {
 	Value                 *PropertyValue                  `protobuf:"bytes,5,req,name=value" json:"value,omitempty"`
 	Multiple              *bool                           `protobuf:"varint,4,req,name=multiple" json:"multiple,omitempty"`
 	Searchable            *bool                           `protobuf:"varint,6,opt,name=searchable,def=0" json:"searchable,omitempty"`
-	FtsTokenizationOption *Property_FtsTokenizationOption `protobuf:"varint,8,opt,name=fts_tokenization_option,enum=appengine.Property_FtsTokenizationOption" json:"fts_tokenization_option,o
+	FtsTokenizationOption *Property_FtsTokenizationOption `protobuf:"varint,8,opt,name=fts_tokenization_option,enum=appengine.Property_FtsTokenizationOption" json:"fts_tokenization_option,omitempty"`
+	Locale                *string                         `protobuf:"bytes,9,opt,name=locale,def=en" json:"locale,omitempty"`
+	XXX_unrecognized      []byte                          `json:"-"`
+}
+
+func (m *Property) Reset()         { *m = Property{} }
+func (m *Property) String() string { return proto.CompactTextString(m) }
+func (*Property) ProtoMessage()    {}
+
+const Default_Property_Meaning Property_Meaning = Property_NO_MEANING
+const Default_Property_Searchable bool = false
+const Default_Property_Locale string = "en"
+
+func (m *Property) GetMeaning() Property_Meaning {
+	if m != nil && m.Meaning != nil {
+		return *m.Meaning
+	}
+	return Default_Property_Meaning
+}
+
+func (m *Property) GetMeaningUri() string {
+	if m != nil && m.MeaningUri != nil {
+		return *m.MeaningUri
+	}
+	return ""
+}
+
+func (m *Property) GetName() string {
+	if m != nil && m.Name != nil {
+		return *m.Name
+	}
+	return ""
+}
+
+func (m *Property) GetValue() *PropertyValue {
+	if m != nil {
+		return m.Value
+	}
+	return nil
+}
+
+func (m *Property) GetMultiple() bool {
+	if m != nil && m.Multiple != nil {
+		return *m.Multiple
+	}
+	return false
+}
+
+func (m *Property) GetSearchable() bool {
+	if m != nil && m.Searchable != nil {
+		return *m.Searchable
+	}
+	return Default_Property_Searchable
+}
+
+func (m *Property) GetFtsTokenizationOption() Property_FtsTokenizationOption {
+	if m != nil && m.FtsTokenizationOption != nil {
+		return *m.FtsTokenizationOption
+	}
+	return Property_HTML
+}
+
+func (m *Property) GetLocale() string {
+	if m != nil && m.Locale != nil {
+		return *m.Locale
+	}
+	return Default_Property_Locale
+}
+
+type Path struct {
+	Element          []*Path_Element `protobuf:"group,1,rep,name=Element" json:"element,omitempty"`
+	XXX_unrecognized []byte          `json:"-"`
+}
+
+func (m *Path) Reset()         { *m = Path{} }
+func (m *Path) String() string { return proto.CompactTextString(m) }
+func (*Path) ProtoMessage()    {}
+
+func (m *Path) GetElement() []*Path_Element {
+	if m != nil {
+		return m.Element
+	}
+	return nil
+}
+
+type Path_Element struct {
+	Type             *string `protobuf:"bytes,2,req,name=type" json:"type,omitempty"`
+	Id               *int64  `protobuf:"varint,3,opt,name=id" json:"id,omitempty"`
+	Name             *string `protobuf:"bytes,4,opt,name=name" json:"name,omitempty"`
+	XXX_unrecognized []byte  `json:"-"`
+}
+
+func (m *Path_Element) Reset()         { *m = Path_Element{} }
+func (m *Path_Element) String() string { return proto.CompactTextString(m) }
+func (*Path_Element) ProtoMessage()    {}
+
+func (m *Path_Element) GetType() string {
+	if m != nil && m.Type != nil {
+		return *m.Type
+	}
+	return ""
+}
+
+func (m *Path_Element) GetId() int64 {
+	if m != nil && m.Id != nil {
+		return *m.Id
+	}
+	return 0
+}
+
+func (m *Path_Element) GetName() string {
+	if m != nil && m.Name != nil {
+		return *m.Name
+	}
+	return ""
+}
+
+type Reference struct {
+	App              *string `protobuf:"bytes,13,req,name=app" json:"app,omitempty"`
+	NameSpace        *string `protobuf:"bytes,20,opt,name=name_space" json:"name_space,omitempty"`
+	Path             *Path   `protobuf:"bytes,14,req,name=path" json:"path,omitempty"`
+	XXX_unrecognized []byte  `json:"-"`
+}
+
+func (m *Reference) Reset()         { *m = Reference{} }
+func (m *Reference) String() string { return proto.CompactTextString(m) }
+func (*Reference) ProtoMessage()    {}
+
+func (m *Reference) GetApp() string {
+	if m != nil && m.App != nil {
+		return *m.App
+	}
+	return ""
+}
+
+func (m *Reference) GetNameSpace() string {
+	if m != nil && m.NameSpace != nil {
+		return *m.NameSpace
+	}
+	return ""
+}
+
+func (m *Reference) GetPath() *Path {
+	if m != nil {
+		return m.Path
+	}
+	return nil
+}
+
+type User struct {
+	Email             *string `protobuf:"bytes,1,req,name=email" json:"email,omitempty"`
+	AuthDomain        *string `protobuf:"bytes,2,req,name=auth_domain" json:"auth_domain,omitempty"`
+	Nickname          *string `protobuf:"bytes,3,opt,name=nickname" json:"nickname,omitempty"`
+	FederatedIdentity *string `protobuf:"bytes,6,opt,name=federated_identity" json:"federated
