@@ -635,4 +635,116 @@ type PropertyValue_UserValue struct {
 	XXX_unrecognized  []byte  `json:"-"`
 }
 
-func (m *PropertyValue_UserValue) Reset()         { *m 
+func (m *PropertyValue_UserValue) Reset()         { *m = PropertyValue_UserValue{} }
+func (m *PropertyValue_UserValue) String() string { return proto.CompactTextString(m) }
+func (*PropertyValue_UserValue) ProtoMessage()    {}
+
+func (m *PropertyValue_UserValue) GetEmail() string {
+	if m != nil && m.Email != nil {
+		return *m.Email
+	}
+	return ""
+}
+
+func (m *PropertyValue_UserValue) GetAuthDomain() string {
+	if m != nil && m.AuthDomain != nil {
+		return *m.AuthDomain
+	}
+	return ""
+}
+
+func (m *PropertyValue_UserValue) GetNickname() string {
+	if m != nil && m.Nickname != nil {
+		return *m.Nickname
+	}
+	return ""
+}
+
+func (m *PropertyValue_UserValue) GetFederatedIdentity() string {
+	if m != nil && m.FederatedIdentity != nil {
+		return *m.FederatedIdentity
+	}
+	return ""
+}
+
+func (m *PropertyValue_UserValue) GetFederatedProvider() string {
+	if m != nil && m.FederatedProvider != nil {
+		return *m.FederatedProvider
+	}
+	return ""
+}
+
+type PropertyValue_ReferenceValue struct {
+	App              *string                                     `protobuf:"bytes,13,req,name=app" json:"app,omitempty"`
+	NameSpace        *string                                     `protobuf:"bytes,20,opt,name=name_space" json:"name_space,omitempty"`
+	Pathelement      []*PropertyValue_ReferenceValue_PathElement `protobuf:"group,14,rep,name=PathElement" json:"pathelement,omitempty"`
+	XXX_unrecognized []byte                                      `json:"-"`
+}
+
+func (m *PropertyValue_ReferenceValue) Reset()         { *m = PropertyValue_ReferenceValue{} }
+func (m *PropertyValue_ReferenceValue) String() string { return proto.CompactTextString(m) }
+func (*PropertyValue_ReferenceValue) ProtoMessage()    {}
+
+func (m *PropertyValue_ReferenceValue) GetApp() string {
+	if m != nil && m.App != nil {
+		return *m.App
+	}
+	return ""
+}
+
+func (m *PropertyValue_ReferenceValue) GetNameSpace() string {
+	if m != nil && m.NameSpace != nil {
+		return *m.NameSpace
+	}
+	return ""
+}
+
+func (m *PropertyValue_ReferenceValue) GetPathelement() []*PropertyValue_ReferenceValue_PathElement {
+	if m != nil {
+		return m.Pathelement
+	}
+	return nil
+}
+
+type PropertyValue_ReferenceValue_PathElement struct {
+	Type             *string `protobuf:"bytes,15,req,name=type" json:"type,omitempty"`
+	Id               *int64  `protobuf:"varint,16,opt,name=id" json:"id,omitempty"`
+	Name             *string `protobuf:"bytes,17,opt,name=name" json:"name,omitempty"`
+	XXX_unrecognized []byte  `json:"-"`
+}
+
+func (m *PropertyValue_ReferenceValue_PathElement) Reset() {
+	*m = PropertyValue_ReferenceValue_PathElement{}
+}
+func (m *PropertyValue_ReferenceValue_PathElement) String() string { return proto.CompactTextString(m) }
+func (*PropertyValue_ReferenceValue_PathElement) ProtoMessage()    {}
+
+func (m *PropertyValue_ReferenceValue_PathElement) GetType() string {
+	if m != nil && m.Type != nil {
+		return *m.Type
+	}
+	return ""
+}
+
+func (m *PropertyValue_ReferenceValue_PathElement) GetId() int64 {
+	if m != nil && m.Id != nil {
+		return *m.Id
+	}
+	return 0
+}
+
+func (m *PropertyValue_ReferenceValue_PathElement) GetName() string {
+	if m != nil && m.Name != nil {
+		return *m.Name
+	}
+	return ""
+}
+
+type Property struct {
+	Meaning               *Property_Meaning               `protobuf:"varint,1,opt,name=meaning,enum=appengine.Property_Meaning,def=0" json:"meaning,omitempty"`
+	MeaningUri            *string                         `protobuf:"bytes,2,opt,name=meaning_uri" json:"meaning_uri,omitempty"`
+	Name                  *string                         `protobuf:"bytes,3,req,name=name" json:"name,omitempty"`
+	Value                 *PropertyValue                  `protobuf:"bytes,5,req,name=value" json:"value,omitempty"`
+	Multiple              *bool                           `protobuf:"varint,4,req,name=multiple" json:"multiple,omitempty"`
+	Searchable            *bool                           `protobuf:"varint,6,opt,name=searchable,def=0" json:"searchable,omitempty"`
+	FtsTokenizationOption *Property_FtsTokenizationOption `protobuf:"varint,8,opt,name=fts_tokenization_option,enum=appengine.Property_FtsTokenizationOption" json:"fts_tokenization_option,o
