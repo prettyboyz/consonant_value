@@ -900,4 +900,155 @@ type User struct {
 	Email             *string `protobuf:"bytes,1,req,name=email" json:"email,omitempty"`
 	AuthDomain        *string `protobuf:"bytes,2,req,name=auth_domain" json:"auth_domain,omitempty"`
 	Nickname          *string `protobuf:"bytes,3,opt,name=nickname" json:"nickname,omitempty"`
-	FederatedIdentity *string `protobuf:"bytes,6,opt,name=federated_identity" json:"federated
+	FederatedIdentity *string `protobuf:"bytes,6,opt,name=federated_identity" json:"federated_identity,omitempty"`
+	FederatedProvider *string `protobuf:"bytes,7,opt,name=federated_provider" json:"federated_provider,omitempty"`
+	XXX_unrecognized  []byte  `json:"-"`
+}
+
+func (m *User) Reset()         { *m = User{} }
+func (m *User) String() string { return proto.CompactTextString(m) }
+func (*User) ProtoMessage()    {}
+
+func (m *User) GetEmail() string {
+	if m != nil && m.Email != nil {
+		return *m.Email
+	}
+	return ""
+}
+
+func (m *User) GetAuthDomain() string {
+	if m != nil && m.AuthDomain != nil {
+		return *m.AuthDomain
+	}
+	return ""
+}
+
+func (m *User) GetNickname() string {
+	if m != nil && m.Nickname != nil {
+		return *m.Nickname
+	}
+	return ""
+}
+
+func (m *User) GetFederatedIdentity() string {
+	if m != nil && m.FederatedIdentity != nil {
+		return *m.FederatedIdentity
+	}
+	return ""
+}
+
+func (m *User) GetFederatedProvider() string {
+	if m != nil && m.FederatedProvider != nil {
+		return *m.FederatedProvider
+	}
+	return ""
+}
+
+type EntityProto struct {
+	Key              *Reference        `protobuf:"bytes,13,req,name=key" json:"key,omitempty"`
+	EntityGroup      *Path             `protobuf:"bytes,16,req,name=entity_group" json:"entity_group,omitempty"`
+	Owner            *User             `protobuf:"bytes,17,opt,name=owner" json:"owner,omitempty"`
+	Kind             *EntityProto_Kind `protobuf:"varint,4,opt,name=kind,enum=appengine.EntityProto_Kind" json:"kind,omitempty"`
+	KindUri          *string           `protobuf:"bytes,5,opt,name=kind_uri" json:"kind_uri,omitempty"`
+	Property         []*Property       `protobuf:"bytes,14,rep,name=property" json:"property,omitempty"`
+	RawProperty      []*Property       `protobuf:"bytes,15,rep,name=raw_property" json:"raw_property,omitempty"`
+	Rank             *int32            `protobuf:"varint,18,opt,name=rank" json:"rank,omitempty"`
+	XXX_unrecognized []byte            `json:"-"`
+}
+
+func (m *EntityProto) Reset()         { *m = EntityProto{} }
+func (m *EntityProto) String() string { return proto.CompactTextString(m) }
+func (*EntityProto) ProtoMessage()    {}
+
+func (m *EntityProto) GetKey() *Reference {
+	if m != nil {
+		return m.Key
+	}
+	return nil
+}
+
+func (m *EntityProto) GetEntityGroup() *Path {
+	if m != nil {
+		return m.EntityGroup
+	}
+	return nil
+}
+
+func (m *EntityProto) GetOwner() *User {
+	if m != nil {
+		return m.Owner
+	}
+	return nil
+}
+
+func (m *EntityProto) GetKind() EntityProto_Kind {
+	if m != nil && m.Kind != nil {
+		return *m.Kind
+	}
+	return EntityProto_GD_CONTACT
+}
+
+func (m *EntityProto) GetKindUri() string {
+	if m != nil && m.KindUri != nil {
+		return *m.KindUri
+	}
+	return ""
+}
+
+func (m *EntityProto) GetProperty() []*Property {
+	if m != nil {
+		return m.Property
+	}
+	return nil
+}
+
+func (m *EntityProto) GetRawProperty() []*Property {
+	if m != nil {
+		return m.RawProperty
+	}
+	return nil
+}
+
+func (m *EntityProto) GetRank() int32 {
+	if m != nil && m.Rank != nil {
+		return *m.Rank
+	}
+	return 0
+}
+
+type CompositeProperty struct {
+	IndexId          *int64   `protobuf:"varint,1,req,name=index_id" json:"index_id,omitempty"`
+	Value            []string `protobuf:"bytes,2,rep,name=value" json:"value,omitempty"`
+	XXX_unrecognized []byte   `json:"-"`
+}
+
+func (m *CompositeProperty) Reset()         { *m = CompositeProperty{} }
+func (m *CompositeProperty) String() string { return proto.CompactTextString(m) }
+func (*CompositeProperty) ProtoMessage()    {}
+
+func (m *CompositeProperty) GetIndexId() int64 {
+	if m != nil && m.IndexId != nil {
+		return *m.IndexId
+	}
+	return 0
+}
+
+func (m *CompositeProperty) GetValue() []string {
+	if m != nil {
+		return m.Value
+	}
+	return nil
+}
+
+type Index struct {
+	EntityType       *string           `protobuf:"bytes,1,req,name=entity_type" json:"entity_type,omitempty"`
+	Ancestor         *bool             `protobuf:"varint,5,req,name=ancestor" json:"ancestor,omitempty"`
+	Property         []*Index_Property `protobuf:"group,2,rep,name=Property" json:"property,omitempty"`
+	XXX_unrecognized []byte            `json:"-"`
+}
+
+func (m *Index) Reset()         { *m = Index{} }
+func (m *Index) String() string { return proto.CompactTextString(m) }
+func (*Index) ProtoMessage()    {}
+
+f
