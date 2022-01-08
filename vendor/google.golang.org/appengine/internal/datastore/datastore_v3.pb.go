@@ -1051,4 +1051,136 @@ func (m *Index) Reset()         { *m = Index{} }
 func (m *Index) String() string { return proto.CompactTextString(m) }
 func (*Index) ProtoMessage()    {}
 
-f
+func (m *Index) GetEntityType() string {
+	if m != nil && m.EntityType != nil {
+		return *m.EntityType
+	}
+	return ""
+}
+
+func (m *Index) GetAncestor() bool {
+	if m != nil && m.Ancestor != nil {
+		return *m.Ancestor
+	}
+	return false
+}
+
+func (m *Index) GetProperty() []*Index_Property {
+	if m != nil {
+		return m.Property
+	}
+	return nil
+}
+
+type Index_Property struct {
+	Name             *string                   `protobuf:"bytes,3,req,name=name" json:"name,omitempty"`
+	Direction        *Index_Property_Direction `protobuf:"varint,4,opt,name=direction,enum=appengine.Index_Property_Direction,def=1" json:"direction,omitempty"`
+	XXX_unrecognized []byte                    `json:"-"`
+}
+
+func (m *Index_Property) Reset()         { *m = Index_Property{} }
+func (m *Index_Property) String() string { return proto.CompactTextString(m) }
+func (*Index_Property) ProtoMessage()    {}
+
+const Default_Index_Property_Direction Index_Property_Direction = Index_Property_ASCENDING
+
+func (m *Index_Property) GetName() string {
+	if m != nil && m.Name != nil {
+		return *m.Name
+	}
+	return ""
+}
+
+func (m *Index_Property) GetDirection() Index_Property_Direction {
+	if m != nil && m.Direction != nil {
+		return *m.Direction
+	}
+	return Default_Index_Property_Direction
+}
+
+type CompositeIndex struct {
+	AppId             *string               `protobuf:"bytes,1,req,name=app_id" json:"app_id,omitempty"`
+	Id                *int64                `protobuf:"varint,2,req,name=id" json:"id,omitempty"`
+	Definition        *Index                `protobuf:"bytes,3,req,name=definition" json:"definition,omitempty"`
+	State             *CompositeIndex_State `protobuf:"varint,4,req,name=state,enum=appengine.CompositeIndex_State" json:"state,omitempty"`
+	OnlyUseIfRequired *bool                 `protobuf:"varint,6,opt,name=only_use_if_required,def=0" json:"only_use_if_required,omitempty"`
+	XXX_unrecognized  []byte                `json:"-"`
+}
+
+func (m *CompositeIndex) Reset()         { *m = CompositeIndex{} }
+func (m *CompositeIndex) String() string { return proto.CompactTextString(m) }
+func (*CompositeIndex) ProtoMessage()    {}
+
+const Default_CompositeIndex_OnlyUseIfRequired bool = false
+
+func (m *CompositeIndex) GetAppId() string {
+	if m != nil && m.AppId != nil {
+		return *m.AppId
+	}
+	return ""
+}
+
+func (m *CompositeIndex) GetId() int64 {
+	if m != nil && m.Id != nil {
+		return *m.Id
+	}
+	return 0
+}
+
+func (m *CompositeIndex) GetDefinition() *Index {
+	if m != nil {
+		return m.Definition
+	}
+	return nil
+}
+
+func (m *CompositeIndex) GetState() CompositeIndex_State {
+	if m != nil && m.State != nil {
+		return *m.State
+	}
+	return CompositeIndex_WRITE_ONLY
+}
+
+func (m *CompositeIndex) GetOnlyUseIfRequired() bool {
+	if m != nil && m.OnlyUseIfRequired != nil {
+		return *m.OnlyUseIfRequired
+	}
+	return Default_CompositeIndex_OnlyUseIfRequired
+}
+
+type IndexPostfix struct {
+	IndexValue       []*IndexPostfix_IndexValue `protobuf:"bytes,1,rep,name=index_value" json:"index_value,omitempty"`
+	Key              *Reference                 `protobuf:"bytes,2,opt,name=key" json:"key,omitempty"`
+	Before           *bool                      `protobuf:"varint,3,opt,name=before,def=1" json:"before,omitempty"`
+	XXX_unrecognized []byte                     `json:"-"`
+}
+
+func (m *IndexPostfix) Reset()         { *m = IndexPostfix{} }
+func (m *IndexPostfix) String() string { return proto.CompactTextString(m) }
+func (*IndexPostfix) ProtoMessage()    {}
+
+const Default_IndexPostfix_Before bool = true
+
+func (m *IndexPostfix) GetIndexValue() []*IndexPostfix_IndexValue {
+	if m != nil {
+		return m.IndexValue
+	}
+	return nil
+}
+
+func (m *IndexPostfix) GetKey() *Reference {
+	if m != nil {
+		return m.Key
+	}
+	return nil
+}
+
+func (m *IndexPostfix) GetBefore() bool {
+	if m != nil && m.Before != nil {
+		return *m.Before
+	}
+	return Default_IndexPostfix_Before
+}
+
+type IndexPostfix_IndexValue struct {
+	PropertyName     *string        `protobuf:"bytes,1,req,name=property_name" json:"prope
