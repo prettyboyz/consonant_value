@@ -1183,4 +1183,134 @@ func (m *IndexPostfix) GetBefore() bool {
 }
 
 type IndexPostfix_IndexValue struct {
-	PropertyName     *string        `protobuf:"bytes,1,req,name=property_name" json:"prope
+	PropertyName     *string        `protobuf:"bytes,1,req,name=property_name" json:"property_name,omitempty"`
+	Value            *PropertyValue `protobuf:"bytes,2,req,name=value" json:"value,omitempty"`
+	XXX_unrecognized []byte         `json:"-"`
+}
+
+func (m *IndexPostfix_IndexValue) Reset()         { *m = IndexPostfix_IndexValue{} }
+func (m *IndexPostfix_IndexValue) String() string { return proto.CompactTextString(m) }
+func (*IndexPostfix_IndexValue) ProtoMessage()    {}
+
+func (m *IndexPostfix_IndexValue) GetPropertyName() string {
+	if m != nil && m.PropertyName != nil {
+		return *m.PropertyName
+	}
+	return ""
+}
+
+func (m *IndexPostfix_IndexValue) GetValue() *PropertyValue {
+	if m != nil {
+		return m.Value
+	}
+	return nil
+}
+
+type IndexPosition struct {
+	Key              *string `protobuf:"bytes,1,opt,name=key" json:"key,omitempty"`
+	Before           *bool   `protobuf:"varint,2,opt,name=before,def=1" json:"before,omitempty"`
+	XXX_unrecognized []byte  `json:"-"`
+}
+
+func (m *IndexPosition) Reset()         { *m = IndexPosition{} }
+func (m *IndexPosition) String() string { return proto.CompactTextString(m) }
+func (*IndexPosition) ProtoMessage()    {}
+
+const Default_IndexPosition_Before bool = true
+
+func (m *IndexPosition) GetKey() string {
+	if m != nil && m.Key != nil {
+		return *m.Key
+	}
+	return ""
+}
+
+func (m *IndexPosition) GetBefore() bool {
+	if m != nil && m.Before != nil {
+		return *m.Before
+	}
+	return Default_IndexPosition_Before
+}
+
+type Snapshot struct {
+	Ts               *int64 `protobuf:"varint,1,req,name=ts" json:"ts,omitempty"`
+	XXX_unrecognized []byte `json:"-"`
+}
+
+func (m *Snapshot) Reset()         { *m = Snapshot{} }
+func (m *Snapshot) String() string { return proto.CompactTextString(m) }
+func (*Snapshot) ProtoMessage()    {}
+
+func (m *Snapshot) GetTs() int64 {
+	if m != nil && m.Ts != nil {
+		return *m.Ts
+	}
+	return 0
+}
+
+type InternalHeader struct {
+	Qos              *string `protobuf:"bytes,1,opt,name=qos" json:"qos,omitempty"`
+	XXX_unrecognized []byte  `json:"-"`
+}
+
+func (m *InternalHeader) Reset()         { *m = InternalHeader{} }
+func (m *InternalHeader) String() string { return proto.CompactTextString(m) }
+func (*InternalHeader) ProtoMessage()    {}
+
+func (m *InternalHeader) GetQos() string {
+	if m != nil && m.Qos != nil {
+		return *m.Qos
+	}
+	return ""
+}
+
+type Transaction struct {
+	Header           *InternalHeader `protobuf:"bytes,4,opt,name=header" json:"header,omitempty"`
+	Handle           *uint64         `protobuf:"fixed64,1,req,name=handle" json:"handle,omitempty"`
+	App              *string         `protobuf:"bytes,2,req,name=app" json:"app,omitempty"`
+	MarkChanges      *bool           `protobuf:"varint,3,opt,name=mark_changes,def=0" json:"mark_changes,omitempty"`
+	XXX_unrecognized []byte          `json:"-"`
+}
+
+func (m *Transaction) Reset()         { *m = Transaction{} }
+func (m *Transaction) String() string { return proto.CompactTextString(m) }
+func (*Transaction) ProtoMessage()    {}
+
+const Default_Transaction_MarkChanges bool = false
+
+func (m *Transaction) GetHeader() *InternalHeader {
+	if m != nil {
+		return m.Header
+	}
+	return nil
+}
+
+func (m *Transaction) GetHandle() uint64 {
+	if m != nil && m.Handle != nil {
+		return *m.Handle
+	}
+	return 0
+}
+
+func (m *Transaction) GetApp() string {
+	if m != nil && m.App != nil {
+		return *m.App
+	}
+	return ""
+}
+
+func (m *Transaction) GetMarkChanges() bool {
+	if m != nil && m.MarkChanges != nil {
+		return *m.MarkChanges
+	}
+	return Default_Transaction_MarkChanges
+}
+
+type Query struct {
+	Header              *InternalHeader   `protobuf:"bytes,39,opt,name=header" json:"header,omitempty"`
+	App                 *string           `protobuf:"bytes,1,req,name=app" json:"app,omitempty"`
+	NameSpace           *string           `protobuf:"bytes,29,opt,name=name_space" json:"name_space,omitempty"`
+	Kind                *string           `protobuf:"bytes,3,opt,name=kind" json:"kind,omitempty"`
+	Ancestor            *Reference        `protobuf:"bytes,17,opt,name=ancestor" json:"ancestor,omitempty"`
+	Filter              []*Query_Filter   `protobuf:"group,4,rep,name=Filter" json:"filter,omitempty"`
+	SearchQuery         *string           `protobuf:"bytes,
