@@ -1313,4 +1313,119 @@ type Query struct {
 	Kind                *string           `protobuf:"bytes,3,opt,name=kind" json:"kind,omitempty"`
 	Ancestor            *Reference        `protobuf:"bytes,17,opt,name=ancestor" json:"ancestor,omitempty"`
 	Filter              []*Query_Filter   `protobuf:"group,4,rep,name=Filter" json:"filter,omitempty"`
-	SearchQuery         *string           `protobuf:"bytes,
+	SearchQuery         *string           `protobuf:"bytes,8,opt,name=search_query" json:"search_query,omitempty"`
+	Order               []*Query_Order    `protobuf:"group,9,rep,name=Order" json:"order,omitempty"`
+	Hint                *Query_Hint       `protobuf:"varint,18,opt,name=hint,enum=appengine.Query_Hint" json:"hint,omitempty"`
+	Count               *int32            `protobuf:"varint,23,opt,name=count" json:"count,omitempty"`
+	Offset              *int32            `protobuf:"varint,12,opt,name=offset,def=0" json:"offset,omitempty"`
+	Limit               *int32            `protobuf:"varint,16,opt,name=limit" json:"limit,omitempty"`
+	CompiledCursor      *CompiledCursor   `protobuf:"bytes,30,opt,name=compiled_cursor" json:"compiled_cursor,omitempty"`
+	EndCompiledCursor   *CompiledCursor   `protobuf:"bytes,31,opt,name=end_compiled_cursor" json:"end_compiled_cursor,omitempty"`
+	CompositeIndex      []*CompositeIndex `protobuf:"bytes,19,rep,name=composite_index" json:"composite_index,omitempty"`
+	RequirePerfectPlan  *bool             `protobuf:"varint,20,opt,name=require_perfect_plan,def=0" json:"require_perfect_plan,omitempty"`
+	KeysOnly            *bool             `protobuf:"varint,21,opt,name=keys_only,def=0" json:"keys_only,omitempty"`
+	Transaction         *Transaction      `protobuf:"bytes,22,opt,name=transaction" json:"transaction,omitempty"`
+	Compile             *bool             `protobuf:"varint,25,opt,name=compile,def=0" json:"compile,omitempty"`
+	FailoverMs          *int64            `protobuf:"varint,26,opt,name=failover_ms" json:"failover_ms,omitempty"`
+	Strong              *bool             `protobuf:"varint,32,opt,name=strong" json:"strong,omitempty"`
+	PropertyName        []string          `protobuf:"bytes,33,rep,name=property_name" json:"property_name,omitempty"`
+	GroupByPropertyName []string          `protobuf:"bytes,34,rep,name=group_by_property_name" json:"group_by_property_name,omitempty"`
+	Distinct            *bool             `protobuf:"varint,24,opt,name=distinct" json:"distinct,omitempty"`
+	MinSafeTimeSeconds  *int64            `protobuf:"varint,35,opt,name=min_safe_time_seconds" json:"min_safe_time_seconds,omitempty"`
+	SafeReplicaName     []string          `protobuf:"bytes,36,rep,name=safe_replica_name" json:"safe_replica_name,omitempty"`
+	PersistOffset       *bool             `protobuf:"varint,37,opt,name=persist_offset,def=0" json:"persist_offset,omitempty"`
+	XXX_unrecognized    []byte            `json:"-"`
+}
+
+func (m *Query) Reset()         { *m = Query{} }
+func (m *Query) String() string { return proto.CompactTextString(m) }
+func (*Query) ProtoMessage()    {}
+
+const Default_Query_Offset int32 = 0
+const Default_Query_RequirePerfectPlan bool = false
+const Default_Query_KeysOnly bool = false
+const Default_Query_Compile bool = false
+const Default_Query_PersistOffset bool = false
+
+func (m *Query) GetHeader() *InternalHeader {
+	if m != nil {
+		return m.Header
+	}
+	return nil
+}
+
+func (m *Query) GetApp() string {
+	if m != nil && m.App != nil {
+		return *m.App
+	}
+	return ""
+}
+
+func (m *Query) GetNameSpace() string {
+	if m != nil && m.NameSpace != nil {
+		return *m.NameSpace
+	}
+	return ""
+}
+
+func (m *Query) GetKind() string {
+	if m != nil && m.Kind != nil {
+		return *m.Kind
+	}
+	return ""
+}
+
+func (m *Query) GetAncestor() *Reference {
+	if m != nil {
+		return m.Ancestor
+	}
+	return nil
+}
+
+func (m *Query) GetFilter() []*Query_Filter {
+	if m != nil {
+		return m.Filter
+	}
+	return nil
+}
+
+func (m *Query) GetSearchQuery() string {
+	if m != nil && m.SearchQuery != nil {
+		return *m.SearchQuery
+	}
+	return ""
+}
+
+func (m *Query) GetOrder() []*Query_Order {
+	if m != nil {
+		return m.Order
+	}
+	return nil
+}
+
+func (m *Query) GetHint() Query_Hint {
+	if m != nil && m.Hint != nil {
+		return *m.Hint
+	}
+	return Query_ORDER_FIRST
+}
+
+func (m *Query) GetCount() int32 {
+	if m != nil && m.Count != nil {
+		return *m.Count
+	}
+	return 0
+}
+
+func (m *Query) GetOffset() int32 {
+	if m != nil && m.Offset != nil {
+		return *m.Offset
+	}
+	return Default_Query_Offset
+}
+
+func (m *Query) GetLimit() int32 {
+	if m != nil && m.Limit != nil {
+		return *m.Limit
+	}
+	
