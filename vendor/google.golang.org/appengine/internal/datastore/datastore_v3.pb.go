@@ -1428,4 +1428,167 @@ func (m *Query) GetLimit() int32 {
 	if m != nil && m.Limit != nil {
 		return *m.Limit
 	}
-	
+	return 0
+}
+
+func (m *Query) GetCompiledCursor() *CompiledCursor {
+	if m != nil {
+		return m.CompiledCursor
+	}
+	return nil
+}
+
+func (m *Query) GetEndCompiledCursor() *CompiledCursor {
+	if m != nil {
+		return m.EndCompiledCursor
+	}
+	return nil
+}
+
+func (m *Query) GetCompositeIndex() []*CompositeIndex {
+	if m != nil {
+		return m.CompositeIndex
+	}
+	return nil
+}
+
+func (m *Query) GetRequirePerfectPlan() bool {
+	if m != nil && m.RequirePerfectPlan != nil {
+		return *m.RequirePerfectPlan
+	}
+	return Default_Query_RequirePerfectPlan
+}
+
+func (m *Query) GetKeysOnly() bool {
+	if m != nil && m.KeysOnly != nil {
+		return *m.KeysOnly
+	}
+	return Default_Query_KeysOnly
+}
+
+func (m *Query) GetTransaction() *Transaction {
+	if m != nil {
+		return m.Transaction
+	}
+	return nil
+}
+
+func (m *Query) GetCompile() bool {
+	if m != nil && m.Compile != nil {
+		return *m.Compile
+	}
+	return Default_Query_Compile
+}
+
+func (m *Query) GetFailoverMs() int64 {
+	if m != nil && m.FailoverMs != nil {
+		return *m.FailoverMs
+	}
+	return 0
+}
+
+func (m *Query) GetStrong() bool {
+	if m != nil && m.Strong != nil {
+		return *m.Strong
+	}
+	return false
+}
+
+func (m *Query) GetPropertyName() []string {
+	if m != nil {
+		return m.PropertyName
+	}
+	return nil
+}
+
+func (m *Query) GetGroupByPropertyName() []string {
+	if m != nil {
+		return m.GroupByPropertyName
+	}
+	return nil
+}
+
+func (m *Query) GetDistinct() bool {
+	if m != nil && m.Distinct != nil {
+		return *m.Distinct
+	}
+	return false
+}
+
+func (m *Query) GetMinSafeTimeSeconds() int64 {
+	if m != nil && m.MinSafeTimeSeconds != nil {
+		return *m.MinSafeTimeSeconds
+	}
+	return 0
+}
+
+func (m *Query) GetSafeReplicaName() []string {
+	if m != nil {
+		return m.SafeReplicaName
+	}
+	return nil
+}
+
+func (m *Query) GetPersistOffset() bool {
+	if m != nil && m.PersistOffset != nil {
+		return *m.PersistOffset
+	}
+	return Default_Query_PersistOffset
+}
+
+type Query_Filter struct {
+	Op               *Query_Filter_Operator `protobuf:"varint,6,req,name=op,enum=appengine.Query_Filter_Operator" json:"op,omitempty"`
+	Property         []*Property            `protobuf:"bytes,14,rep,name=property" json:"property,omitempty"`
+	XXX_unrecognized []byte                 `json:"-"`
+}
+
+func (m *Query_Filter) Reset()         { *m = Query_Filter{} }
+func (m *Query_Filter) String() string { return proto.CompactTextString(m) }
+func (*Query_Filter) ProtoMessage()    {}
+
+func (m *Query_Filter) GetOp() Query_Filter_Operator {
+	if m != nil && m.Op != nil {
+		return *m.Op
+	}
+	return Query_Filter_LESS_THAN
+}
+
+func (m *Query_Filter) GetProperty() []*Property {
+	if m != nil {
+		return m.Property
+	}
+	return nil
+}
+
+type Query_Order struct {
+	Property         *string                `protobuf:"bytes,10,req,name=property" json:"property,omitempty"`
+	Direction        *Query_Order_Direction `protobuf:"varint,11,opt,name=direction,enum=appengine.Query_Order_Direction,def=1" json:"direction,omitempty"`
+	XXX_unrecognized []byte                 `json:"-"`
+}
+
+func (m *Query_Order) Reset()         { *m = Query_Order{} }
+func (m *Query_Order) String() string { return proto.CompactTextString(m) }
+func (*Query_Order) ProtoMessage()    {}
+
+const Default_Query_Order_Direction Query_Order_Direction = Query_Order_ASCENDING
+
+func (m *Query_Order) GetProperty() string {
+	if m != nil && m.Property != nil {
+		return *m.Property
+	}
+	return ""
+}
+
+func (m *Query_Order) GetDirection() Query_Order_Direction {
+	if m != nil && m.Direction != nil {
+		return *m.Direction
+	}
+	return Default_Query_Order_Direction
+}
+
+type CompiledQuery struct {
+	Primaryscan       *CompiledQuery_PrimaryScan     `protobuf:"group,1,req,name=PrimaryScan" json:"primaryscan,omitempty"`
+	Mergejoinscan     []*CompiledQuery_MergeJoinScan `protobuf:"group,7,rep,name=MergeJoinScan" json:"mergejoinscan,omitempty"`
+	IndexDef          *Index                         `protobuf:"bytes,21,opt,name=index_def" json:"index_def,omitempty"`
+	Offset            *int32                         `protobuf:"varint,10,opt,name=offset,def=0" json:"offset,omitempty"`
+	Limit             *int32                         `pro
