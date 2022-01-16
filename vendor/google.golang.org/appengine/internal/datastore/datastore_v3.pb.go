@@ -1591,4 +1591,132 @@ type CompiledQuery struct {
 	Mergejoinscan     []*CompiledQuery_MergeJoinScan `protobuf:"group,7,rep,name=MergeJoinScan" json:"mergejoinscan,omitempty"`
 	IndexDef          *Index                         `protobuf:"bytes,21,opt,name=index_def" json:"index_def,omitempty"`
 	Offset            *int32                         `protobuf:"varint,10,opt,name=offset,def=0" json:"offset,omitempty"`
-	Limit             *int32                         `pro
+	Limit             *int32                         `protobuf:"varint,11,opt,name=limit" json:"limit,omitempty"`
+	KeysOnly          *bool                          `protobuf:"varint,12,req,name=keys_only" json:"keys_only,omitempty"`
+	PropertyName      []string                       `protobuf:"bytes,24,rep,name=property_name" json:"property_name,omitempty"`
+	DistinctInfixSize *int32                         `protobuf:"varint,25,opt,name=distinct_infix_size" json:"distinct_infix_size,omitempty"`
+	Entityfilter      *CompiledQuery_EntityFilter    `protobuf:"group,13,opt,name=EntityFilter" json:"entityfilter,omitempty"`
+	XXX_unrecognized  []byte                         `json:"-"`
+}
+
+func (m *CompiledQuery) Reset()         { *m = CompiledQuery{} }
+func (m *CompiledQuery) String() string { return proto.CompactTextString(m) }
+func (*CompiledQuery) ProtoMessage()    {}
+
+const Default_CompiledQuery_Offset int32 = 0
+
+func (m *CompiledQuery) GetPrimaryscan() *CompiledQuery_PrimaryScan {
+	if m != nil {
+		return m.Primaryscan
+	}
+	return nil
+}
+
+func (m *CompiledQuery) GetMergejoinscan() []*CompiledQuery_MergeJoinScan {
+	if m != nil {
+		return m.Mergejoinscan
+	}
+	return nil
+}
+
+func (m *CompiledQuery) GetIndexDef() *Index {
+	if m != nil {
+		return m.IndexDef
+	}
+	return nil
+}
+
+func (m *CompiledQuery) GetOffset() int32 {
+	if m != nil && m.Offset != nil {
+		return *m.Offset
+	}
+	return Default_CompiledQuery_Offset
+}
+
+func (m *CompiledQuery) GetLimit() int32 {
+	if m != nil && m.Limit != nil {
+		return *m.Limit
+	}
+	return 0
+}
+
+func (m *CompiledQuery) GetKeysOnly() bool {
+	if m != nil && m.KeysOnly != nil {
+		return *m.KeysOnly
+	}
+	return false
+}
+
+func (m *CompiledQuery) GetPropertyName() []string {
+	if m != nil {
+		return m.PropertyName
+	}
+	return nil
+}
+
+func (m *CompiledQuery) GetDistinctInfixSize() int32 {
+	if m != nil && m.DistinctInfixSize != nil {
+		return *m.DistinctInfixSize
+	}
+	return 0
+}
+
+func (m *CompiledQuery) GetEntityfilter() *CompiledQuery_EntityFilter {
+	if m != nil {
+		return m.Entityfilter
+	}
+	return nil
+}
+
+type CompiledQuery_PrimaryScan struct {
+	IndexName                  *string  `protobuf:"bytes,2,opt,name=index_name" json:"index_name,omitempty"`
+	StartKey                   *string  `protobuf:"bytes,3,opt,name=start_key" json:"start_key,omitempty"`
+	StartInclusive             *bool    `protobuf:"varint,4,opt,name=start_inclusive" json:"start_inclusive,omitempty"`
+	EndKey                     *string  `protobuf:"bytes,5,opt,name=end_key" json:"end_key,omitempty"`
+	EndInclusive               *bool    `protobuf:"varint,6,opt,name=end_inclusive" json:"end_inclusive,omitempty"`
+	StartPostfixValue          []string `protobuf:"bytes,22,rep,name=start_postfix_value" json:"start_postfix_value,omitempty"`
+	EndPostfixValue            []string `protobuf:"bytes,23,rep,name=end_postfix_value" json:"end_postfix_value,omitempty"`
+	EndUnappliedLogTimestampUs *int64   `protobuf:"varint,19,opt,name=end_unapplied_log_timestamp_us" json:"end_unapplied_log_timestamp_us,omitempty"`
+	XXX_unrecognized           []byte   `json:"-"`
+}
+
+func (m *CompiledQuery_PrimaryScan) Reset()         { *m = CompiledQuery_PrimaryScan{} }
+func (m *CompiledQuery_PrimaryScan) String() string { return proto.CompactTextString(m) }
+func (*CompiledQuery_PrimaryScan) ProtoMessage()    {}
+
+func (m *CompiledQuery_PrimaryScan) GetIndexName() string {
+	if m != nil && m.IndexName != nil {
+		return *m.IndexName
+	}
+	return ""
+}
+
+func (m *CompiledQuery_PrimaryScan) GetStartKey() string {
+	if m != nil && m.StartKey != nil {
+		return *m.StartKey
+	}
+	return ""
+}
+
+func (m *CompiledQuery_PrimaryScan) GetStartInclusive() bool {
+	if m != nil && m.StartInclusive != nil {
+		return *m.StartInclusive
+	}
+	return false
+}
+
+func (m *CompiledQuery_PrimaryScan) GetEndKey() string {
+	if m != nil && m.EndKey != nil {
+		return *m.EndKey
+	}
+	return ""
+}
+
+func (m *CompiledQuery_PrimaryScan) GetEndInclusive() bool {
+	if m != nil && m.EndInclusive != nil {
+		return *m.EndInclusive
+	}
+	return false
+}
+
+func (m *
