@@ -1834,4 +1834,143 @@ type CompiledCursor_Position struct {
 
 func (m *CompiledCursor_Position) Reset()         { *m = CompiledCursor_Position{} }
 func (m *CompiledCursor_Position) String() string { return proto.CompactTextString(m) }
-func (*CompiledCu
+func (*CompiledCursor_Position) ProtoMessage()    {}
+
+const Default_CompiledCursor_Position_StartInclusive bool = true
+
+func (m *CompiledCursor_Position) GetStartKey() string {
+	if m != nil && m.StartKey != nil {
+		return *m.StartKey
+	}
+	return ""
+}
+
+func (m *CompiledCursor_Position) GetIndexvalue() []*CompiledCursor_Position_IndexValue {
+	if m != nil {
+		return m.Indexvalue
+	}
+	return nil
+}
+
+func (m *CompiledCursor_Position) GetKey() *Reference {
+	if m != nil {
+		return m.Key
+	}
+	return nil
+}
+
+func (m *CompiledCursor_Position) GetStartInclusive() bool {
+	if m != nil && m.StartInclusive != nil {
+		return *m.StartInclusive
+	}
+	return Default_CompiledCursor_Position_StartInclusive
+}
+
+type CompiledCursor_Position_IndexValue struct {
+	Property         *string        `protobuf:"bytes,30,opt,name=property" json:"property,omitempty"`
+	Value            *PropertyValue `protobuf:"bytes,31,req,name=value" json:"value,omitempty"`
+	XXX_unrecognized []byte         `json:"-"`
+}
+
+func (m *CompiledCursor_Position_IndexValue) Reset()         { *m = CompiledCursor_Position_IndexValue{} }
+func (m *CompiledCursor_Position_IndexValue) String() string { return proto.CompactTextString(m) }
+func (*CompiledCursor_Position_IndexValue) ProtoMessage()    {}
+
+func (m *CompiledCursor_Position_IndexValue) GetProperty() string {
+	if m != nil && m.Property != nil {
+		return *m.Property
+	}
+	return ""
+}
+
+func (m *CompiledCursor_Position_IndexValue) GetValue() *PropertyValue {
+	if m != nil {
+		return m.Value
+	}
+	return nil
+}
+
+type Cursor struct {
+	Cursor           *uint64 `protobuf:"fixed64,1,req,name=cursor" json:"cursor,omitempty"`
+	App              *string `protobuf:"bytes,2,opt,name=app" json:"app,omitempty"`
+	XXX_unrecognized []byte  `json:"-"`
+}
+
+func (m *Cursor) Reset()         { *m = Cursor{} }
+func (m *Cursor) String() string { return proto.CompactTextString(m) }
+func (*Cursor) ProtoMessage()    {}
+
+func (m *Cursor) GetCursor() uint64 {
+	if m != nil && m.Cursor != nil {
+		return *m.Cursor
+	}
+	return 0
+}
+
+func (m *Cursor) GetApp() string {
+	if m != nil && m.App != nil {
+		return *m.App
+	}
+	return ""
+}
+
+type Error struct {
+	XXX_unrecognized []byte `json:"-"`
+}
+
+func (m *Error) Reset()         { *m = Error{} }
+func (m *Error) String() string { return proto.CompactTextString(m) }
+func (*Error) ProtoMessage()    {}
+
+type Cost struct {
+	IndexWrites             *int32           `protobuf:"varint,1,opt,name=index_writes" json:"index_writes,omitempty"`
+	IndexWriteBytes         *int32           `protobuf:"varint,2,opt,name=index_write_bytes" json:"index_write_bytes,omitempty"`
+	EntityWrites            *int32           `protobuf:"varint,3,opt,name=entity_writes" json:"entity_writes,omitempty"`
+	EntityWriteBytes        *int32           `protobuf:"varint,4,opt,name=entity_write_bytes" json:"entity_write_bytes,omitempty"`
+	Commitcost              *Cost_CommitCost `protobuf:"group,5,opt,name=CommitCost" json:"commitcost,omitempty"`
+	ApproximateStorageDelta *int32           `protobuf:"varint,8,opt,name=approximate_storage_delta" json:"approximate_storage_delta,omitempty"`
+	IdSequenceUpdates       *int32           `protobuf:"varint,9,opt,name=id_sequence_updates" json:"id_sequence_updates,omitempty"`
+	XXX_unrecognized        []byte           `json:"-"`
+}
+
+func (m *Cost) Reset()         { *m = Cost{} }
+func (m *Cost) String() string { return proto.CompactTextString(m) }
+func (*Cost) ProtoMessage()    {}
+
+func (m *Cost) GetIndexWrites() int32 {
+	if m != nil && m.IndexWrites != nil {
+		return *m.IndexWrites
+	}
+	return 0
+}
+
+func (m *Cost) GetIndexWriteBytes() int32 {
+	if m != nil && m.IndexWriteBytes != nil {
+		return *m.IndexWriteBytes
+	}
+	return 0
+}
+
+func (m *Cost) GetEntityWrites() int32 {
+	if m != nil && m.EntityWrites != nil {
+		return *m.EntityWrites
+	}
+	return 0
+}
+
+func (m *Cost) GetEntityWriteBytes() int32 {
+	if m != nil && m.EntityWriteBytes != nil {
+		return *m.EntityWriteBytes
+	}
+	return 0
+}
+
+func (m *Cost) GetCommitcost() *Cost_CommitCost {
+	if m != nil {
+		return m.Commitcost
+	}
+	return nil
+}
+
+func (m *Cost) GetApproximateStorageDelta() int32 {
+	if m != nil &
