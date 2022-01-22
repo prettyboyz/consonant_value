@@ -1719,4 +1719,119 @@ func (m *CompiledQuery_PrimaryScan) GetEndInclusive() bool {
 	return false
 }
 
-func (m *
+func (m *CompiledQuery_PrimaryScan) GetStartPostfixValue() []string {
+	if m != nil {
+		return m.StartPostfixValue
+	}
+	return nil
+}
+
+func (m *CompiledQuery_PrimaryScan) GetEndPostfixValue() []string {
+	if m != nil {
+		return m.EndPostfixValue
+	}
+	return nil
+}
+
+func (m *CompiledQuery_PrimaryScan) GetEndUnappliedLogTimestampUs() int64 {
+	if m != nil && m.EndUnappliedLogTimestampUs != nil {
+		return *m.EndUnappliedLogTimestampUs
+	}
+	return 0
+}
+
+type CompiledQuery_MergeJoinScan struct {
+	IndexName        *string  `protobuf:"bytes,8,req,name=index_name" json:"index_name,omitempty"`
+	PrefixValue      []string `protobuf:"bytes,9,rep,name=prefix_value" json:"prefix_value,omitempty"`
+	ValuePrefix      *bool    `protobuf:"varint,20,opt,name=value_prefix,def=0" json:"value_prefix,omitempty"`
+	XXX_unrecognized []byte   `json:"-"`
+}
+
+func (m *CompiledQuery_MergeJoinScan) Reset()         { *m = CompiledQuery_MergeJoinScan{} }
+func (m *CompiledQuery_MergeJoinScan) String() string { return proto.CompactTextString(m) }
+func (*CompiledQuery_MergeJoinScan) ProtoMessage()    {}
+
+const Default_CompiledQuery_MergeJoinScan_ValuePrefix bool = false
+
+func (m *CompiledQuery_MergeJoinScan) GetIndexName() string {
+	if m != nil && m.IndexName != nil {
+		return *m.IndexName
+	}
+	return ""
+}
+
+func (m *CompiledQuery_MergeJoinScan) GetPrefixValue() []string {
+	if m != nil {
+		return m.PrefixValue
+	}
+	return nil
+}
+
+func (m *CompiledQuery_MergeJoinScan) GetValuePrefix() bool {
+	if m != nil && m.ValuePrefix != nil {
+		return *m.ValuePrefix
+	}
+	return Default_CompiledQuery_MergeJoinScan_ValuePrefix
+}
+
+type CompiledQuery_EntityFilter struct {
+	Distinct         *bool      `protobuf:"varint,14,opt,name=distinct,def=0" json:"distinct,omitempty"`
+	Kind             *string    `protobuf:"bytes,17,opt,name=kind" json:"kind,omitempty"`
+	Ancestor         *Reference `protobuf:"bytes,18,opt,name=ancestor" json:"ancestor,omitempty"`
+	XXX_unrecognized []byte     `json:"-"`
+}
+
+func (m *CompiledQuery_EntityFilter) Reset()         { *m = CompiledQuery_EntityFilter{} }
+func (m *CompiledQuery_EntityFilter) String() string { return proto.CompactTextString(m) }
+func (*CompiledQuery_EntityFilter) ProtoMessage()    {}
+
+const Default_CompiledQuery_EntityFilter_Distinct bool = false
+
+func (m *CompiledQuery_EntityFilter) GetDistinct() bool {
+	if m != nil && m.Distinct != nil {
+		return *m.Distinct
+	}
+	return Default_CompiledQuery_EntityFilter_Distinct
+}
+
+func (m *CompiledQuery_EntityFilter) GetKind() string {
+	if m != nil && m.Kind != nil {
+		return *m.Kind
+	}
+	return ""
+}
+
+func (m *CompiledQuery_EntityFilter) GetAncestor() *Reference {
+	if m != nil {
+		return m.Ancestor
+	}
+	return nil
+}
+
+type CompiledCursor struct {
+	Position         *CompiledCursor_Position `protobuf:"group,2,opt,name=Position" json:"position,omitempty"`
+	XXX_unrecognized []byte                   `json:"-"`
+}
+
+func (m *CompiledCursor) Reset()         { *m = CompiledCursor{} }
+func (m *CompiledCursor) String() string { return proto.CompactTextString(m) }
+func (*CompiledCursor) ProtoMessage()    {}
+
+func (m *CompiledCursor) GetPosition() *CompiledCursor_Position {
+	if m != nil {
+		return m.Position
+	}
+	return nil
+}
+
+type CompiledCursor_Position struct {
+	StartKey         *string                               `protobuf:"bytes,27,opt,name=start_key" json:"start_key,omitempty"`
+	Indexvalue       []*CompiledCursor_Position_IndexValue `protobuf:"group,29,rep,name=IndexValue" json:"indexvalue,omitempty"`
+	Key              *Reference                            `protobuf:"bytes,32,opt,name=key" json:"key,omitempty"`
+	StartInclusive   *bool                                 `protobuf:"varint,28,opt,name=start_inclusive,def=1" json:"start_inclusive,omitempty"`
+	XXX_unrecognized []byte                                `json:"-"`
+}
+
+func (m *CompiledCursor_Position) Reset()         { *m = CompiledCursor_Position{} }
+func (m *CompiledCursor_Position) String() string { return proto.CompactTextString(m) }
+func (*CompiledCu
