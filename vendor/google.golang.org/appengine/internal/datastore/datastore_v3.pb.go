@@ -1973,4 +1973,141 @@ func (m *Cost) GetCommitcost() *Cost_CommitCost {
 }
 
 func (m *Cost) GetApproximateStorageDelta() int32 {
-	if m != nil &
+	if m != nil && m.ApproximateStorageDelta != nil {
+		return *m.ApproximateStorageDelta
+	}
+	return 0
+}
+
+func (m *Cost) GetIdSequenceUpdates() int32 {
+	if m != nil && m.IdSequenceUpdates != nil {
+		return *m.IdSequenceUpdates
+	}
+	return 0
+}
+
+type Cost_CommitCost struct {
+	RequestedEntityPuts    *int32 `protobuf:"varint,6,opt,name=requested_entity_puts" json:"requested_entity_puts,omitempty"`
+	RequestedEntityDeletes *int32 `protobuf:"varint,7,opt,name=requested_entity_deletes" json:"requested_entity_deletes,omitempty"`
+	XXX_unrecognized       []byte `json:"-"`
+}
+
+func (m *Cost_CommitCost) Reset()         { *m = Cost_CommitCost{} }
+func (m *Cost_CommitCost) String() string { return proto.CompactTextString(m) }
+func (*Cost_CommitCost) ProtoMessage()    {}
+
+func (m *Cost_CommitCost) GetRequestedEntityPuts() int32 {
+	if m != nil && m.RequestedEntityPuts != nil {
+		return *m.RequestedEntityPuts
+	}
+	return 0
+}
+
+func (m *Cost_CommitCost) GetRequestedEntityDeletes() int32 {
+	if m != nil && m.RequestedEntityDeletes != nil {
+		return *m.RequestedEntityDeletes
+	}
+	return 0
+}
+
+type GetRequest struct {
+	Header           *InternalHeader `protobuf:"bytes,6,opt,name=header" json:"header,omitempty"`
+	Key              []*Reference    `protobuf:"bytes,1,rep,name=key" json:"key,omitempty"`
+	Transaction      *Transaction    `protobuf:"bytes,2,opt,name=transaction" json:"transaction,omitempty"`
+	FailoverMs       *int64          `protobuf:"varint,3,opt,name=failover_ms" json:"failover_ms,omitempty"`
+	Strong           *bool           `protobuf:"varint,4,opt,name=strong" json:"strong,omitempty"`
+	AllowDeferred    *bool           `protobuf:"varint,5,opt,name=allow_deferred,def=0" json:"allow_deferred,omitempty"`
+	XXX_unrecognized []byte          `json:"-"`
+}
+
+func (m *GetRequest) Reset()         { *m = GetRequest{} }
+func (m *GetRequest) String() string { return proto.CompactTextString(m) }
+func (*GetRequest) ProtoMessage()    {}
+
+const Default_GetRequest_AllowDeferred bool = false
+
+func (m *GetRequest) GetHeader() *InternalHeader {
+	if m != nil {
+		return m.Header
+	}
+	return nil
+}
+
+func (m *GetRequest) GetKey() []*Reference {
+	if m != nil {
+		return m.Key
+	}
+	return nil
+}
+
+func (m *GetRequest) GetTransaction() *Transaction {
+	if m != nil {
+		return m.Transaction
+	}
+	return nil
+}
+
+func (m *GetRequest) GetFailoverMs() int64 {
+	if m != nil && m.FailoverMs != nil {
+		return *m.FailoverMs
+	}
+	return 0
+}
+
+func (m *GetRequest) GetStrong() bool {
+	if m != nil && m.Strong != nil {
+		return *m.Strong
+	}
+	return false
+}
+
+func (m *GetRequest) GetAllowDeferred() bool {
+	if m != nil && m.AllowDeferred != nil {
+		return *m.AllowDeferred
+	}
+	return Default_GetRequest_AllowDeferred
+}
+
+type GetResponse struct {
+	Entity           []*GetResponse_Entity `protobuf:"group,1,rep,name=Entity" json:"entity,omitempty"`
+	Deferred         []*Reference          `protobuf:"bytes,5,rep,name=deferred" json:"deferred,omitempty"`
+	InOrder          *bool                 `protobuf:"varint,6,opt,name=in_order,def=1" json:"in_order,omitempty"`
+	XXX_unrecognized []byte                `json:"-"`
+}
+
+func (m *GetResponse) Reset()         { *m = GetResponse{} }
+func (m *GetResponse) String() string { return proto.CompactTextString(m) }
+func (*GetResponse) ProtoMessage()    {}
+
+const Default_GetResponse_InOrder bool = true
+
+func (m *GetResponse) GetEntity() []*GetResponse_Entity {
+	if m != nil {
+		return m.Entity
+	}
+	return nil
+}
+
+func (m *GetResponse) GetDeferred() []*Reference {
+	if m != nil {
+		return m.Deferred
+	}
+	return nil
+}
+
+func (m *GetResponse) GetInOrder() bool {
+	if m != nil && m.InOrder != nil {
+		return *m.InOrder
+	}
+	return Default_GetResponse_InOrder
+}
+
+type GetResponse_Entity struct {
+	Entity           *EntityProto `protobuf:"bytes,2,opt,name=entity" json:"entity,omitempty"`
+	Key              *Reference   `protobuf:"bytes,4,opt,name=key" json:"key,omitempty"`
+	Version          *int64       `protobuf:"varint,3,opt,name=version" json:"version,omitempty"`
+	XXX_unrecognized []byte       `json:"-"`
+}
+
+func (m *GetResponse_Entity) Reset()         { *m = GetResponse_Entity{} }
+func (m *GetRespons
