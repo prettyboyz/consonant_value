@@ -2110,4 +2110,146 @@ type GetResponse_Entity struct {
 }
 
 func (m *GetResponse_Entity) Reset()         { *m = GetResponse_Entity{} }
-func (m *GetRespons
+func (m *GetResponse_Entity) String() string { return proto.CompactTextString(m) }
+func (*GetResponse_Entity) ProtoMessage()    {}
+
+func (m *GetResponse_Entity) GetEntity() *EntityProto {
+	if m != nil {
+		return m.Entity
+	}
+	return nil
+}
+
+func (m *GetResponse_Entity) GetKey() *Reference {
+	if m != nil {
+		return m.Key
+	}
+	return nil
+}
+
+func (m *GetResponse_Entity) GetVersion() int64 {
+	if m != nil && m.Version != nil {
+		return *m.Version
+	}
+	return 0
+}
+
+type PutRequest struct {
+	Header           *InternalHeader          `protobuf:"bytes,11,opt,name=header" json:"header,omitempty"`
+	Entity           []*EntityProto           `protobuf:"bytes,1,rep,name=entity" json:"entity,omitempty"`
+	Transaction      *Transaction             `protobuf:"bytes,2,opt,name=transaction" json:"transaction,omitempty"`
+	CompositeIndex   []*CompositeIndex        `protobuf:"bytes,3,rep,name=composite_index" json:"composite_index,omitempty"`
+	Trusted          *bool                    `protobuf:"varint,4,opt,name=trusted,def=0" json:"trusted,omitempty"`
+	Force            *bool                    `protobuf:"varint,7,opt,name=force,def=0" json:"force,omitempty"`
+	MarkChanges      *bool                    `protobuf:"varint,8,opt,name=mark_changes,def=0" json:"mark_changes,omitempty"`
+	Snapshot         []*Snapshot              `protobuf:"bytes,9,rep,name=snapshot" json:"snapshot,omitempty"`
+	AutoIdPolicy     *PutRequest_AutoIdPolicy `protobuf:"varint,10,opt,name=auto_id_policy,enum=appengine.PutRequest_AutoIdPolicy,def=0" json:"auto_id_policy,omitempty"`
+	XXX_unrecognized []byte                   `json:"-"`
+}
+
+func (m *PutRequest) Reset()         { *m = PutRequest{} }
+func (m *PutRequest) String() string { return proto.CompactTextString(m) }
+func (*PutRequest) ProtoMessage()    {}
+
+const Default_PutRequest_Trusted bool = false
+const Default_PutRequest_Force bool = false
+const Default_PutRequest_MarkChanges bool = false
+const Default_PutRequest_AutoIdPolicy PutRequest_AutoIdPolicy = PutRequest_CURRENT
+
+func (m *PutRequest) GetHeader() *InternalHeader {
+	if m != nil {
+		return m.Header
+	}
+	return nil
+}
+
+func (m *PutRequest) GetEntity() []*EntityProto {
+	if m != nil {
+		return m.Entity
+	}
+	return nil
+}
+
+func (m *PutRequest) GetTransaction() *Transaction {
+	if m != nil {
+		return m.Transaction
+	}
+	return nil
+}
+
+func (m *PutRequest) GetCompositeIndex() []*CompositeIndex {
+	if m != nil {
+		return m.CompositeIndex
+	}
+	return nil
+}
+
+func (m *PutRequest) GetTrusted() bool {
+	if m != nil && m.Trusted != nil {
+		return *m.Trusted
+	}
+	return Default_PutRequest_Trusted
+}
+
+func (m *PutRequest) GetForce() bool {
+	if m != nil && m.Force != nil {
+		return *m.Force
+	}
+	return Default_PutRequest_Force
+}
+
+func (m *PutRequest) GetMarkChanges() bool {
+	if m != nil && m.MarkChanges != nil {
+		return *m.MarkChanges
+	}
+	return Default_PutRequest_MarkChanges
+}
+
+func (m *PutRequest) GetSnapshot() []*Snapshot {
+	if m != nil {
+		return m.Snapshot
+	}
+	return nil
+}
+
+func (m *PutRequest) GetAutoIdPolicy() PutRequest_AutoIdPolicy {
+	if m != nil && m.AutoIdPolicy != nil {
+		return *m.AutoIdPolicy
+	}
+	return Default_PutRequest_AutoIdPolicy
+}
+
+type PutResponse struct {
+	Key              []*Reference `protobuf:"bytes,1,rep,name=key" json:"key,omitempty"`
+	Cost             *Cost        `protobuf:"bytes,2,opt,name=cost" json:"cost,omitempty"`
+	Version          []int64      `protobuf:"varint,3,rep,name=version" json:"version,omitempty"`
+	XXX_unrecognized []byte       `json:"-"`
+}
+
+func (m *PutResponse) Reset()         { *m = PutResponse{} }
+func (m *PutResponse) String() string { return proto.CompactTextString(m) }
+func (*PutResponse) ProtoMessage()    {}
+
+func (m *PutResponse) GetKey() []*Reference {
+	if m != nil {
+		return m.Key
+	}
+	return nil
+}
+
+func (m *PutResponse) GetCost() *Cost {
+	if m != nil {
+		return m.Cost
+	}
+	return nil
+}
+
+func (m *PutResponse) GetVersion() []int64 {
+	if m != nil {
+		return m.Version
+	}
+	return nil
+}
+
+type TouchRequest struct {
+	Header           
