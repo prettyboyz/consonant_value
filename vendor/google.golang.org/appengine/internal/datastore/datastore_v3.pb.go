@@ -2391,4 +2391,135 @@ type DeleteResponse struct {
 	XXX_unrecognized []byte  `json:"-"`
 }
 
-func (m *DeleteResponse) Reset()       
+func (m *DeleteResponse) Reset()         { *m = DeleteResponse{} }
+func (m *DeleteResponse) String() string { return proto.CompactTextString(m) }
+func (*DeleteResponse) ProtoMessage()    {}
+
+func (m *DeleteResponse) GetCost() *Cost {
+	if m != nil {
+		return m.Cost
+	}
+	return nil
+}
+
+func (m *DeleteResponse) GetVersion() []int64 {
+	if m != nil {
+		return m.Version
+	}
+	return nil
+}
+
+type NextRequest struct {
+	Header           *InternalHeader `protobuf:"bytes,5,opt,name=header" json:"header,omitempty"`
+	Cursor           *Cursor         `protobuf:"bytes,1,req,name=cursor" json:"cursor,omitempty"`
+	Count            *int32          `protobuf:"varint,2,opt,name=count" json:"count,omitempty"`
+	Offset           *int32          `protobuf:"varint,4,opt,name=offset,def=0" json:"offset,omitempty"`
+	Compile          *bool           `protobuf:"varint,3,opt,name=compile,def=0" json:"compile,omitempty"`
+	XXX_unrecognized []byte          `json:"-"`
+}
+
+func (m *NextRequest) Reset()         { *m = NextRequest{} }
+func (m *NextRequest) String() string { return proto.CompactTextString(m) }
+func (*NextRequest) ProtoMessage()    {}
+
+const Default_NextRequest_Offset int32 = 0
+const Default_NextRequest_Compile bool = false
+
+func (m *NextRequest) GetHeader() *InternalHeader {
+	if m != nil {
+		return m.Header
+	}
+	return nil
+}
+
+func (m *NextRequest) GetCursor() *Cursor {
+	if m != nil {
+		return m.Cursor
+	}
+	return nil
+}
+
+func (m *NextRequest) GetCount() int32 {
+	if m != nil && m.Count != nil {
+		return *m.Count
+	}
+	return 0
+}
+
+func (m *NextRequest) GetOffset() int32 {
+	if m != nil && m.Offset != nil {
+		return *m.Offset
+	}
+	return Default_NextRequest_Offset
+}
+
+func (m *NextRequest) GetCompile() bool {
+	if m != nil && m.Compile != nil {
+		return *m.Compile
+	}
+	return Default_NextRequest_Compile
+}
+
+type QueryResult struct {
+	Cursor           *Cursor           `protobuf:"bytes,1,opt,name=cursor" json:"cursor,omitempty"`
+	Result           []*EntityProto    `protobuf:"bytes,2,rep,name=result" json:"result,omitempty"`
+	SkippedResults   *int32            `protobuf:"varint,7,opt,name=skipped_results" json:"skipped_results,omitempty"`
+	MoreResults      *bool             `protobuf:"varint,3,req,name=more_results" json:"more_results,omitempty"`
+	KeysOnly         *bool             `protobuf:"varint,4,opt,name=keys_only" json:"keys_only,omitempty"`
+	IndexOnly        *bool             `protobuf:"varint,9,opt,name=index_only" json:"index_only,omitempty"`
+	SmallOps         *bool             `protobuf:"varint,10,opt,name=small_ops" json:"small_ops,omitempty"`
+	CompiledQuery    *CompiledQuery    `protobuf:"bytes,5,opt,name=compiled_query" json:"compiled_query,omitempty"`
+	CompiledCursor   *CompiledCursor   `protobuf:"bytes,6,opt,name=compiled_cursor" json:"compiled_cursor,omitempty"`
+	Index            []*CompositeIndex `protobuf:"bytes,8,rep,name=index" json:"index,omitempty"`
+	Version          []int64           `protobuf:"varint,11,rep,name=version" json:"version,omitempty"`
+	XXX_unrecognized []byte            `json:"-"`
+}
+
+func (m *QueryResult) Reset()         { *m = QueryResult{} }
+func (m *QueryResult) String() string { return proto.CompactTextString(m) }
+func (*QueryResult) ProtoMessage()    {}
+
+func (m *QueryResult) GetCursor() *Cursor {
+	if m != nil {
+		return m.Cursor
+	}
+	return nil
+}
+
+func (m *QueryResult) GetResult() []*EntityProto {
+	if m != nil {
+		return m.Result
+	}
+	return nil
+}
+
+func (m *QueryResult) GetSkippedResults() int32 {
+	if m != nil && m.SkippedResults != nil {
+		return *m.SkippedResults
+	}
+	return 0
+}
+
+func (m *QueryResult) GetMoreResults() bool {
+	if m != nil && m.MoreResults != nil {
+		return *m.MoreResults
+	}
+	return false
+}
+
+func (m *QueryResult) GetKeysOnly() bool {
+	if m != nil && m.KeysOnly != nil {
+		return *m.KeysOnly
+	}
+	return false
+}
+
+func (m *QueryResult) GetIndexOnly() bool {
+	if m != nil && m.IndexOnly != nil {
+		return *m.IndexOnly
+	}
+	return false
+}
+
+func (m *QueryResult) GetSmallOps() bool {
+	if m 
