@@ -2252,4 +2252,143 @@ func (m *PutResponse) GetVersion() []int64 {
 }
 
 type TouchRequest struct {
-	Header           
+	Header           *InternalHeader   `protobuf:"bytes,10,opt,name=header" json:"header,omitempty"`
+	Key              []*Reference      `protobuf:"bytes,1,rep,name=key" json:"key,omitempty"`
+	CompositeIndex   []*CompositeIndex `protobuf:"bytes,2,rep,name=composite_index" json:"composite_index,omitempty"`
+	Force            *bool             `protobuf:"varint,3,opt,name=force,def=0" json:"force,omitempty"`
+	Snapshot         []*Snapshot       `protobuf:"bytes,9,rep,name=snapshot" json:"snapshot,omitempty"`
+	XXX_unrecognized []byte            `json:"-"`
+}
+
+func (m *TouchRequest) Reset()         { *m = TouchRequest{} }
+func (m *TouchRequest) String() string { return proto.CompactTextString(m) }
+func (*TouchRequest) ProtoMessage()    {}
+
+const Default_TouchRequest_Force bool = false
+
+func (m *TouchRequest) GetHeader() *InternalHeader {
+	if m != nil {
+		return m.Header
+	}
+	return nil
+}
+
+func (m *TouchRequest) GetKey() []*Reference {
+	if m != nil {
+		return m.Key
+	}
+	return nil
+}
+
+func (m *TouchRequest) GetCompositeIndex() []*CompositeIndex {
+	if m != nil {
+		return m.CompositeIndex
+	}
+	return nil
+}
+
+func (m *TouchRequest) GetForce() bool {
+	if m != nil && m.Force != nil {
+		return *m.Force
+	}
+	return Default_TouchRequest_Force
+}
+
+func (m *TouchRequest) GetSnapshot() []*Snapshot {
+	if m != nil {
+		return m.Snapshot
+	}
+	return nil
+}
+
+type TouchResponse struct {
+	Cost             *Cost  `protobuf:"bytes,1,opt,name=cost" json:"cost,omitempty"`
+	XXX_unrecognized []byte `json:"-"`
+}
+
+func (m *TouchResponse) Reset()         { *m = TouchResponse{} }
+func (m *TouchResponse) String() string { return proto.CompactTextString(m) }
+func (*TouchResponse) ProtoMessage()    {}
+
+func (m *TouchResponse) GetCost() *Cost {
+	if m != nil {
+		return m.Cost
+	}
+	return nil
+}
+
+type DeleteRequest struct {
+	Header           *InternalHeader `protobuf:"bytes,10,opt,name=header" json:"header,omitempty"`
+	Key              []*Reference    `protobuf:"bytes,6,rep,name=key" json:"key,omitempty"`
+	Transaction      *Transaction    `protobuf:"bytes,5,opt,name=transaction" json:"transaction,omitempty"`
+	Trusted          *bool           `protobuf:"varint,4,opt,name=trusted,def=0" json:"trusted,omitempty"`
+	Force            *bool           `protobuf:"varint,7,opt,name=force,def=0" json:"force,omitempty"`
+	MarkChanges      *bool           `protobuf:"varint,8,opt,name=mark_changes,def=0" json:"mark_changes,omitempty"`
+	Snapshot         []*Snapshot     `protobuf:"bytes,9,rep,name=snapshot" json:"snapshot,omitempty"`
+	XXX_unrecognized []byte          `json:"-"`
+}
+
+func (m *DeleteRequest) Reset()         { *m = DeleteRequest{} }
+func (m *DeleteRequest) String() string { return proto.CompactTextString(m) }
+func (*DeleteRequest) ProtoMessage()    {}
+
+const Default_DeleteRequest_Trusted bool = false
+const Default_DeleteRequest_Force bool = false
+const Default_DeleteRequest_MarkChanges bool = false
+
+func (m *DeleteRequest) GetHeader() *InternalHeader {
+	if m != nil {
+		return m.Header
+	}
+	return nil
+}
+
+func (m *DeleteRequest) GetKey() []*Reference {
+	if m != nil {
+		return m.Key
+	}
+	return nil
+}
+
+func (m *DeleteRequest) GetTransaction() *Transaction {
+	if m != nil {
+		return m.Transaction
+	}
+	return nil
+}
+
+func (m *DeleteRequest) GetTrusted() bool {
+	if m != nil && m.Trusted != nil {
+		return *m.Trusted
+	}
+	return Default_DeleteRequest_Trusted
+}
+
+func (m *DeleteRequest) GetForce() bool {
+	if m != nil && m.Force != nil {
+		return *m.Force
+	}
+	return Default_DeleteRequest_Force
+}
+
+func (m *DeleteRequest) GetMarkChanges() bool {
+	if m != nil && m.MarkChanges != nil {
+		return *m.MarkChanges
+	}
+	return Default_DeleteRequest_MarkChanges
+}
+
+func (m *DeleteRequest) GetSnapshot() []*Snapshot {
+	if m != nil {
+		return m.Snapshot
+	}
+	return nil
+}
+
+type DeleteResponse struct {
+	Cost             *Cost   `protobuf:"bytes,1,opt,name=cost" json:"cost,omitempty"`
+	Version          []int64 `protobuf:"varint,3,rep,name=version" json:"version,omitempty"`
+	XXX_unrecognized []byte  `json:"-"`
+}
+
+func (m *DeleteResponse) Reset()       
