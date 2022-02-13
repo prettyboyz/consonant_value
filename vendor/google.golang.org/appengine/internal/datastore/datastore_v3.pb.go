@@ -2677,4 +2677,102 @@ func (m *AddActionsRequest) GetTransaction() *Transaction {
 	return nil
 }
 
-func (m *AddAct
+func (m *AddActionsRequest) GetAction() []*Action {
+	if m != nil {
+		return m.Action
+	}
+	return nil
+}
+
+type AddActionsResponse struct {
+	XXX_unrecognized []byte `json:"-"`
+}
+
+func (m *AddActionsResponse) Reset()         { *m = AddActionsResponse{} }
+func (m *AddActionsResponse) String() string { return proto.CompactTextString(m) }
+func (*AddActionsResponse) ProtoMessage()    {}
+
+type BeginTransactionRequest struct {
+	Header           *InternalHeader `protobuf:"bytes,3,opt,name=header" json:"header,omitempty"`
+	App              *string         `protobuf:"bytes,1,req,name=app" json:"app,omitempty"`
+	AllowMultipleEg  *bool           `protobuf:"varint,2,opt,name=allow_multiple_eg,def=0" json:"allow_multiple_eg,omitempty"`
+	XXX_unrecognized []byte          `json:"-"`
+}
+
+func (m *BeginTransactionRequest) Reset()         { *m = BeginTransactionRequest{} }
+func (m *BeginTransactionRequest) String() string { return proto.CompactTextString(m) }
+func (*BeginTransactionRequest) ProtoMessage()    {}
+
+const Default_BeginTransactionRequest_AllowMultipleEg bool = false
+
+func (m *BeginTransactionRequest) GetHeader() *InternalHeader {
+	if m != nil {
+		return m.Header
+	}
+	return nil
+}
+
+func (m *BeginTransactionRequest) GetApp() string {
+	if m != nil && m.App != nil {
+		return *m.App
+	}
+	return ""
+}
+
+func (m *BeginTransactionRequest) GetAllowMultipleEg() bool {
+	if m != nil && m.AllowMultipleEg != nil {
+		return *m.AllowMultipleEg
+	}
+	return Default_BeginTransactionRequest_AllowMultipleEg
+}
+
+type CommitResponse struct {
+	Cost             *Cost                     `protobuf:"bytes,1,opt,name=cost" json:"cost,omitempty"`
+	Version          []*CommitResponse_Version `protobuf:"group,3,rep,name=Version" json:"version,omitempty"`
+	XXX_unrecognized []byte                    `json:"-"`
+}
+
+func (m *CommitResponse) Reset()         { *m = CommitResponse{} }
+func (m *CommitResponse) String() string { return proto.CompactTextString(m) }
+func (*CommitResponse) ProtoMessage()    {}
+
+func (m *CommitResponse) GetCost() *Cost {
+	if m != nil {
+		return m.Cost
+	}
+	return nil
+}
+
+func (m *CommitResponse) GetVersion() []*CommitResponse_Version {
+	if m != nil {
+		return m.Version
+	}
+	return nil
+}
+
+type CommitResponse_Version struct {
+	RootEntityKey    *Reference `protobuf:"bytes,4,req,name=root_entity_key" json:"root_entity_key,omitempty"`
+	Version          *int64     `protobuf:"varint,5,req,name=version" json:"version,omitempty"`
+	XXX_unrecognized []byte     `json:"-"`
+}
+
+func (m *CommitResponse_Version) Reset()         { *m = CommitResponse_Version{} }
+func (m *CommitResponse_Version) String() string { return proto.CompactTextString(m) }
+func (*CommitResponse_Version) ProtoMessage()    {}
+
+func (m *CommitResponse_Version) GetRootEntityKey() *Reference {
+	if m != nil {
+		return m.RootEntityKey
+	}
+	return nil
+}
+
+func (m *CommitResponse_Version) GetVersion() int64 {
+	if m != nil && m.Version != nil {
+		return *m.Version
+	}
+	return 0
+}
+
+func init() {
+}
