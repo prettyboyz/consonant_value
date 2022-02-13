@@ -2522,4 +2522,159 @@ func (m *QueryResult) GetIndexOnly() bool {
 }
 
 func (m *QueryResult) GetSmallOps() bool {
-	if m 
+	if m != nil && m.SmallOps != nil {
+		return *m.SmallOps
+	}
+	return false
+}
+
+func (m *QueryResult) GetCompiledQuery() *CompiledQuery {
+	if m != nil {
+		return m.CompiledQuery
+	}
+	return nil
+}
+
+func (m *QueryResult) GetCompiledCursor() *CompiledCursor {
+	if m != nil {
+		return m.CompiledCursor
+	}
+	return nil
+}
+
+func (m *QueryResult) GetIndex() []*CompositeIndex {
+	if m != nil {
+		return m.Index
+	}
+	return nil
+}
+
+func (m *QueryResult) GetVersion() []int64 {
+	if m != nil {
+		return m.Version
+	}
+	return nil
+}
+
+type AllocateIdsRequest struct {
+	Header           *InternalHeader `protobuf:"bytes,4,opt,name=header" json:"header,omitempty"`
+	ModelKey         *Reference      `protobuf:"bytes,1,opt,name=model_key" json:"model_key,omitempty"`
+	Size             *int64          `protobuf:"varint,2,opt,name=size" json:"size,omitempty"`
+	Max              *int64          `protobuf:"varint,3,opt,name=max" json:"max,omitempty"`
+	Reserve          []*Reference    `protobuf:"bytes,5,rep,name=reserve" json:"reserve,omitempty"`
+	XXX_unrecognized []byte          `json:"-"`
+}
+
+func (m *AllocateIdsRequest) Reset()         { *m = AllocateIdsRequest{} }
+func (m *AllocateIdsRequest) String() string { return proto.CompactTextString(m) }
+func (*AllocateIdsRequest) ProtoMessage()    {}
+
+func (m *AllocateIdsRequest) GetHeader() *InternalHeader {
+	if m != nil {
+		return m.Header
+	}
+	return nil
+}
+
+func (m *AllocateIdsRequest) GetModelKey() *Reference {
+	if m != nil {
+		return m.ModelKey
+	}
+	return nil
+}
+
+func (m *AllocateIdsRequest) GetSize() int64 {
+	if m != nil && m.Size != nil {
+		return *m.Size
+	}
+	return 0
+}
+
+func (m *AllocateIdsRequest) GetMax() int64 {
+	if m != nil && m.Max != nil {
+		return *m.Max
+	}
+	return 0
+}
+
+func (m *AllocateIdsRequest) GetReserve() []*Reference {
+	if m != nil {
+		return m.Reserve
+	}
+	return nil
+}
+
+type AllocateIdsResponse struct {
+	Start            *int64 `protobuf:"varint,1,req,name=start" json:"start,omitempty"`
+	End              *int64 `protobuf:"varint,2,req,name=end" json:"end,omitempty"`
+	Cost             *Cost  `protobuf:"bytes,3,opt,name=cost" json:"cost,omitempty"`
+	XXX_unrecognized []byte `json:"-"`
+}
+
+func (m *AllocateIdsResponse) Reset()         { *m = AllocateIdsResponse{} }
+func (m *AllocateIdsResponse) String() string { return proto.CompactTextString(m) }
+func (*AllocateIdsResponse) ProtoMessage()    {}
+
+func (m *AllocateIdsResponse) GetStart() int64 {
+	if m != nil && m.Start != nil {
+		return *m.Start
+	}
+	return 0
+}
+
+func (m *AllocateIdsResponse) GetEnd() int64 {
+	if m != nil && m.End != nil {
+		return *m.End
+	}
+	return 0
+}
+
+func (m *AllocateIdsResponse) GetCost() *Cost {
+	if m != nil {
+		return m.Cost
+	}
+	return nil
+}
+
+type CompositeIndices struct {
+	Index            []*CompositeIndex `protobuf:"bytes,1,rep,name=index" json:"index,omitempty"`
+	XXX_unrecognized []byte            `json:"-"`
+}
+
+func (m *CompositeIndices) Reset()         { *m = CompositeIndices{} }
+func (m *CompositeIndices) String() string { return proto.CompactTextString(m) }
+func (*CompositeIndices) ProtoMessage()    {}
+
+func (m *CompositeIndices) GetIndex() []*CompositeIndex {
+	if m != nil {
+		return m.Index
+	}
+	return nil
+}
+
+type AddActionsRequest struct {
+	Header           *InternalHeader `protobuf:"bytes,3,opt,name=header" json:"header,omitempty"`
+	Transaction      *Transaction    `protobuf:"bytes,1,req,name=transaction" json:"transaction,omitempty"`
+	Action           []*Action       `protobuf:"bytes,2,rep,name=action" json:"action,omitempty"`
+	XXX_unrecognized []byte          `json:"-"`
+}
+
+func (m *AddActionsRequest) Reset()         { *m = AddActionsRequest{} }
+func (m *AddActionsRequest) String() string { return proto.CompactTextString(m) }
+func (*AddActionsRequest) ProtoMessage()    {}
+
+func (m *AddActionsRequest) GetHeader() *InternalHeader {
+	if m != nil {
+		return m.Header
+	}
+	return nil
+}
+
+func (m *AddActionsRequest) GetTransaction() *Transaction {
+	if m != nil {
+		return m.Transaction
+	}
+	return nil
+}
+
+func (m *AddAct
