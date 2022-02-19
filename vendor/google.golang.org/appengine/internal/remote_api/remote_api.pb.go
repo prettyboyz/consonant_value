@@ -213,3 +213,20 @@ func (m *Response) GetApplicationError() *ApplicationError {
 	}
 	return nil
 }
+
+func (m *Response) GetJavaException() []byte {
+	if m != nil {
+		return m.JavaException
+	}
+	return nil
+}
+
+func (m *Response) GetRpcError() *RpcError {
+	if m != nil {
+		return m.RpcError
+	}
+	return nil
+}
+
+func init() {
+}
