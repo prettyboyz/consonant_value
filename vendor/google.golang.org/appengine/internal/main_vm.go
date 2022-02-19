@@ -42,4 +42,7 @@ func installHealthChecker(mux *http.ServeMux) {
 	}
 	if _, pat := mux.Handler(hreq); pat != healthPath {
 		mux.HandleFunc(healthPath, func(w http.ResponseWriter, r *http.Request) {
-			io.WriteString
+			io.WriteString(w, "ok")
+		})
+	}
+}
