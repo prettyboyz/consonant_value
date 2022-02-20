@@ -450,4 +450,125 @@ func (m *TaskQueueMode) Reset()         { *m = TaskQueueMode{} }
 func (m *TaskQueueMode) String() string { return proto.CompactTextString(m) }
 func (*TaskQueueMode) ProtoMessage()    {}
 
-type TaskQ
+type TaskQueueAddRequest struct {
+	QueueName        []byte                             `protobuf:"bytes,1,req,name=queue_name" json:"queue_name,omitempty"`
+	TaskName         []byte                             `protobuf:"bytes,2,req,name=task_name" json:"task_name,omitempty"`
+	EtaUsec          *int64                             `protobuf:"varint,3,req,name=eta_usec" json:"eta_usec,omitempty"`
+	Method           *TaskQueueAddRequest_RequestMethod `protobuf:"varint,5,opt,name=method,enum=appengine.TaskQueueAddRequest_RequestMethod,def=2" json:"method,omitempty"`
+	Url              []byte                             `protobuf:"bytes,4,opt,name=url" json:"url,omitempty"`
+	Header           []*TaskQueueAddRequest_Header      `protobuf:"group,6,rep,name=Header" json:"header,omitempty"`
+	Body             []byte                             `protobuf:"bytes,9,opt,name=body" json:"body,omitempty"`
+	Transaction      *appengine.Transaction             `protobuf:"bytes,10,opt,name=transaction" json:"transaction,omitempty"`
+	AppId            []byte                             `protobuf:"bytes,11,opt,name=app_id" json:"app_id,omitempty"`
+	Crontimetable    *TaskQueueAddRequest_CronTimetable `protobuf:"group,12,opt,name=CronTimetable" json:"crontimetable,omitempty"`
+	Description      []byte                             `protobuf:"bytes,15,opt,name=description" json:"description,omitempty"`
+	Payload          *TaskPayload                       `protobuf:"bytes,16,opt,name=payload" json:"payload,omitempty"`
+	RetryParameters  *TaskQueueRetryParameters          `protobuf:"bytes,17,opt,name=retry_parameters" json:"retry_parameters,omitempty"`
+	Mode             *TaskQueueMode_Mode                `protobuf:"varint,18,opt,name=mode,enum=appengine.TaskQueueMode_Mode,def=0" json:"mode,omitempty"`
+	Tag              []byte                             `protobuf:"bytes,19,opt,name=tag" json:"tag,omitempty"`
+	XXX_unrecognized []byte                             `json:"-"`
+}
+
+func (m *TaskQueueAddRequest) Reset()         { *m = TaskQueueAddRequest{} }
+func (m *TaskQueueAddRequest) String() string { return proto.CompactTextString(m) }
+func (*TaskQueueAddRequest) ProtoMessage()    {}
+
+const Default_TaskQueueAddRequest_Method TaskQueueAddRequest_RequestMethod = TaskQueueAddRequest_POST
+const Default_TaskQueueAddRequest_Mode TaskQueueMode_Mode = TaskQueueMode_PUSH
+
+func (m *TaskQueueAddRequest) GetQueueName() []byte {
+	if m != nil {
+		return m.QueueName
+	}
+	return nil
+}
+
+func (m *TaskQueueAddRequest) GetTaskName() []byte {
+	if m != nil {
+		return m.TaskName
+	}
+	return nil
+}
+
+func (m *TaskQueueAddRequest) GetEtaUsec() int64 {
+	if m != nil && m.EtaUsec != nil {
+		return *m.EtaUsec
+	}
+	return 0
+}
+
+func (m *TaskQueueAddRequest) GetMethod() TaskQueueAddRequest_RequestMethod {
+	if m != nil && m.Method != nil {
+		return *m.Method
+	}
+	return Default_TaskQueueAddRequest_Method
+}
+
+func (m *TaskQueueAddRequest) GetUrl() []byte {
+	if m != nil {
+		return m.Url
+	}
+	return nil
+}
+
+func (m *TaskQueueAddRequest) GetHeader() []*TaskQueueAddRequest_Header {
+	if m != nil {
+		return m.Header
+	}
+	return nil
+}
+
+func (m *TaskQueueAddRequest) GetBody() []byte {
+	if m != nil {
+		return m.Body
+	}
+	return nil
+}
+
+func (m *TaskQueueAddRequest) GetTransaction() *appengine.Transaction {
+	if m != nil {
+		return m.Transaction
+	}
+	return nil
+}
+
+func (m *TaskQueueAddRequest) GetAppId() []byte {
+	if m != nil {
+		return m.AppId
+	}
+	return nil
+}
+
+func (m *TaskQueueAddRequest) GetCrontimetable() *TaskQueueAddRequest_CronTimetable {
+	if m != nil {
+		return m.Crontimetable
+	}
+	return nil
+}
+
+func (m *TaskQueueAddRequest) GetDescription() []byte {
+	if m != nil {
+		return m.Description
+	}
+	return nil
+}
+
+func (m *TaskQueueAddRequest) GetPayload() *TaskPayload {
+	if m != nil {
+		return m.Payload
+	}
+	return nil
+}
+
+func (m *TaskQueueAddRequest) GetRetryParameters() *TaskQueueRetryParameters {
+	if m != nil {
+		return m.RetryParameters
+	}
+	return nil
+}
+
+func (m *TaskQueueAddRequest) GetMode() TaskQueueMode_Mode {
+	if m != nil && m.Mode != nil {
+		return *m.Mode
+	}
+	return Default_Tas
