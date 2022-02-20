@@ -318,4 +318,136 @@ func (m *TaskPayload) Unmarshal(buf []byte) error {
 	return proto.UnmarshalMessageSet(buf, m.ExtensionMap())
 }
 func (m *TaskPayload) MarshalJSON() ([]byte, error) {
-	return proto.MarshalMessageSetJSON(m.XXX_extensio
+	return proto.MarshalMessageSetJSON(m.XXX_extensions)
+}
+func (m *TaskPayload) UnmarshalJSON(buf []byte) error {
+	return proto.UnmarshalMessageSetJSON(buf, m.XXX_extensions)
+}
+
+// ensure TaskPayload satisfies proto.Marshaler and proto.Unmarshaler
+var _ proto.Marshaler = (*TaskPayload)(nil)
+var _ proto.Unmarshaler = (*TaskPayload)(nil)
+
+var extRange_TaskPayload = []proto.ExtensionRange{
+	{10, 2147483646},
+}
+
+func (*TaskPayload) ExtensionRangeArray() []proto.ExtensionRange {
+	return extRange_TaskPayload
+}
+func (m *TaskPayload) ExtensionMap() map[int32]proto.Extension {
+	if m.XXX_extensions == nil {
+		m.XXX_extensions = make(map[int32]proto.Extension)
+	}
+	return m.XXX_extensions
+}
+
+type TaskQueueRetryParameters struct {
+	RetryLimit       *int32   `protobuf:"varint,1,opt,name=retry_limit" json:"retry_limit,omitempty"`
+	AgeLimitSec      *int64   `protobuf:"varint,2,opt,name=age_limit_sec" json:"age_limit_sec,omitempty"`
+	MinBackoffSec    *float64 `protobuf:"fixed64,3,opt,name=min_backoff_sec,def=0.1" json:"min_backoff_sec,omitempty"`
+	MaxBackoffSec    *float64 `protobuf:"fixed64,4,opt,name=max_backoff_sec,def=3600" json:"max_backoff_sec,omitempty"`
+	MaxDoublings     *int32   `protobuf:"varint,5,opt,name=max_doublings,def=16" json:"max_doublings,omitempty"`
+	XXX_unrecognized []byte   `json:"-"`
+}
+
+func (m *TaskQueueRetryParameters) Reset()         { *m = TaskQueueRetryParameters{} }
+func (m *TaskQueueRetryParameters) String() string { return proto.CompactTextString(m) }
+func (*TaskQueueRetryParameters) ProtoMessage()    {}
+
+const Default_TaskQueueRetryParameters_MinBackoffSec float64 = 0.1
+const Default_TaskQueueRetryParameters_MaxBackoffSec float64 = 3600
+const Default_TaskQueueRetryParameters_MaxDoublings int32 = 16
+
+func (m *TaskQueueRetryParameters) GetRetryLimit() int32 {
+	if m != nil && m.RetryLimit != nil {
+		return *m.RetryLimit
+	}
+	return 0
+}
+
+func (m *TaskQueueRetryParameters) GetAgeLimitSec() int64 {
+	if m != nil && m.AgeLimitSec != nil {
+		return *m.AgeLimitSec
+	}
+	return 0
+}
+
+func (m *TaskQueueRetryParameters) GetMinBackoffSec() float64 {
+	if m != nil && m.MinBackoffSec != nil {
+		return *m.MinBackoffSec
+	}
+	return Default_TaskQueueRetryParameters_MinBackoffSec
+}
+
+func (m *TaskQueueRetryParameters) GetMaxBackoffSec() float64 {
+	if m != nil && m.MaxBackoffSec != nil {
+		return *m.MaxBackoffSec
+	}
+	return Default_TaskQueueRetryParameters_MaxBackoffSec
+}
+
+func (m *TaskQueueRetryParameters) GetMaxDoublings() int32 {
+	if m != nil && m.MaxDoublings != nil {
+		return *m.MaxDoublings
+	}
+	return Default_TaskQueueRetryParameters_MaxDoublings
+}
+
+type TaskQueueAcl struct {
+	UserEmail        [][]byte `protobuf:"bytes,1,rep,name=user_email" json:"user_email,omitempty"`
+	WriterEmail      [][]byte `protobuf:"bytes,2,rep,name=writer_email" json:"writer_email,omitempty"`
+	XXX_unrecognized []byte   `json:"-"`
+}
+
+func (m *TaskQueueAcl) Reset()         { *m = TaskQueueAcl{} }
+func (m *TaskQueueAcl) String() string { return proto.CompactTextString(m) }
+func (*TaskQueueAcl) ProtoMessage()    {}
+
+func (m *TaskQueueAcl) GetUserEmail() [][]byte {
+	if m != nil {
+		return m.UserEmail
+	}
+	return nil
+}
+
+func (m *TaskQueueAcl) GetWriterEmail() [][]byte {
+	if m != nil {
+		return m.WriterEmail
+	}
+	return nil
+}
+
+type TaskQueueHttpHeader struct {
+	Key              []byte `protobuf:"bytes,1,req,name=key" json:"key,omitempty"`
+	Value            []byte `protobuf:"bytes,2,req,name=value" json:"value,omitempty"`
+	XXX_unrecognized []byte `json:"-"`
+}
+
+func (m *TaskQueueHttpHeader) Reset()         { *m = TaskQueueHttpHeader{} }
+func (m *TaskQueueHttpHeader) String() string { return proto.CompactTextString(m) }
+func (*TaskQueueHttpHeader) ProtoMessage()    {}
+
+func (m *TaskQueueHttpHeader) GetKey() []byte {
+	if m != nil {
+		return m.Key
+	}
+	return nil
+}
+
+func (m *TaskQueueHttpHeader) GetValue() []byte {
+	if m != nil {
+		return m.Value
+	}
+	return nil
+}
+
+type TaskQueueMode struct {
+	XXX_unrecognized []byte `json:"-"`
+}
+
+func (m *TaskQueueMode) Reset()         { *m = TaskQueueMode{} }
+func (m *TaskQueueMode) String() string { return proto.CompactTextString(m) }
+func (*TaskQueueMode) ProtoMessage()    {}
+
+type TaskQ
