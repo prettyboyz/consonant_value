@@ -195,3 +195,127 @@ var TaskQueueMode_Mode_value = map[string]int32{
 
 func (x TaskQueueMode_Mode) Enum() *TaskQueueMode_Mode {
 	p := new(TaskQueueMode_Mode)
+	*p = x
+	return p
+}
+func (x TaskQueueMode_Mode) String() string {
+	return proto.EnumName(TaskQueueMode_Mode_name, int32(x))
+}
+func (x *TaskQueueMode_Mode) UnmarshalJSON(data []byte) error {
+	value, err := proto.UnmarshalJSONEnum(TaskQueueMode_Mode_value, data, "TaskQueueMode_Mode")
+	if err != nil {
+		return err
+	}
+	*x = TaskQueueMode_Mode(value)
+	return nil
+}
+
+type TaskQueueAddRequest_RequestMethod int32
+
+const (
+	TaskQueueAddRequest_GET    TaskQueueAddRequest_RequestMethod = 1
+	TaskQueueAddRequest_POST   TaskQueueAddRequest_RequestMethod = 2
+	TaskQueueAddRequest_HEAD   TaskQueueAddRequest_RequestMethod = 3
+	TaskQueueAddRequest_PUT    TaskQueueAddRequest_RequestMethod = 4
+	TaskQueueAddRequest_DELETE TaskQueueAddRequest_RequestMethod = 5
+)
+
+var TaskQueueAddRequest_RequestMethod_name = map[int32]string{
+	1: "GET",
+	2: "POST",
+	3: "HEAD",
+	4: "PUT",
+	5: "DELETE",
+}
+var TaskQueueAddRequest_RequestMethod_value = map[string]int32{
+	"GET":    1,
+	"POST":   2,
+	"HEAD":   3,
+	"PUT":    4,
+	"DELETE": 5,
+}
+
+func (x TaskQueueAddRequest_RequestMethod) Enum() *TaskQueueAddRequest_RequestMethod {
+	p := new(TaskQueueAddRequest_RequestMethod)
+	*p = x
+	return p
+}
+func (x TaskQueueAddRequest_RequestMethod) String() string {
+	return proto.EnumName(TaskQueueAddRequest_RequestMethod_name, int32(x))
+}
+func (x *TaskQueueAddRequest_RequestMethod) UnmarshalJSON(data []byte) error {
+	value, err := proto.UnmarshalJSONEnum(TaskQueueAddRequest_RequestMethod_value, data, "TaskQueueAddRequest_RequestMethod")
+	if err != nil {
+		return err
+	}
+	*x = TaskQueueAddRequest_RequestMethod(value)
+	return nil
+}
+
+type TaskQueueQueryTasksResponse_Task_RequestMethod int32
+
+const (
+	TaskQueueQueryTasksResponse_Task_GET    TaskQueueQueryTasksResponse_Task_RequestMethod = 1
+	TaskQueueQueryTasksResponse_Task_POST   TaskQueueQueryTasksResponse_Task_RequestMethod = 2
+	TaskQueueQueryTasksResponse_Task_HEAD   TaskQueueQueryTasksResponse_Task_RequestMethod = 3
+	TaskQueueQueryTasksResponse_Task_PUT    TaskQueueQueryTasksResponse_Task_RequestMethod = 4
+	TaskQueueQueryTasksResponse_Task_DELETE TaskQueueQueryTasksResponse_Task_RequestMethod = 5
+)
+
+var TaskQueueQueryTasksResponse_Task_RequestMethod_name = map[int32]string{
+	1: "GET",
+	2: "POST",
+	3: "HEAD",
+	4: "PUT",
+	5: "DELETE",
+}
+var TaskQueueQueryTasksResponse_Task_RequestMethod_value = map[string]int32{
+	"GET":    1,
+	"POST":   2,
+	"HEAD":   3,
+	"PUT":    4,
+	"DELETE": 5,
+}
+
+func (x TaskQueueQueryTasksResponse_Task_RequestMethod) Enum() *TaskQueueQueryTasksResponse_Task_RequestMethod {
+	p := new(TaskQueueQueryTasksResponse_Task_RequestMethod)
+	*p = x
+	return p
+}
+func (x TaskQueueQueryTasksResponse_Task_RequestMethod) String() string {
+	return proto.EnumName(TaskQueueQueryTasksResponse_Task_RequestMethod_name, int32(x))
+}
+func (x *TaskQueueQueryTasksResponse_Task_RequestMethod) UnmarshalJSON(data []byte) error {
+	value, err := proto.UnmarshalJSONEnum(TaskQueueQueryTasksResponse_Task_RequestMethod_value, data, "TaskQueueQueryTasksResponse_Task_RequestMethod")
+	if err != nil {
+		return err
+	}
+	*x = TaskQueueQueryTasksResponse_Task_RequestMethod(value)
+	return nil
+}
+
+type TaskQueueServiceError struct {
+	XXX_unrecognized []byte `json:"-"`
+}
+
+func (m *TaskQueueServiceError) Reset()         { *m = TaskQueueServiceError{} }
+func (m *TaskQueueServiceError) String() string { return proto.CompactTextString(m) }
+func (*TaskQueueServiceError) ProtoMessage()    {}
+
+type TaskPayload struct {
+	XXX_extensions   map[int32]proto.Extension `json:"-"`
+	XXX_unrecognized []byte                    `json:"-"`
+}
+
+func (m *TaskPayload) Reset()         { *m = TaskPayload{} }
+func (m *TaskPayload) String() string { return proto.CompactTextString(m) }
+func (*TaskPayload) ProtoMessage()    {}
+
+func (m *TaskPayload) Marshal() ([]byte, error) {
+	return proto.MarshalMessageSet(m.ExtensionMap())
+}
+func (m *TaskPayload) Unmarshal(buf []byte) error {
+	return proto.UnmarshalMessageSet(buf, m.ExtensionMap())
+}
+func (m *TaskPayload) MarshalJSON() ([]byte, error) {
+	return proto.MarshalMessageSetJSON(m.XXX_extensio
