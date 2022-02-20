@@ -82,4 +82,116 @@ const (
 	TaskQueueServiceError_TOMBSTONED_QUEUE                TaskQueueServiceError_ErrorCode = 15
 	TaskQueueServiceError_DUPLICATE_TASK_NAME             TaskQueueServiceError_ErrorCode = 16
 	TaskQueueServiceError_SKIPPED                         TaskQueueServiceError_ErrorCode = 17
-	TaskQueueServiceError_TOO_MANY_TASKS         
+	TaskQueueServiceError_TOO_MANY_TASKS                  TaskQueueServiceError_ErrorCode = 18
+	TaskQueueServiceError_INVALID_PAYLOAD                 TaskQueueServiceError_ErrorCode = 19
+	TaskQueueServiceError_INVALID_RETRY_PARAMETERS        TaskQueueServiceError_ErrorCode = 20
+	TaskQueueServiceError_INVALID_QUEUE_MODE              TaskQueueServiceError_ErrorCode = 21
+	TaskQueueServiceError_ACL_LOOKUP_ERROR                TaskQueueServiceError_ErrorCode = 22
+	TaskQueueServiceError_TRANSACTIONAL_REQUEST_TOO_LARGE TaskQueueServiceError_ErrorCode = 23
+	TaskQueueServiceError_INCORRECT_CREATOR_NAME          TaskQueueServiceError_ErrorCode = 24
+	TaskQueueServiceError_TASK_LEASE_EXPIRED              TaskQueueServiceError_ErrorCode = 25
+	TaskQueueServiceError_QUEUE_PAUSED                    TaskQueueServiceError_ErrorCode = 26
+	TaskQueueServiceError_INVALID_TAG                     TaskQueueServiceError_ErrorCode = 27
+	// Reserved range for the Datastore error codes.
+	// Original Datastore error code is shifted by DATASTORE_ERROR offset.
+	TaskQueueServiceError_DATASTORE_ERROR TaskQueueServiceError_ErrorCode = 10000
+)
+
+var TaskQueueServiceError_ErrorCode_name = map[int32]string{
+	0:     "OK",
+	1:     "UNKNOWN_QUEUE",
+	2:     "TRANSIENT_ERROR",
+	3:     "INTERNAL_ERROR",
+	4:     "TASK_TOO_LARGE",
+	5:     "INVALID_TASK_NAME",
+	6:     "INVALID_QUEUE_NAME",
+	7:     "INVALID_URL",
+	8:     "INVALID_QUEUE_RATE",
+	9:     "PERMISSION_DENIED",
+	10:    "TASK_ALREADY_EXISTS",
+	11:    "TOMBSTONED_TASK",
+	12:    "INVALID_ETA",
+	13:    "INVALID_REQUEST",
+	14:    "UNKNOWN_TASK",
+	15:    "TOMBSTONED_QUEUE",
+	16:    "DUPLICATE_TASK_NAME",
+	17:    "SKIPPED",
+	18:    "TOO_MANY_TASKS",
+	19:    "INVALID_PAYLOAD",
+	20:    "INVALID_RETRY_PARAMETERS",
+	21:    "INVALID_QUEUE_MODE",
+	22:    "ACL_LOOKUP_ERROR",
+	23:    "TRANSACTIONAL_REQUEST_TOO_LARGE",
+	24:    "INCORRECT_CREATOR_NAME",
+	25:    "TASK_LEASE_EXPIRED",
+	26:    "QUEUE_PAUSED",
+	27:    "INVALID_TAG",
+	10000: "DATASTORE_ERROR",
+}
+var TaskQueueServiceError_ErrorCode_value = map[string]int32{
+	"OK":                              0,
+	"UNKNOWN_QUEUE":                   1,
+	"TRANSIENT_ERROR":                 2,
+	"INTERNAL_ERROR":                  3,
+	"TASK_TOO_LARGE":                  4,
+	"INVALID_TASK_NAME":               5,
+	"INVALID_QUEUE_NAME":              6,
+	"INVALID_URL":                     7,
+	"INVALID_QUEUE_RATE":              8,
+	"PERMISSION_DENIED":               9,
+	"TASK_ALREADY_EXISTS":             10,
+	"TOMBSTONED_TASK":                 11,
+	"INVALID_ETA":                     12,
+	"INVALID_REQUEST":                 13,
+	"UNKNOWN_TASK":                    14,
+	"TOMBSTONED_QUEUE":                15,
+	"DUPLICATE_TASK_NAME":             16,
+	"SKIPPED":                         17,
+	"TOO_MANY_TASKS":                  18,
+	"INVALID_PAYLOAD":                 19,
+	"INVALID_RETRY_PARAMETERS":        20,
+	"INVALID_QUEUE_MODE":              21,
+	"ACL_LOOKUP_ERROR":                22,
+	"TRANSACTIONAL_REQUEST_TOO_LARGE": 23,
+	"INCORRECT_CREATOR_NAME":          24,
+	"TASK_LEASE_EXPIRED":              25,
+	"QUEUE_PAUSED":                    26,
+	"INVALID_TAG":                     27,
+	"DATASTORE_ERROR":                 10000,
+}
+
+func (x TaskQueueServiceError_ErrorCode) Enum() *TaskQueueServiceError_ErrorCode {
+	p := new(TaskQueueServiceError_ErrorCode)
+	*p = x
+	return p
+}
+func (x TaskQueueServiceError_ErrorCode) String() string {
+	return proto.EnumName(TaskQueueServiceError_ErrorCode_name, int32(x))
+}
+func (x *TaskQueueServiceError_ErrorCode) UnmarshalJSON(data []byte) error {
+	value, err := proto.UnmarshalJSONEnum(TaskQueueServiceError_ErrorCode_value, data, "TaskQueueServiceError_ErrorCode")
+	if err != nil {
+		return err
+	}
+	*x = TaskQueueServiceError_ErrorCode(value)
+	return nil
+}
+
+type TaskQueueMode_Mode int32
+
+const (
+	TaskQueueMode_PUSH TaskQueueMode_Mode = 0
+	TaskQueueMode_PULL TaskQueueMode_Mode = 1
+)
+
+var TaskQueueMode_Mode_name = map[int32]string{
+	0: "PUSH",
+	1: "PULL",
+}
+var TaskQueueMode_Mode_value = map[string]int32{
+	"PUSH": 0,
+	"PULL": 1,
+}
+
+func (x TaskQueueMode_Mode) Enum() *TaskQueueMode_Mode {
+	p := new(TaskQueueMode_Mode)
