@@ -1433,3 +1433,427 @@ func (m *ListenRequest) GetBacklog() int32 {
 		return *m.Backlog
 	}
 	return 0
+}
+
+type ListenReply struct {
+	XXX_unrecognized []byte `json:"-"`
+}
+
+func (m *ListenReply) Reset()         { *m = ListenReply{} }
+func (m *ListenReply) String() string { return proto.CompactTextString(m) }
+func (*ListenReply) ProtoMessage()    {}
+
+type AcceptRequest struct {
+	SocketDescriptor *string  `protobuf:"bytes,1,req,name=socket_descriptor" json:"socket_descriptor,omitempty"`
+	TimeoutSeconds   *float64 `protobuf:"fixed64,2,opt,name=timeout_seconds,def=-1" json:"timeout_seconds,omitempty"`
+	XXX_unrecognized []byte   `json:"-"`
+}
+
+func (m *AcceptRequest) Reset()         { *m = AcceptRequest{} }
+func (m *AcceptRequest) String() string { return proto.CompactTextString(m) }
+func (*AcceptRequest) ProtoMessage()    {}
+
+const Default_AcceptRequest_TimeoutSeconds float64 = -1
+
+func (m *AcceptRequest) GetSocketDescriptor() string {
+	if m != nil && m.SocketDescriptor != nil {
+		return *m.SocketDescriptor
+	}
+	return ""
+}
+
+func (m *AcceptRequest) GetTimeoutSeconds() float64 {
+	if m != nil && m.TimeoutSeconds != nil {
+		return *m.TimeoutSeconds
+	}
+	return Default_AcceptRequest_TimeoutSeconds
+}
+
+type AcceptReply struct {
+	NewSocketDescriptor []byte       `protobuf:"bytes,2,opt,name=new_socket_descriptor" json:"new_socket_descriptor,omitempty"`
+	RemoteAddress       *AddressPort `protobuf:"bytes,3,opt,name=remote_address" json:"remote_address,omitempty"`
+	XXX_unrecognized    []byte       `json:"-"`
+}
+
+func (m *AcceptReply) Reset()         { *m = AcceptReply{} }
+func (m *AcceptReply) String() string { return proto.CompactTextString(m) }
+func (*AcceptReply) ProtoMessage()    {}
+
+func (m *AcceptReply) GetNewSocketDescriptor() []byte {
+	if m != nil {
+		return m.NewSocketDescriptor
+	}
+	return nil
+}
+
+func (m *AcceptReply) GetRemoteAddress() *AddressPort {
+	if m != nil {
+		return m.RemoteAddress
+	}
+	return nil
+}
+
+type ShutDownRequest struct {
+	SocketDescriptor *string              `protobuf:"bytes,1,req,name=socket_descriptor" json:"socket_descriptor,omitempty"`
+	How              *ShutDownRequest_How `protobuf:"varint,2,req,name=how,enum=appengine.ShutDownRequest_How" json:"how,omitempty"`
+	SendOffset       *int64               `protobuf:"varint,3,req,name=send_offset" json:"send_offset,omitempty"`
+	XXX_unrecognized []byte               `json:"-"`
+}
+
+func (m *ShutDownRequest) Reset()         { *m = ShutDownRequest{} }
+func (m *ShutDownRequest) String() string { return proto.CompactTextString(m) }
+func (*ShutDownRequest) ProtoMessage()    {}
+
+func (m *ShutDownRequest) GetSocketDescriptor() string {
+	if m != nil && m.SocketDescriptor != nil {
+		return *m.SocketDescriptor
+	}
+	return ""
+}
+
+func (m *ShutDownRequest) GetHow() ShutDownRequest_How {
+	if m != nil && m.How != nil {
+		return *m.How
+	}
+	return ShutDownRequest_SOCKET_SHUT_RD
+}
+
+func (m *ShutDownRequest) GetSendOffset() int64 {
+	if m != nil && m.SendOffset != nil {
+		return *m.SendOffset
+	}
+	return 0
+}
+
+type ShutDownReply struct {
+	XXX_unrecognized []byte `json:"-"`
+}
+
+func (m *ShutDownReply) Reset()         { *m = ShutDownReply{} }
+func (m *ShutDownReply) String() string { return proto.CompactTextString(m) }
+func (*ShutDownReply) ProtoMessage()    {}
+
+type CloseRequest struct {
+	SocketDescriptor *string `protobuf:"bytes,1,req,name=socket_descriptor" json:"socket_descriptor,omitempty"`
+	SendOffset       *int64  `protobuf:"varint,2,opt,name=send_offset,def=-1" json:"send_offset,omitempty"`
+	XXX_unrecognized []byte  `json:"-"`
+}
+
+func (m *CloseRequest) Reset()         { *m = CloseRequest{} }
+func (m *CloseRequest) String() string { return proto.CompactTextString(m) }
+func (*CloseRequest) ProtoMessage()    {}
+
+const Default_CloseRequest_SendOffset int64 = -1
+
+func (m *CloseRequest) GetSocketDescriptor() string {
+	if m != nil && m.SocketDescriptor != nil {
+		return *m.SocketDescriptor
+	}
+	return ""
+}
+
+func (m *CloseRequest) GetSendOffset() int64 {
+	if m != nil && m.SendOffset != nil {
+		return *m.SendOffset
+	}
+	return Default_CloseRequest_SendOffset
+}
+
+type CloseReply struct {
+	XXX_unrecognized []byte `json:"-"`
+}
+
+func (m *CloseReply) Reset()         { *m = CloseReply{} }
+func (m *CloseReply) String() string { return proto.CompactTextString(m) }
+func (*CloseReply) ProtoMessage()    {}
+
+type SendRequest struct {
+	SocketDescriptor *string      `protobuf:"bytes,1,req,name=socket_descriptor" json:"socket_descriptor,omitempty"`
+	Data             []byte       `protobuf:"bytes,2,req,name=data" json:"data,omitempty"`
+	StreamOffset     *int64       `protobuf:"varint,3,req,name=stream_offset" json:"stream_offset,omitempty"`
+	Flags            *int32       `protobuf:"varint,4,opt,name=flags,def=0" json:"flags,omitempty"`
+	SendTo           *AddressPort `protobuf:"bytes,5,opt,name=send_to" json:"send_to,omitempty"`
+	TimeoutSeconds   *float64     `protobuf:"fixed64,6,opt,name=timeout_seconds,def=-1" json:"timeout_seconds,omitempty"`
+	XXX_unrecognized []byte       `json:"-"`
+}
+
+func (m *SendRequest) Reset()         { *m = SendRequest{} }
+func (m *SendRequest) String() string { return proto.CompactTextString(m) }
+func (*SendRequest) ProtoMessage()    {}
+
+const Default_SendRequest_Flags int32 = 0
+const Default_SendRequest_TimeoutSeconds float64 = -1
+
+func (m *SendRequest) GetSocketDescriptor() string {
+	if m != nil && m.SocketDescriptor != nil {
+		return *m.SocketDescriptor
+	}
+	return ""
+}
+
+func (m *SendRequest) GetData() []byte {
+	if m != nil {
+		return m.Data
+	}
+	return nil
+}
+
+func (m *SendRequest) GetStreamOffset() int64 {
+	if m != nil && m.StreamOffset != nil {
+		return *m.StreamOffset
+	}
+	return 0
+}
+
+func (m *SendRequest) GetFlags() int32 {
+	if m != nil && m.Flags != nil {
+		return *m.Flags
+	}
+	return Default_SendRequest_Flags
+}
+
+func (m *SendRequest) GetSendTo() *AddressPort {
+	if m != nil {
+		return m.SendTo
+	}
+	return nil
+}
+
+func (m *SendRequest) GetTimeoutSeconds() float64 {
+	if m != nil && m.TimeoutSeconds != nil {
+		return *m.TimeoutSeconds
+	}
+	return Default_SendRequest_TimeoutSeconds
+}
+
+type SendReply struct {
+	DataSent         *int32 `protobuf:"varint,1,opt,name=data_sent" json:"data_sent,omitempty"`
+	XXX_unrecognized []byte `json:"-"`
+}
+
+func (m *SendReply) Reset()         { *m = SendReply{} }
+func (m *SendReply) String() string { return proto.CompactTextString(m) }
+func (*SendReply) ProtoMessage()    {}
+
+func (m *SendReply) GetDataSent() int32 {
+	if m != nil && m.DataSent != nil {
+		return *m.DataSent
+	}
+	return 0
+}
+
+type ReceiveRequest struct {
+	SocketDescriptor *string  `protobuf:"bytes,1,req,name=socket_descriptor" json:"socket_descriptor,omitempty"`
+	DataSize         *int32   `protobuf:"varint,2,req,name=data_size" json:"data_size,omitempty"`
+	Flags            *int32   `protobuf:"varint,3,opt,name=flags,def=0" json:"flags,omitempty"`
+	TimeoutSeconds   *float64 `protobuf:"fixed64,5,opt,name=timeout_seconds,def=-1" json:"timeout_seconds,omitempty"`
+	XXX_unrecognized []byte   `json:"-"`
+}
+
+func (m *ReceiveRequest) Reset()         { *m = ReceiveRequest{} }
+func (m *ReceiveRequest) String() string { return proto.CompactTextString(m) }
+func (*ReceiveRequest) ProtoMessage()    {}
+
+const Default_ReceiveRequest_Flags int32 = 0
+const Default_ReceiveRequest_TimeoutSeconds float64 = -1
+
+func (m *ReceiveRequest) GetSocketDescriptor() string {
+	if m != nil && m.SocketDescriptor != nil {
+		return *m.SocketDescriptor
+	}
+	return ""
+}
+
+func (m *ReceiveRequest) GetDataSize() int32 {
+	if m != nil && m.DataSize != nil {
+		return *m.DataSize
+	}
+	return 0
+}
+
+func (m *ReceiveRequest) GetFlags() int32 {
+	if m != nil && m.Flags != nil {
+		return *m.Flags
+	}
+	return Default_ReceiveRequest_Flags
+}
+
+func (m *ReceiveRequest) GetTimeoutSeconds() float64 {
+	if m != nil && m.TimeoutSeconds != nil {
+		return *m.TimeoutSeconds
+	}
+	return Default_ReceiveRequest_TimeoutSeconds
+}
+
+type ReceiveReply struct {
+	StreamOffset     *int64       `protobuf:"varint,2,opt,name=stream_offset" json:"stream_offset,omitempty"`
+	Data             []byte       `protobuf:"bytes,3,opt,name=data" json:"data,omitempty"`
+	ReceivedFrom     *AddressPort `protobuf:"bytes,4,opt,name=received_from" json:"received_from,omitempty"`
+	BufferSize       *int32       `protobuf:"varint,5,opt,name=buffer_size" json:"buffer_size,omitempty"`
+	XXX_unrecognized []byte       `json:"-"`
+}
+
+func (m *ReceiveReply) Reset()         { *m = ReceiveReply{} }
+func (m *ReceiveReply) String() string { return proto.CompactTextString(m) }
+func (*ReceiveReply) ProtoMessage()    {}
+
+func (m *ReceiveReply) GetStreamOffset() int64 {
+	if m != nil && m.StreamOffset != nil {
+		return *m.StreamOffset
+	}
+	return 0
+}
+
+func (m *ReceiveReply) GetData() []byte {
+	if m != nil {
+		return m.Data
+	}
+	return nil
+}
+
+func (m *ReceiveReply) GetReceivedFrom() *AddressPort {
+	if m != nil {
+		return m.ReceivedFrom
+	}
+	return nil
+}
+
+func (m *ReceiveReply) GetBufferSize() int32 {
+	if m != nil && m.BufferSize != nil {
+		return *m.BufferSize
+	}
+	return 0
+}
+
+type PollEvent struct {
+	SocketDescriptor *string `protobuf:"bytes,1,req,name=socket_descriptor" json:"socket_descriptor,omitempty"`
+	RequestedEvents  *int32  `protobuf:"varint,2,req,name=requested_events" json:"requested_events,omitempty"`
+	ObservedEvents   *int32  `protobuf:"varint,3,req,name=observed_events" json:"observed_events,omitempty"`
+	XXX_unrecognized []byte  `json:"-"`
+}
+
+func (m *PollEvent) Reset()         { *m = PollEvent{} }
+func (m *PollEvent) String() string { return proto.CompactTextString(m) }
+func (*PollEvent) ProtoMessage()    {}
+
+func (m *PollEvent) GetSocketDescriptor() string {
+	if m != nil && m.SocketDescriptor != nil {
+		return *m.SocketDescriptor
+	}
+	return ""
+}
+
+func (m *PollEvent) GetRequestedEvents() int32 {
+	if m != nil && m.RequestedEvents != nil {
+		return *m.RequestedEvents
+	}
+	return 0
+}
+
+func (m *PollEvent) GetObservedEvents() int32 {
+	if m != nil && m.ObservedEvents != nil {
+		return *m.ObservedEvents
+	}
+	return 0
+}
+
+type PollRequest struct {
+	Events           []*PollEvent `protobuf:"bytes,1,rep,name=events" json:"events,omitempty"`
+	TimeoutSeconds   *float64     `protobuf:"fixed64,2,opt,name=timeout_seconds,def=-1" json:"timeout_seconds,omitempty"`
+	XXX_unrecognized []byte       `json:"-"`
+}
+
+func (m *PollRequest) Reset()         { *m = PollRequest{} }
+func (m *PollRequest) String() string { return proto.CompactTextString(m) }
+func (*PollRequest) ProtoMessage()    {}
+
+const Default_PollRequest_TimeoutSeconds float64 = -1
+
+func (m *PollRequest) GetEvents() []*PollEvent {
+	if m != nil {
+		return m.Events
+	}
+	return nil
+}
+
+func (m *PollRequest) GetTimeoutSeconds() float64 {
+	if m != nil && m.TimeoutSeconds != nil {
+		return *m.TimeoutSeconds
+	}
+	return Default_PollRequest_TimeoutSeconds
+}
+
+type PollReply struct {
+	Events           []*PollEvent `protobuf:"bytes,2,rep,name=events" json:"events,omitempty"`
+	XXX_unrecognized []byte       `json:"-"`
+}
+
+func (m *PollReply) Reset()         { *m = PollReply{} }
+func (m *PollReply) String() string { return proto.CompactTextString(m) }
+func (*PollReply) ProtoMessage()    {}
+
+func (m *PollReply) GetEvents() []*PollEvent {
+	if m != nil {
+		return m.Events
+	}
+	return nil
+}
+
+type ResolveRequest struct {
+	Name             *string                            `protobuf:"bytes,1,req,name=name" json:"name,omitempty"`
+	AddressFamilies  []CreateSocketRequest_SocketFamily `protobuf:"varint,2,rep,name=address_families,enum=appengine.CreateSocketRequest_SocketFamily" json:"address_families,omitempty"`
+	XXX_unrecognized []byte                             `json:"-"`
+}
+
+func (m *ResolveRequest) Reset()         { *m = ResolveRequest{} }
+func (m *ResolveRequest) String() string { return proto.CompactTextString(m) }
+func (*ResolveRequest) ProtoMessage()    {}
+
+func (m *ResolveRequest) GetName() string {
+	if m != nil && m.Name != nil {
+		return *m.Name
+	}
+	return ""
+}
+
+func (m *ResolveRequest) GetAddressFamilies() []CreateSocketRequest_SocketFamily {
+	if m != nil {
+		return m.AddressFamilies
+	}
+	return nil
+}
+
+type ResolveReply struct {
+	PackedAddress    [][]byte `protobuf:"bytes,2,rep,name=packed_address" json:"packed_address,omitempty"`
+	CanonicalName    *string  `protobuf:"bytes,3,opt,name=canonical_name" json:"canonical_name,omitempty"`
+	Aliases          []string `protobuf:"bytes,4,rep,name=aliases" json:"aliases,omitempty"`
+	XXX_unrecognized []byte   `json:"-"`
+}
+
+func (m *ResolveReply) Reset()         { *m = ResolveReply{} }
+func (m *ResolveReply) String() string { return proto.CompactTextString(m) }
+func (*ResolveReply) ProtoMessage()    {}
+
+func (m *ResolveReply) GetPackedAddress() [][]byte {
+	if m != nil {
+		return m.PackedAddress
+	}
+	return nil
+}
+
+func (m *ResolveReply) GetCanonicalName() string {
+	if m != nil && m.CanonicalName != nil {
+		return *m.CanonicalName
+	}
+	return ""
+}
+
+func (m *ResolveReply) GetAliases() []string {
+	if m != nil {
+		return m.Aliases
+	}
+	return nil
+}
+
+func init() {
+}
