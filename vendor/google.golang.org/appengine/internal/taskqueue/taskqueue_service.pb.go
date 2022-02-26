@@ -691,4 +691,115 @@ func (m *TaskQueueBulkAddResponse_TaskResult) GetResult() TaskQueueServiceError_
 	if m != nil && m.Result != nil {
 		return *m.Result
 	}
-	return TaskQu
+	return TaskQueueServiceError_OK
+}
+
+func (m *TaskQueueBulkAddResponse_TaskResult) GetChosenTaskName() []byte {
+	if m != nil {
+		return m.ChosenTaskName
+	}
+	return nil
+}
+
+type TaskQueueDeleteRequest struct {
+	QueueName        []byte   `protobuf:"bytes,1,req,name=queue_name" json:"queue_name,omitempty"`
+	TaskName         [][]byte `protobuf:"bytes,2,rep,name=task_name" json:"task_name,omitempty"`
+	AppId            []byte   `protobuf:"bytes,3,opt,name=app_id" json:"app_id,omitempty"`
+	XXX_unrecognized []byte   `json:"-"`
+}
+
+func (m *TaskQueueDeleteRequest) Reset()         { *m = TaskQueueDeleteRequest{} }
+func (m *TaskQueueDeleteRequest) String() string { return proto.CompactTextString(m) }
+func (*TaskQueueDeleteRequest) ProtoMessage()    {}
+
+func (m *TaskQueueDeleteRequest) GetQueueName() []byte {
+	if m != nil {
+		return m.QueueName
+	}
+	return nil
+}
+
+func (m *TaskQueueDeleteRequest) GetTaskName() [][]byte {
+	if m != nil {
+		return m.TaskName
+	}
+	return nil
+}
+
+func (m *TaskQueueDeleteRequest) GetAppId() []byte {
+	if m != nil {
+		return m.AppId
+	}
+	return nil
+}
+
+type TaskQueueDeleteResponse struct {
+	Result           []TaskQueueServiceError_ErrorCode `protobuf:"varint,3,rep,name=result,enum=appengine.TaskQueueServiceError_ErrorCode" json:"result,omitempty"`
+	XXX_unrecognized []byte                            `json:"-"`
+}
+
+func (m *TaskQueueDeleteResponse) Reset()         { *m = TaskQueueDeleteResponse{} }
+func (m *TaskQueueDeleteResponse) String() string { return proto.CompactTextString(m) }
+func (*TaskQueueDeleteResponse) ProtoMessage()    {}
+
+func (m *TaskQueueDeleteResponse) GetResult() []TaskQueueServiceError_ErrorCode {
+	if m != nil {
+		return m.Result
+	}
+	return nil
+}
+
+type TaskQueueForceRunRequest struct {
+	AppId            []byte `protobuf:"bytes,1,opt,name=app_id" json:"app_id,omitempty"`
+	QueueName        []byte `protobuf:"bytes,2,req,name=queue_name" json:"queue_name,omitempty"`
+	TaskName         []byte `protobuf:"bytes,3,req,name=task_name" json:"task_name,omitempty"`
+	XXX_unrecognized []byte `json:"-"`
+}
+
+func (m *TaskQueueForceRunRequest) Reset()         { *m = TaskQueueForceRunRequest{} }
+func (m *TaskQueueForceRunRequest) String() string { return proto.CompactTextString(m) }
+func (*TaskQueueForceRunRequest) ProtoMessage()    {}
+
+func (m *TaskQueueForceRunRequest) GetAppId() []byte {
+	if m != nil {
+		return m.AppId
+	}
+	return nil
+}
+
+func (m *TaskQueueForceRunRequest) GetQueueName() []byte {
+	if m != nil {
+		return m.QueueName
+	}
+	return nil
+}
+
+func (m *TaskQueueForceRunRequest) GetTaskName() []byte {
+	if m != nil {
+		return m.TaskName
+	}
+	return nil
+}
+
+type TaskQueueForceRunResponse struct {
+	Result           *TaskQueueServiceError_ErrorCode `protobuf:"varint,3,req,name=result,enum=appengine.TaskQueueServiceError_ErrorCode" json:"result,omitempty"`
+	XXX_unrecognized []byte                           `json:"-"`
+}
+
+func (m *TaskQueueForceRunResponse) Reset()         { *m = TaskQueueForceRunResponse{} }
+func (m *TaskQueueForceRunResponse) String() string { return proto.CompactTextString(m) }
+func (*TaskQueueForceRunResponse) ProtoMessage()    {}
+
+func (m *TaskQueueForceRunResponse) GetResult() TaskQueueServiceError_ErrorCode {
+	if m != nil && m.Result != nil {
+		return *m.Result
+	}
+	return TaskQueueServiceError_OK
+}
+
+type TaskQueueUpdateQueueRequest struct {
+	AppId                 []byte                    `protobuf:"bytes,1,opt,name=app_id" json:"app_id,omitempty"`
+	QueueName             []byte                    `protobuf:"bytes,2,req,name=queue_name" json:"queue_name,omitempty"`
+	BucketRefillPerSecond *float64                  `protobuf:"fixed64,3,req,name=bucket_refill_per_second" json:"bucket_refill_per_second,omitempty"`
+	BucketCapacity        *int32                    `protobuf:"varint,4,req,name=bucket_capacity" json:"bucket_capacity,omitempty"`
+	UserSpecified
