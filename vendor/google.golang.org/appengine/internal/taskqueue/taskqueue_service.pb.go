@@ -802,4 +802,128 @@ type TaskQueueUpdateQueueRequest struct {
 	QueueName             []byte                    `protobuf:"bytes,2,req,name=queue_name" json:"queue_name,omitempty"`
 	BucketRefillPerSecond *float64                  `protobuf:"fixed64,3,req,name=bucket_refill_per_second" json:"bucket_refill_per_second,omitempty"`
 	BucketCapacity        *int32                    `protobuf:"varint,4,req,name=bucket_capacity" json:"bucket_capacity,omitempty"`
-	UserSpecified
+	UserSpecifiedRate     *string                   `protobuf:"bytes,5,opt,name=user_specified_rate" json:"user_specified_rate,omitempty"`
+	RetryParameters       *TaskQueueRetryParameters `protobuf:"bytes,6,opt,name=retry_parameters" json:"retry_parameters,omitempty"`
+	MaxConcurrentRequests *int32                    `protobuf:"varint,7,opt,name=max_concurrent_requests" json:"max_concurrent_requests,omitempty"`
+	Mode                  *TaskQueueMode_Mode       `protobuf:"varint,8,opt,name=mode,enum=appengine.TaskQueueMode_Mode,def=0" json:"mode,omitempty"`
+	Acl                   *TaskQueueAcl             `protobuf:"bytes,9,opt,name=acl" json:"acl,omitempty"`
+	HeaderOverride        []*TaskQueueHttpHeader    `protobuf:"bytes,10,rep,name=header_override" json:"header_override,omitempty"`
+	XXX_unrecognized      []byte                    `json:"-"`
+}
+
+func (m *TaskQueueUpdateQueueRequest) Reset()         { *m = TaskQueueUpdateQueueRequest{} }
+func (m *TaskQueueUpdateQueueRequest) String() string { return proto.CompactTextString(m) }
+func (*TaskQueueUpdateQueueRequest) ProtoMessage()    {}
+
+const Default_TaskQueueUpdateQueueRequest_Mode TaskQueueMode_Mode = TaskQueueMode_PUSH
+
+func (m *TaskQueueUpdateQueueRequest) GetAppId() []byte {
+	if m != nil {
+		return m.AppId
+	}
+	return nil
+}
+
+func (m *TaskQueueUpdateQueueRequest) GetQueueName() []byte {
+	if m != nil {
+		return m.QueueName
+	}
+	return nil
+}
+
+func (m *TaskQueueUpdateQueueRequest) GetBucketRefillPerSecond() float64 {
+	if m != nil && m.BucketRefillPerSecond != nil {
+		return *m.BucketRefillPerSecond
+	}
+	return 0
+}
+
+func (m *TaskQueueUpdateQueueRequest) GetBucketCapacity() int32 {
+	if m != nil && m.BucketCapacity != nil {
+		return *m.BucketCapacity
+	}
+	return 0
+}
+
+func (m *TaskQueueUpdateQueueRequest) GetUserSpecifiedRate() string {
+	if m != nil && m.UserSpecifiedRate != nil {
+		return *m.UserSpecifiedRate
+	}
+	return ""
+}
+
+func (m *TaskQueueUpdateQueueRequest) GetRetryParameters() *TaskQueueRetryParameters {
+	if m != nil {
+		return m.RetryParameters
+	}
+	return nil
+}
+
+func (m *TaskQueueUpdateQueueRequest) GetMaxConcurrentRequests() int32 {
+	if m != nil && m.MaxConcurrentRequests != nil {
+		return *m.MaxConcurrentRequests
+	}
+	return 0
+}
+
+func (m *TaskQueueUpdateQueueRequest) GetMode() TaskQueueMode_Mode {
+	if m != nil && m.Mode != nil {
+		return *m.Mode
+	}
+	return Default_TaskQueueUpdateQueueRequest_Mode
+}
+
+func (m *TaskQueueUpdateQueueRequest) GetAcl() *TaskQueueAcl {
+	if m != nil {
+		return m.Acl
+	}
+	return nil
+}
+
+func (m *TaskQueueUpdateQueueRequest) GetHeaderOverride() []*TaskQueueHttpHeader {
+	if m != nil {
+		return m.HeaderOverride
+	}
+	return nil
+}
+
+type TaskQueueUpdateQueueResponse struct {
+	XXX_unrecognized []byte `json:"-"`
+}
+
+func (m *TaskQueueUpdateQueueResponse) Reset()         { *m = TaskQueueUpdateQueueResponse{} }
+func (m *TaskQueueUpdateQueueResponse) String() string { return proto.CompactTextString(m) }
+func (*TaskQueueUpdateQueueResponse) ProtoMessage()    {}
+
+type TaskQueueFetchQueuesRequest struct {
+	AppId            []byte `protobuf:"bytes,1,opt,name=app_id" json:"app_id,omitempty"`
+	MaxRows          *int32 `protobuf:"varint,2,req,name=max_rows" json:"max_rows,omitempty"`
+	XXX_unrecognized []byte `json:"-"`
+}
+
+func (m *TaskQueueFetchQueuesRequest) Reset()         { *m = TaskQueueFetchQueuesRequest{} }
+func (m *TaskQueueFetchQueuesRequest) String() string { return proto.CompactTextString(m) }
+func (*TaskQueueFetchQueuesRequest) ProtoMessage()    {}
+
+func (m *TaskQueueFetchQueuesRequest) GetAppId() []byte {
+	if m != nil {
+		return m.AppId
+	}
+	return nil
+}
+
+func (m *TaskQueueFetchQueuesRequest) GetMaxRows() int32 {
+	if m != nil && m.MaxRows != nil {
+		return *m.MaxRows
+	}
+	return 0
+}
+
+type TaskQueueFetchQueuesResponse struct {
+	Queue            []*TaskQueueFetchQueuesResponse_Queue `protobuf:"group,1,rep,name=Queue" json:"queue,omitempty"`
+	XXX_unrecognized []byte                                `json:"-"`
+}
+
+func (m *TaskQueueFetchQueuesResponse) Reset()         { *m = TaskQueueFetchQueuesResponse{} }
+func (m *TaskQueueFetchQueuesResponse) String() string { return proto.CompactTextString(m) }
+func (*TaskQueueFetchQueuesRespon
