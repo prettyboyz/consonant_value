@@ -571,4 +571,124 @@ func (m *TaskQueueAddRequest) GetMode() TaskQueueMode_Mode {
 	if m != nil && m.Mode != nil {
 		return *m.Mode
 	}
-	return Default_Tas
+	return Default_TaskQueueAddRequest_Mode
+}
+
+func (m *TaskQueueAddRequest) GetTag() []byte {
+	if m != nil {
+		return m.Tag
+	}
+	return nil
+}
+
+type TaskQueueAddRequest_Header struct {
+	Key              []byte `protobuf:"bytes,7,req,name=key" json:"key,omitempty"`
+	Value            []byte `protobuf:"bytes,8,req,name=value" json:"value,omitempty"`
+	XXX_unrecognized []byte `json:"-"`
+}
+
+func (m *TaskQueueAddRequest_Header) Reset()         { *m = TaskQueueAddRequest_Header{} }
+func (m *TaskQueueAddRequest_Header) String() string { return proto.CompactTextString(m) }
+func (*TaskQueueAddRequest_Header) ProtoMessage()    {}
+
+func (m *TaskQueueAddRequest_Header) GetKey() []byte {
+	if m != nil {
+		return m.Key
+	}
+	return nil
+}
+
+func (m *TaskQueueAddRequest_Header) GetValue() []byte {
+	if m != nil {
+		return m.Value
+	}
+	return nil
+}
+
+type TaskQueueAddRequest_CronTimetable struct {
+	Schedule         []byte `protobuf:"bytes,13,req,name=schedule" json:"schedule,omitempty"`
+	Timezone         []byte `protobuf:"bytes,14,req,name=timezone" json:"timezone,omitempty"`
+	XXX_unrecognized []byte `json:"-"`
+}
+
+func (m *TaskQueueAddRequest_CronTimetable) Reset()         { *m = TaskQueueAddRequest_CronTimetable{} }
+func (m *TaskQueueAddRequest_CronTimetable) String() string { return proto.CompactTextString(m) }
+func (*TaskQueueAddRequest_CronTimetable) ProtoMessage()    {}
+
+func (m *TaskQueueAddRequest_CronTimetable) GetSchedule() []byte {
+	if m != nil {
+		return m.Schedule
+	}
+	return nil
+}
+
+func (m *TaskQueueAddRequest_CronTimetable) GetTimezone() []byte {
+	if m != nil {
+		return m.Timezone
+	}
+	return nil
+}
+
+type TaskQueueAddResponse struct {
+	ChosenTaskName   []byte `protobuf:"bytes,1,opt,name=chosen_task_name" json:"chosen_task_name,omitempty"`
+	XXX_unrecognized []byte `json:"-"`
+}
+
+func (m *TaskQueueAddResponse) Reset()         { *m = TaskQueueAddResponse{} }
+func (m *TaskQueueAddResponse) String() string { return proto.CompactTextString(m) }
+func (*TaskQueueAddResponse) ProtoMessage()    {}
+
+func (m *TaskQueueAddResponse) GetChosenTaskName() []byte {
+	if m != nil {
+		return m.ChosenTaskName
+	}
+	return nil
+}
+
+type TaskQueueBulkAddRequest struct {
+	AddRequest       []*TaskQueueAddRequest `protobuf:"bytes,1,rep,name=add_request" json:"add_request,omitempty"`
+	XXX_unrecognized []byte                 `json:"-"`
+}
+
+func (m *TaskQueueBulkAddRequest) Reset()         { *m = TaskQueueBulkAddRequest{} }
+func (m *TaskQueueBulkAddRequest) String() string { return proto.CompactTextString(m) }
+func (*TaskQueueBulkAddRequest) ProtoMessage()    {}
+
+func (m *TaskQueueBulkAddRequest) GetAddRequest() []*TaskQueueAddRequest {
+	if m != nil {
+		return m.AddRequest
+	}
+	return nil
+}
+
+type TaskQueueBulkAddResponse struct {
+	Taskresult       []*TaskQueueBulkAddResponse_TaskResult `protobuf:"group,1,rep,name=TaskResult" json:"taskresult,omitempty"`
+	XXX_unrecognized []byte                                 `json:"-"`
+}
+
+func (m *TaskQueueBulkAddResponse) Reset()         { *m = TaskQueueBulkAddResponse{} }
+func (m *TaskQueueBulkAddResponse) String() string { return proto.CompactTextString(m) }
+func (*TaskQueueBulkAddResponse) ProtoMessage()    {}
+
+func (m *TaskQueueBulkAddResponse) GetTaskresult() []*TaskQueueBulkAddResponse_TaskResult {
+	if m != nil {
+		return m.Taskresult
+	}
+	return nil
+}
+
+type TaskQueueBulkAddResponse_TaskResult struct {
+	Result           *TaskQueueServiceError_ErrorCode `protobuf:"varint,2,req,name=result,enum=appengine.TaskQueueServiceError_ErrorCode" json:"result,omitempty"`
+	ChosenTaskName   []byte                           `protobuf:"bytes,3,opt,name=chosen_task_name" json:"chosen_task_name,omitempty"`
+	XXX_unrecognized []byte                           `json:"-"`
+}
+
+func (m *TaskQueueBulkAddResponse_TaskResult) Reset()         { *m = TaskQueueBulkAddResponse_TaskResult{} }
+func (m *TaskQueueBulkAddResponse_TaskResult) String() string { return proto.CompactTextString(m) }
+func (*TaskQueueBulkAddResponse_TaskResult) ProtoMessage()    {}
+
+func (m *TaskQueueBulkAddResponse_TaskResult) GetResult() TaskQueueServiceError_ErrorCode {
+	if m != nil && m.Result != nil {
+		return *m.Result
+	}
+	return TaskQu
