@@ -926,4 +926,108 @@ type TaskQueueFetchQueuesResponse struct {
 
 func (m *TaskQueueFetchQueuesResponse) Reset()         { *m = TaskQueueFetchQueuesResponse{} }
 func (m *TaskQueueFetchQueuesResponse) String() string { return proto.CompactTextString(m) }
-func (*TaskQueueFetchQueuesRespon
+func (*TaskQueueFetchQueuesResponse) ProtoMessage()    {}
+
+func (m *TaskQueueFetchQueuesResponse) GetQueue() []*TaskQueueFetchQueuesResponse_Queue {
+	if m != nil {
+		return m.Queue
+	}
+	return nil
+}
+
+type TaskQueueFetchQueuesResponse_Queue struct {
+	QueueName             []byte                    `protobuf:"bytes,2,req,name=queue_name" json:"queue_name,omitempty"`
+	BucketRefillPerSecond *float64                  `protobuf:"fixed64,3,req,name=bucket_refill_per_second" json:"bucket_refill_per_second,omitempty"`
+	BucketCapacity        *float64                  `protobuf:"fixed64,4,req,name=bucket_capacity" json:"bucket_capacity,omitempty"`
+	UserSpecifiedRate     *string                   `protobuf:"bytes,5,opt,name=user_specified_rate" json:"user_specified_rate,omitempty"`
+	Paused                *bool                     `protobuf:"varint,6,req,name=paused,def=0" json:"paused,omitempty"`
+	RetryParameters       *TaskQueueRetryParameters `protobuf:"bytes,7,opt,name=retry_parameters" json:"retry_parameters,omitempty"`
+	MaxConcurrentRequests *int32                    `protobuf:"varint,8,opt,name=max_concurrent_requests" json:"max_concurrent_requests,omitempty"`
+	Mode                  *TaskQueueMode_Mode       `protobuf:"varint,9,opt,name=mode,enum=appengine.TaskQueueMode_Mode,def=0" json:"mode,omitempty"`
+	Acl                   *TaskQueueAcl             `protobuf:"bytes,10,opt,name=acl" json:"acl,omitempty"`
+	HeaderOverride        []*TaskQueueHttpHeader    `protobuf:"bytes,11,rep,name=header_override" json:"header_override,omitempty"`
+	CreatorName           *string                   `protobuf:"bytes,12,opt,name=creator_name,def=apphosting" json:"creator_name,omitempty"`
+	XXX_unrecognized      []byte                    `json:"-"`
+}
+
+func (m *TaskQueueFetchQueuesResponse_Queue) Reset()         { *m = TaskQueueFetchQueuesResponse_Queue{} }
+func (m *TaskQueueFetchQueuesResponse_Queue) String() string { return proto.CompactTextString(m) }
+func (*TaskQueueFetchQueuesResponse_Queue) ProtoMessage()    {}
+
+const Default_TaskQueueFetchQueuesResponse_Queue_Paused bool = false
+const Default_TaskQueueFetchQueuesResponse_Queue_Mode TaskQueueMode_Mode = TaskQueueMode_PUSH
+const Default_TaskQueueFetchQueuesResponse_Queue_CreatorName string = "apphosting"
+
+func (m *TaskQueueFetchQueuesResponse_Queue) GetQueueName() []byte {
+	if m != nil {
+		return m.QueueName
+	}
+	return nil
+}
+
+func (m *TaskQueueFetchQueuesResponse_Queue) GetBucketRefillPerSecond() float64 {
+	if m != nil && m.BucketRefillPerSecond != nil {
+		return *m.BucketRefillPerSecond
+	}
+	return 0
+}
+
+func (m *TaskQueueFetchQueuesResponse_Queue) GetBucketCapacity() float64 {
+	if m != nil && m.BucketCapacity != nil {
+		return *m.BucketCapacity
+	}
+	return 0
+}
+
+func (m *TaskQueueFetchQueuesResponse_Queue) GetUserSpecifiedRate() string {
+	if m != nil && m.UserSpecifiedRate != nil {
+		return *m.UserSpecifiedRate
+	}
+	return ""
+}
+
+func (m *TaskQueueFetchQueuesResponse_Queue) GetPaused() bool {
+	if m != nil && m.Paused != nil {
+		return *m.Paused
+	}
+	return Default_TaskQueueFetchQueuesResponse_Queue_Paused
+}
+
+func (m *TaskQueueFetchQueuesResponse_Queue) GetRetryParameters() *TaskQueueRetryParameters {
+	if m != nil {
+		return m.RetryParameters
+	}
+	return nil
+}
+
+func (m *TaskQueueFetchQueuesResponse_Queue) GetMaxConcurrentRequests() int32 {
+	if m != nil && m.MaxConcurrentRequests != nil {
+		return *m.MaxConcurrentRequests
+	}
+	return 0
+}
+
+func (m *TaskQueueFetchQueuesResponse_Queue) GetMode() TaskQueueMode_Mode {
+	if m != nil && m.Mode != nil {
+		return *m.Mode
+	}
+	return Default_TaskQueueFetchQueuesResponse_Queue_Mode
+}
+
+func (m *TaskQueueFetchQueuesResponse_Queue) GetAcl() *TaskQueueAcl {
+	if m != nil {
+		return m.Acl
+	}
+	return nil
+}
+
+func (m *TaskQueueFetchQueuesResponse_Queue) GetHeaderOverride() []*TaskQueueHttpHeader {
+	if m != nil {
+		return m.HeaderOverride
+	}
+	return nil
+}
+
+func (m *TaskQueueFetchQueuesResponse_Queue) GetCreatorName() string {
+	if m != nil && m.CreatorName != nil {
+		return *m.Creator
