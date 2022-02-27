@@ -1030,4 +1030,109 @@ func (m *TaskQueueFetchQueuesResponse_Queue) GetHeaderOverride() []*TaskQueueHtt
 
 func (m *TaskQueueFetchQueuesResponse_Queue) GetCreatorName() string {
 	if m != nil && m.CreatorName != nil {
-		return *m.Creator
+		return *m.CreatorName
+	}
+	return Default_TaskQueueFetchQueuesResponse_Queue_CreatorName
+}
+
+type TaskQueueFetchQueueStatsRequest struct {
+	AppId            []byte   `protobuf:"bytes,1,opt,name=app_id" json:"app_id,omitempty"`
+	QueueName        [][]byte `protobuf:"bytes,2,rep,name=queue_name" json:"queue_name,omitempty"`
+	MaxNumTasks      *int32   `protobuf:"varint,3,opt,name=max_num_tasks,def=0" json:"max_num_tasks,omitempty"`
+	XXX_unrecognized []byte   `json:"-"`
+}
+
+func (m *TaskQueueFetchQueueStatsRequest) Reset()         { *m = TaskQueueFetchQueueStatsRequest{} }
+func (m *TaskQueueFetchQueueStatsRequest) String() string { return proto.CompactTextString(m) }
+func (*TaskQueueFetchQueueStatsRequest) ProtoMessage()    {}
+
+const Default_TaskQueueFetchQueueStatsRequest_MaxNumTasks int32 = 0
+
+func (m *TaskQueueFetchQueueStatsRequest) GetAppId() []byte {
+	if m != nil {
+		return m.AppId
+	}
+	return nil
+}
+
+func (m *TaskQueueFetchQueueStatsRequest) GetQueueName() [][]byte {
+	if m != nil {
+		return m.QueueName
+	}
+	return nil
+}
+
+func (m *TaskQueueFetchQueueStatsRequest) GetMaxNumTasks() int32 {
+	if m != nil && m.MaxNumTasks != nil {
+		return *m.MaxNumTasks
+	}
+	return Default_TaskQueueFetchQueueStatsRequest_MaxNumTasks
+}
+
+type TaskQueueScannerQueueInfo struct {
+	ExecutedLastMinute      *int64   `protobuf:"varint,1,req,name=executed_last_minute" json:"executed_last_minute,omitempty"`
+	ExecutedLastHour        *int64   `protobuf:"varint,2,req,name=executed_last_hour" json:"executed_last_hour,omitempty"`
+	SamplingDurationSeconds *float64 `protobuf:"fixed64,3,req,name=sampling_duration_seconds" json:"sampling_duration_seconds,omitempty"`
+	RequestsInFlight        *int32   `protobuf:"varint,4,opt,name=requests_in_flight" json:"requests_in_flight,omitempty"`
+	EnforcedRate            *float64 `protobuf:"fixed64,5,opt,name=enforced_rate" json:"enforced_rate,omitempty"`
+	XXX_unrecognized        []byte   `json:"-"`
+}
+
+func (m *TaskQueueScannerQueueInfo) Reset()         { *m = TaskQueueScannerQueueInfo{} }
+func (m *TaskQueueScannerQueueInfo) String() string { return proto.CompactTextString(m) }
+func (*TaskQueueScannerQueueInfo) ProtoMessage()    {}
+
+func (m *TaskQueueScannerQueueInfo) GetExecutedLastMinute() int64 {
+	if m != nil && m.ExecutedLastMinute != nil {
+		return *m.ExecutedLastMinute
+	}
+	return 0
+}
+
+func (m *TaskQueueScannerQueueInfo) GetExecutedLastHour() int64 {
+	if m != nil && m.ExecutedLastHour != nil {
+		return *m.ExecutedLastHour
+	}
+	return 0
+}
+
+func (m *TaskQueueScannerQueueInfo) GetSamplingDurationSeconds() float64 {
+	if m != nil && m.SamplingDurationSeconds != nil {
+		return *m.SamplingDurationSeconds
+	}
+	return 0
+}
+
+func (m *TaskQueueScannerQueueInfo) GetRequestsInFlight() int32 {
+	if m != nil && m.RequestsInFlight != nil {
+		return *m.RequestsInFlight
+	}
+	return 0
+}
+
+func (m *TaskQueueScannerQueueInfo) GetEnforcedRate() float64 {
+	if m != nil && m.EnforcedRate != nil {
+		return *m.EnforcedRate
+	}
+	return 0
+}
+
+type TaskQueueFetchQueueStatsResponse struct {
+	Queuestats       []*TaskQueueFetchQueueStatsResponse_QueueStats `protobuf:"group,1,rep,name=QueueStats" json:"queuestats,omitempty"`
+	XXX_unrecognized []byte                                         `json:"-"`
+}
+
+func (m *TaskQueueFetchQueueStatsResponse) Reset()         { *m = TaskQueueFetchQueueStatsResponse{} }
+func (m *TaskQueueFetchQueueStatsResponse) String() string { return proto.CompactTextString(m) }
+func (*TaskQueueFetchQueueStatsResponse) ProtoMessage()    {}
+
+func (m *TaskQueueFetchQueueStatsResponse) GetQueuestats() []*TaskQueueFetchQueueStatsResponse_QueueStats {
+	if m != nil {
+		return m.Queuestats
+	}
+	return nil
+}
+
+type TaskQueueFetchQueueStatsResponse_QueueStats struct {
+	NumTasks         *int32                     `protobuf:"varint,2,req,name=num_tasks" json:"num_tasks,omitempty"`
+	OldestEtaUsec    *int64                     `protobuf:"varint,3,req,name=oldest_eta_usec" json:"oldest_eta_usec,omite
