@@ -1483,4 +1483,140 @@ func (m *TaskQueueQueryTasksResponse_Task) GetDescription() []byte {
 	return nil
 }
 
-fu
+func (m *TaskQueueQueryTasksResponse_Task) GetPayload() *TaskPayload {
+	if m != nil {
+		return m.Payload
+	}
+	return nil
+}
+
+func (m *TaskQueueQueryTasksResponse_Task) GetRetryParameters() *TaskQueueRetryParameters {
+	if m != nil {
+		return m.RetryParameters
+	}
+	return nil
+}
+
+func (m *TaskQueueQueryTasksResponse_Task) GetFirstTryUsec() int64 {
+	if m != nil && m.FirstTryUsec != nil {
+		return *m.FirstTryUsec
+	}
+	return 0
+}
+
+func (m *TaskQueueQueryTasksResponse_Task) GetTag() []byte {
+	if m != nil {
+		return m.Tag
+	}
+	return nil
+}
+
+func (m *TaskQueueQueryTasksResponse_Task) GetExecutionCount() int32 {
+	if m != nil && m.ExecutionCount != nil {
+		return *m.ExecutionCount
+	}
+	return Default_TaskQueueQueryTasksResponse_Task_ExecutionCount
+}
+
+type TaskQueueQueryTasksResponse_Task_Header struct {
+	Key              []byte `protobuf:"bytes,8,req,name=key" json:"key,omitempty"`
+	Value            []byte `protobuf:"bytes,9,req,name=value" json:"value,omitempty"`
+	XXX_unrecognized []byte `json:"-"`
+}
+
+func (m *TaskQueueQueryTasksResponse_Task_Header) Reset() {
+	*m = TaskQueueQueryTasksResponse_Task_Header{}
+}
+func (m *TaskQueueQueryTasksResponse_Task_Header) String() string { return proto.CompactTextString(m) }
+func (*TaskQueueQueryTasksResponse_Task_Header) ProtoMessage()    {}
+
+func (m *TaskQueueQueryTasksResponse_Task_Header) GetKey() []byte {
+	if m != nil {
+		return m.Key
+	}
+	return nil
+}
+
+func (m *TaskQueueQueryTasksResponse_Task_Header) GetValue() []byte {
+	if m != nil {
+		return m.Value
+	}
+	return nil
+}
+
+type TaskQueueQueryTasksResponse_Task_CronTimetable struct {
+	Schedule         []byte `protobuf:"bytes,14,req,name=schedule" json:"schedule,omitempty"`
+	Timezone         []byte `protobuf:"bytes,15,req,name=timezone" json:"timezone,omitempty"`
+	XXX_unrecognized []byte `json:"-"`
+}
+
+func (m *TaskQueueQueryTasksResponse_Task_CronTimetable) Reset() {
+	*m = TaskQueueQueryTasksResponse_Task_CronTimetable{}
+}
+func (m *TaskQueueQueryTasksResponse_Task_CronTimetable) String() string {
+	return proto.CompactTextString(m)
+}
+func (*TaskQueueQueryTasksResponse_Task_CronTimetable) ProtoMessage() {}
+
+func (m *TaskQueueQueryTasksResponse_Task_CronTimetable) GetSchedule() []byte {
+	if m != nil {
+		return m.Schedule
+	}
+	return nil
+}
+
+func (m *TaskQueueQueryTasksResponse_Task_CronTimetable) GetTimezone() []byte {
+	if m != nil {
+		return m.Timezone
+	}
+	return nil
+}
+
+type TaskQueueQueryTasksResponse_Task_RunLog struct {
+	DispatchedUsec   *int64  `protobuf:"varint,17,req,name=dispatched_usec" json:"dispatched_usec,omitempty"`
+	LagUsec          *int64  `protobuf:"varint,18,req,name=lag_usec" json:"lag_usec,omitempty"`
+	ElapsedUsec      *int64  `protobuf:"varint,19,req,name=elapsed_usec" json:"elapsed_usec,omitempty"`
+	ResponseCode     *int64  `protobuf:"varint,20,opt,name=response_code" json:"response_code,omitempty"`
+	RetryReason      *string `protobuf:"bytes,27,opt,name=retry_reason" json:"retry_reason,omitempty"`
+	XXX_unrecognized []byte  `json:"-"`
+}
+
+func (m *TaskQueueQueryTasksResponse_Task_RunLog) Reset() {
+	*m = TaskQueueQueryTasksResponse_Task_RunLog{}
+}
+func (m *TaskQueueQueryTasksResponse_Task_RunLog) String() string { return proto.CompactTextString(m) }
+func (*TaskQueueQueryTasksResponse_Task_RunLog) ProtoMessage()    {}
+
+func (m *TaskQueueQueryTasksResponse_Task_RunLog) GetDispatchedUsec() int64 {
+	if m != nil && m.DispatchedUsec != nil {
+		return *m.DispatchedUsec
+	}
+	return 0
+}
+
+func (m *TaskQueueQueryTasksResponse_Task_RunLog) GetLagUsec() int64 {
+	if m != nil && m.LagUsec != nil {
+		return *m.LagUsec
+	}
+	return 0
+}
+
+func (m *TaskQueueQueryTasksResponse_Task_RunLog) GetElapsedUsec() int64 {
+	if m != nil && m.ElapsedUsec != nil {
+		return *m.ElapsedUsec
+	}
+	return 0
+}
+
+func (m *TaskQueueQueryTasksResponse_Task_RunLog) GetResponseCode() int64 {
+	if m != nil && m.ResponseCode != nil {
+		return *m.ResponseCode
+	}
+	return 0
+}
+
+func (m *TaskQueueQueryTasksResponse_Task_RunLog) GetRetryReason() string {
+	if m != nil && m.RetryReason != nil {
+		return *m.RetryReason
+	}
+	re
