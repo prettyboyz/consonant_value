@@ -1619,4 +1619,117 @@ func (m *TaskQueueQueryTasksResponse_Task_RunLog) GetRetryReason() string {
 	if m != nil && m.RetryReason != nil {
 		return *m.RetryReason
 	}
-	re
+	return ""
+}
+
+type TaskQueueFetchTaskRequest struct {
+	AppId            []byte `protobuf:"bytes,1,opt,name=app_id" json:"app_id,omitempty"`
+	QueueName        []byte `protobuf:"bytes,2,req,name=queue_name" json:"queue_name,omitempty"`
+	TaskName         []byte `protobuf:"bytes,3,req,name=task_name" json:"task_name,omitempty"`
+	XXX_unrecognized []byte `json:"-"`
+}
+
+func (m *TaskQueueFetchTaskRequest) Reset()         { *m = TaskQueueFetchTaskRequest{} }
+func (m *TaskQueueFetchTaskRequest) String() string { return proto.CompactTextString(m) }
+func (*TaskQueueFetchTaskRequest) ProtoMessage()    {}
+
+func (m *TaskQueueFetchTaskRequest) GetAppId() []byte {
+	if m != nil {
+		return m.AppId
+	}
+	return nil
+}
+
+func (m *TaskQueueFetchTaskRequest) GetQueueName() []byte {
+	if m != nil {
+		return m.QueueName
+	}
+	return nil
+}
+
+func (m *TaskQueueFetchTaskRequest) GetTaskName() []byte {
+	if m != nil {
+		return m.TaskName
+	}
+	return nil
+}
+
+type TaskQueueFetchTaskResponse struct {
+	Task             *TaskQueueQueryTasksResponse `protobuf:"bytes,1,req,name=task" json:"task,omitempty"`
+	XXX_unrecognized []byte                       `json:"-"`
+}
+
+func (m *TaskQueueFetchTaskResponse) Reset()         { *m = TaskQueueFetchTaskResponse{} }
+func (m *TaskQueueFetchTaskResponse) String() string { return proto.CompactTextString(m) }
+func (*TaskQueueFetchTaskResponse) ProtoMessage()    {}
+
+func (m *TaskQueueFetchTaskResponse) GetTask() *TaskQueueQueryTasksResponse {
+	if m != nil {
+		return m.Task
+	}
+	return nil
+}
+
+type TaskQueueUpdateStorageLimitRequest struct {
+	AppId            []byte `protobuf:"bytes,1,req,name=app_id" json:"app_id,omitempty"`
+	Limit            *int64 `protobuf:"varint,2,req,name=limit" json:"limit,omitempty"`
+	XXX_unrecognized []byte `json:"-"`
+}
+
+func (m *TaskQueueUpdateStorageLimitRequest) Reset()         { *m = TaskQueueUpdateStorageLimitRequest{} }
+func (m *TaskQueueUpdateStorageLimitRequest) String() string { return proto.CompactTextString(m) }
+func (*TaskQueueUpdateStorageLimitRequest) ProtoMessage()    {}
+
+func (m *TaskQueueUpdateStorageLimitRequest) GetAppId() []byte {
+	if m != nil {
+		return m.AppId
+	}
+	return nil
+}
+
+func (m *TaskQueueUpdateStorageLimitRequest) GetLimit() int64 {
+	if m != nil && m.Limit != nil {
+		return *m.Limit
+	}
+	return 0
+}
+
+type TaskQueueUpdateStorageLimitResponse struct {
+	NewLimit         *int64 `protobuf:"varint,1,req,name=new_limit" json:"new_limit,omitempty"`
+	XXX_unrecognized []byte `json:"-"`
+}
+
+func (m *TaskQueueUpdateStorageLimitResponse) Reset()         { *m = TaskQueueUpdateStorageLimitResponse{} }
+func (m *TaskQueueUpdateStorageLimitResponse) String() string { return proto.CompactTextString(m) }
+func (*TaskQueueUpdateStorageLimitResponse) ProtoMessage()    {}
+
+func (m *TaskQueueUpdateStorageLimitResponse) GetNewLimit() int64 {
+	if m != nil && m.NewLimit != nil {
+		return *m.NewLimit
+	}
+	return 0
+}
+
+type TaskQueueQueryAndOwnTasksRequest struct {
+	QueueName        []byte   `protobuf:"bytes,1,req,name=queue_name" json:"queue_name,omitempty"`
+	LeaseSeconds     *float64 `protobuf:"fixed64,2,req,name=lease_seconds" json:"lease_seconds,omitempty"`
+	MaxTasks         *int64   `protobuf:"varint,3,req,name=max_tasks" json:"max_tasks,omitempty"`
+	GroupByTag       *bool    `protobuf:"varint,4,opt,name=group_by_tag,def=0" json:"group_by_tag,omitempty"`
+	Tag              []byte   `protobuf:"bytes,5,opt,name=tag" json:"tag,omitempty"`
+	XXX_unrecognized []byte   `json:"-"`
+}
+
+func (m *TaskQueueQueryAndOwnTasksRequest) Reset()         { *m = TaskQueueQueryAndOwnTasksRequest{} }
+func (m *TaskQueueQueryAndOwnTasksRequest) String() string { return proto.CompactTextString(m) }
+func (*TaskQueueQueryAndOwnTasksRequest) ProtoMessage()    {}
+
+const Default_TaskQueueQueryAndOwnTasksRequest_GroupByTag bool = false
+
+func (m *TaskQueueQueryAndOwnTasksRequest) GetQueueName() []byte {
+	if m != nil {
+		return m.QueueName
+	}
+	return nil
+}
+
+func (m *TaskQueueQueryAndOwnTasksRequest) GetLeaseSeconds() float64 
