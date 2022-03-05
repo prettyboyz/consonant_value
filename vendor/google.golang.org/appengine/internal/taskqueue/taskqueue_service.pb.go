@@ -1135,4 +1135,135 @@ func (m *TaskQueueFetchQueueStatsResponse) GetQueuestats() []*TaskQueueFetchQueu
 
 type TaskQueueFetchQueueStatsResponse_QueueStats struct {
 	NumTasks         *int32                     `protobuf:"varint,2,req,name=num_tasks" json:"num_tasks,omitempty"`
-	OldestEtaUsec    *int64                     `protobuf:"varint,3,req,name=oldest_eta_usec" json:"oldest_eta_usec,omite
+	OldestEtaUsec    *int64                     `protobuf:"varint,3,req,name=oldest_eta_usec" json:"oldest_eta_usec,omitempty"`
+	ScannerInfo      *TaskQueueScannerQueueInfo `protobuf:"bytes,4,opt,name=scanner_info" json:"scanner_info,omitempty"`
+	XXX_unrecognized []byte                     `json:"-"`
+}
+
+func (m *TaskQueueFetchQueueStatsResponse_QueueStats) Reset() {
+	*m = TaskQueueFetchQueueStatsResponse_QueueStats{}
+}
+func (m *TaskQueueFetchQueueStatsResponse_QueueStats) String() string {
+	return proto.CompactTextString(m)
+}
+func (*TaskQueueFetchQueueStatsResponse_QueueStats) ProtoMessage() {}
+
+func (m *TaskQueueFetchQueueStatsResponse_QueueStats) GetNumTasks() int32 {
+	if m != nil && m.NumTasks != nil {
+		return *m.NumTasks
+	}
+	return 0
+}
+
+func (m *TaskQueueFetchQueueStatsResponse_QueueStats) GetOldestEtaUsec() int64 {
+	if m != nil && m.OldestEtaUsec != nil {
+		return *m.OldestEtaUsec
+	}
+	return 0
+}
+
+func (m *TaskQueueFetchQueueStatsResponse_QueueStats) GetScannerInfo() *TaskQueueScannerQueueInfo {
+	if m != nil {
+		return m.ScannerInfo
+	}
+	return nil
+}
+
+type TaskQueuePauseQueueRequest struct {
+	AppId            []byte `protobuf:"bytes,1,req,name=app_id" json:"app_id,omitempty"`
+	QueueName        []byte `protobuf:"bytes,2,req,name=queue_name" json:"queue_name,omitempty"`
+	Pause            *bool  `protobuf:"varint,3,req,name=pause" json:"pause,omitempty"`
+	XXX_unrecognized []byte `json:"-"`
+}
+
+func (m *TaskQueuePauseQueueRequest) Reset()         { *m = TaskQueuePauseQueueRequest{} }
+func (m *TaskQueuePauseQueueRequest) String() string { return proto.CompactTextString(m) }
+func (*TaskQueuePauseQueueRequest) ProtoMessage()    {}
+
+func (m *TaskQueuePauseQueueRequest) GetAppId() []byte {
+	if m != nil {
+		return m.AppId
+	}
+	return nil
+}
+
+func (m *TaskQueuePauseQueueRequest) GetQueueName() []byte {
+	if m != nil {
+		return m.QueueName
+	}
+	return nil
+}
+
+func (m *TaskQueuePauseQueueRequest) GetPause() bool {
+	if m != nil && m.Pause != nil {
+		return *m.Pause
+	}
+	return false
+}
+
+type TaskQueuePauseQueueResponse struct {
+	XXX_unrecognized []byte `json:"-"`
+}
+
+func (m *TaskQueuePauseQueueResponse) Reset()         { *m = TaskQueuePauseQueueResponse{} }
+func (m *TaskQueuePauseQueueResponse) String() string { return proto.CompactTextString(m) }
+func (*TaskQueuePauseQueueResponse) ProtoMessage()    {}
+
+type TaskQueuePurgeQueueRequest struct {
+	AppId            []byte `protobuf:"bytes,1,opt,name=app_id" json:"app_id,omitempty"`
+	QueueName        []byte `protobuf:"bytes,2,req,name=queue_name" json:"queue_name,omitempty"`
+	XXX_unrecognized []byte `json:"-"`
+}
+
+func (m *TaskQueuePurgeQueueRequest) Reset()         { *m = TaskQueuePurgeQueueRequest{} }
+func (m *TaskQueuePurgeQueueRequest) String() string { return proto.CompactTextString(m) }
+func (*TaskQueuePurgeQueueRequest) ProtoMessage()    {}
+
+func (m *TaskQueuePurgeQueueRequest) GetAppId() []byte {
+	if m != nil {
+		return m.AppId
+	}
+	return nil
+}
+
+func (m *TaskQueuePurgeQueueRequest) GetQueueName() []byte {
+	if m != nil {
+		return m.QueueName
+	}
+	return nil
+}
+
+type TaskQueuePurgeQueueResponse struct {
+	XXX_unrecognized []byte `json:"-"`
+}
+
+func (m *TaskQueuePurgeQueueResponse) Reset()         { *m = TaskQueuePurgeQueueResponse{} }
+func (m *TaskQueuePurgeQueueResponse) String() string { return proto.CompactTextString(m) }
+func (*TaskQueuePurgeQueueResponse) ProtoMessage()    {}
+
+type TaskQueueDeleteQueueRequest struct {
+	AppId            []byte `protobuf:"bytes,1,req,name=app_id" json:"app_id,omitempty"`
+	QueueName        []byte `protobuf:"bytes,2,req,name=queue_name" json:"queue_name,omitempty"`
+	XXX_unrecognized []byte `json:"-"`
+}
+
+func (m *TaskQueueDeleteQueueRequest) Reset()         { *m = TaskQueueDeleteQueueRequest{} }
+func (m *TaskQueueDeleteQueueRequest) String() string { return proto.CompactTextString(m) }
+func (*TaskQueueDeleteQueueRequest) ProtoMessage()    {}
+
+func (m *TaskQueueDeleteQueueRequest) GetAppId() []byte {
+	if m != nil {
+		return m.AppId
+	}
+	return nil
+}
+
+func (m *TaskQueueDeleteQueueRequest) GetQueueName() []byte {
+	if m != nil {
+		return m.QueueName
+	}
+	return nil
+}
+
+type TaskQueueDeleteQueueResponse struct {
+	XXX_unrecog
