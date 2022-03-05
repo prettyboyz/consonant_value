@@ -1266,4 +1266,114 @@ func (m *TaskQueueDeleteQueueRequest) GetQueueName() []byte {
 }
 
 type TaskQueueDeleteQueueResponse struct {
-	XXX_unrecog
+	XXX_unrecognized []byte `json:"-"`
+}
+
+func (m *TaskQueueDeleteQueueResponse) Reset()         { *m = TaskQueueDeleteQueueResponse{} }
+func (m *TaskQueueDeleteQueueResponse) String() string { return proto.CompactTextString(m) }
+func (*TaskQueueDeleteQueueResponse) ProtoMessage()    {}
+
+type TaskQueueDeleteGroupRequest struct {
+	AppId            []byte `protobuf:"bytes,1,req,name=app_id" json:"app_id,omitempty"`
+	XXX_unrecognized []byte `json:"-"`
+}
+
+func (m *TaskQueueDeleteGroupRequest) Reset()         { *m = TaskQueueDeleteGroupRequest{} }
+func (m *TaskQueueDeleteGroupRequest) String() string { return proto.CompactTextString(m) }
+func (*TaskQueueDeleteGroupRequest) ProtoMessage()    {}
+
+func (m *TaskQueueDeleteGroupRequest) GetAppId() []byte {
+	if m != nil {
+		return m.AppId
+	}
+	return nil
+}
+
+type TaskQueueDeleteGroupResponse struct {
+	XXX_unrecognized []byte `json:"-"`
+}
+
+func (m *TaskQueueDeleteGroupResponse) Reset()         { *m = TaskQueueDeleteGroupResponse{} }
+func (m *TaskQueueDeleteGroupResponse) String() string { return proto.CompactTextString(m) }
+func (*TaskQueueDeleteGroupResponse) ProtoMessage()    {}
+
+type TaskQueueQueryTasksRequest struct {
+	AppId            []byte `protobuf:"bytes,1,opt,name=app_id" json:"app_id,omitempty"`
+	QueueName        []byte `protobuf:"bytes,2,req,name=queue_name" json:"queue_name,omitempty"`
+	StartTaskName    []byte `protobuf:"bytes,3,opt,name=start_task_name" json:"start_task_name,omitempty"`
+	StartEtaUsec     *int64 `protobuf:"varint,4,opt,name=start_eta_usec" json:"start_eta_usec,omitempty"`
+	StartTag         []byte `protobuf:"bytes,6,opt,name=start_tag" json:"start_tag,omitempty"`
+	MaxRows          *int32 `protobuf:"varint,5,opt,name=max_rows,def=1" json:"max_rows,omitempty"`
+	XXX_unrecognized []byte `json:"-"`
+}
+
+func (m *TaskQueueQueryTasksRequest) Reset()         { *m = TaskQueueQueryTasksRequest{} }
+func (m *TaskQueueQueryTasksRequest) String() string { return proto.CompactTextString(m) }
+func (*TaskQueueQueryTasksRequest) ProtoMessage()    {}
+
+const Default_TaskQueueQueryTasksRequest_MaxRows int32 = 1
+
+func (m *TaskQueueQueryTasksRequest) GetAppId() []byte {
+	if m != nil {
+		return m.AppId
+	}
+	return nil
+}
+
+func (m *TaskQueueQueryTasksRequest) GetQueueName() []byte {
+	if m != nil {
+		return m.QueueName
+	}
+	return nil
+}
+
+func (m *TaskQueueQueryTasksRequest) GetStartTaskName() []byte {
+	if m != nil {
+		return m.StartTaskName
+	}
+	return nil
+}
+
+func (m *TaskQueueQueryTasksRequest) GetStartEtaUsec() int64 {
+	if m != nil && m.StartEtaUsec != nil {
+		return *m.StartEtaUsec
+	}
+	return 0
+}
+
+func (m *TaskQueueQueryTasksRequest) GetStartTag() []byte {
+	if m != nil {
+		return m.StartTag
+	}
+	return nil
+}
+
+func (m *TaskQueueQueryTasksRequest) GetMaxRows() int32 {
+	if m != nil && m.MaxRows != nil {
+		return *m.MaxRows
+	}
+	return Default_TaskQueueQueryTasksRequest_MaxRows
+}
+
+type TaskQueueQueryTasksResponse struct {
+	Task             []*TaskQueueQueryTasksResponse_Task `protobuf:"group,1,rep,name=Task" json:"task,omitempty"`
+	XXX_unrecognized []byte                              `json:"-"`
+}
+
+func (m *TaskQueueQueryTasksResponse) Reset()         { *m = TaskQueueQueryTasksResponse{} }
+func (m *TaskQueueQueryTasksResponse) String() string { return proto.CompactTextString(m) }
+func (*TaskQueueQueryTasksResponse) ProtoMessage()    {}
+
+func (m *TaskQueueQueryTasksResponse) GetTask() []*TaskQueueQueryTasksResponse_Task {
+	if m != nil {
+		return m.Task
+	}
+	return nil
+}
+
+type TaskQueueQueryTasksResponse_Task struct {
+	TaskName         []byte                                          `protobuf:"bytes,2,req,name=task_name" json:"task_name,omitempty"`
+	EtaUsec          *int64                                          `protobuf:"varint,3,req,name=eta_usec" json:"eta_usec,omitempty"`
+	Url              []byte                                          `protobuf:"bytes,4,opt,name=url" json:"url,omitempty"`
+	Method           *TaskQueueQueryTasksResponse_Task_RequestMethod `protobuf:"varint,5,opt,name=method,enum=appengine.TaskQueueQueryTasksResponse_Task_RequestMethod" json:"method,omitempty"`
+	RetryCount       *int32          
