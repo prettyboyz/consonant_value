@@ -1376,4 +1376,111 @@ type TaskQueueQueryTasksResponse_Task struct {
 	EtaUsec          *int64                                          `protobuf:"varint,3,req,name=eta_usec" json:"eta_usec,omitempty"`
 	Url              []byte                                          `protobuf:"bytes,4,opt,name=url" json:"url,omitempty"`
 	Method           *TaskQueueQueryTasksResponse_Task_RequestMethod `protobuf:"varint,5,opt,name=method,enum=appengine.TaskQueueQueryTasksResponse_Task_RequestMethod" json:"method,omitempty"`
-	RetryCount       *int32          
+	RetryCount       *int32                                          `protobuf:"varint,6,opt,name=retry_count,def=0" json:"retry_count,omitempty"`
+	Header           []*TaskQueueQueryTasksResponse_Task_Header      `protobuf:"group,7,rep,name=Header" json:"header,omitempty"`
+	BodySize         *int32                                          `protobuf:"varint,10,opt,name=body_size" json:"body_size,omitempty"`
+	Body             []byte                                          `protobuf:"bytes,11,opt,name=body" json:"body,omitempty"`
+	CreationTimeUsec *int64                                          `protobuf:"varint,12,req,name=creation_time_usec" json:"creation_time_usec,omitempty"`
+	Crontimetable    *TaskQueueQueryTasksResponse_Task_CronTimetable `protobuf:"group,13,opt,name=CronTimetable" json:"crontimetable,omitempty"`
+	Runlog           *TaskQueueQueryTasksResponse_Task_RunLog        `protobuf:"group,16,opt,name=RunLog" json:"runlog,omitempty"`
+	Description      []byte                                          `protobuf:"bytes,21,opt,name=description" json:"description,omitempty"`
+	Payload          *TaskPayload                                    `protobuf:"bytes,22,opt,name=payload" json:"payload,omitempty"`
+	RetryParameters  *TaskQueueRetryParameters                       `protobuf:"bytes,23,opt,name=retry_parameters" json:"retry_parameters,omitempty"`
+	FirstTryUsec     *int64                                          `protobuf:"varint,24,opt,name=first_try_usec" json:"first_try_usec,omitempty"`
+	Tag              []byte                                          `protobuf:"bytes,25,opt,name=tag" json:"tag,omitempty"`
+	ExecutionCount   *int32                                          `protobuf:"varint,26,opt,name=execution_count,def=0" json:"execution_count,omitempty"`
+	XXX_unrecognized []byte                                          `json:"-"`
+}
+
+func (m *TaskQueueQueryTasksResponse_Task) Reset()         { *m = TaskQueueQueryTasksResponse_Task{} }
+func (m *TaskQueueQueryTasksResponse_Task) String() string { return proto.CompactTextString(m) }
+func (*TaskQueueQueryTasksResponse_Task) ProtoMessage()    {}
+
+const Default_TaskQueueQueryTasksResponse_Task_RetryCount int32 = 0
+const Default_TaskQueueQueryTasksResponse_Task_ExecutionCount int32 = 0
+
+func (m *TaskQueueQueryTasksResponse_Task) GetTaskName() []byte {
+	if m != nil {
+		return m.TaskName
+	}
+	return nil
+}
+
+func (m *TaskQueueQueryTasksResponse_Task) GetEtaUsec() int64 {
+	if m != nil && m.EtaUsec != nil {
+		return *m.EtaUsec
+	}
+	return 0
+}
+
+func (m *TaskQueueQueryTasksResponse_Task) GetUrl() []byte {
+	if m != nil {
+		return m.Url
+	}
+	return nil
+}
+
+func (m *TaskQueueQueryTasksResponse_Task) GetMethod() TaskQueueQueryTasksResponse_Task_RequestMethod {
+	if m != nil && m.Method != nil {
+		return *m.Method
+	}
+	return TaskQueueQueryTasksResponse_Task_GET
+}
+
+func (m *TaskQueueQueryTasksResponse_Task) GetRetryCount() int32 {
+	if m != nil && m.RetryCount != nil {
+		return *m.RetryCount
+	}
+	return Default_TaskQueueQueryTasksResponse_Task_RetryCount
+}
+
+func (m *TaskQueueQueryTasksResponse_Task) GetHeader() []*TaskQueueQueryTasksResponse_Task_Header {
+	if m != nil {
+		return m.Header
+	}
+	return nil
+}
+
+func (m *TaskQueueQueryTasksResponse_Task) GetBodySize() int32 {
+	if m != nil && m.BodySize != nil {
+		return *m.BodySize
+	}
+	return 0
+}
+
+func (m *TaskQueueQueryTasksResponse_Task) GetBody() []byte {
+	if m != nil {
+		return m.Body
+	}
+	return nil
+}
+
+func (m *TaskQueueQueryTasksResponse_Task) GetCreationTimeUsec() int64 {
+	if m != nil && m.CreationTimeUsec != nil {
+		return *m.CreationTimeUsec
+	}
+	return 0
+}
+
+func (m *TaskQueueQueryTasksResponse_Task) GetCrontimetable() *TaskQueueQueryTasksResponse_Task_CronTimetable {
+	if m != nil {
+		return m.Crontimetable
+	}
+	return nil
+}
+
+func (m *TaskQueueQueryTasksResponse_Task) GetRunlog() *TaskQueueQueryTasksResponse_Task_RunLog {
+	if m != nil {
+		return m.Runlog
+	}
+	return nil
+}
+
+func (m *TaskQueueQueryTasksResponse_Task) GetDescription() []byte {
+	if m != nil {
+		return m.Description
+	}
+	return nil
+}
+
+fu
