@@ -59,4 +59,24 @@ type DocumentMetadata struct {
 
 // FieldLoadSaver can be converted from and to a slice of Fields
 // with additional document metadata.
-type FieldLoa
+type FieldLoadSaver interface {
+	Load([]Field, *DocumentMetadata) error
+	Save() ([]Field, *DocumentMetadata, error)
+}
+
+// FieldList converts a []Field to implement FieldLoadSaver.
+type FieldList []Field
+
+// Load loads all of the provided fields into l.
+// It does not first reset *l to an empty slice.
+func (l *FieldList) Load(f []Field, _ *DocumentMetadata) error {
+	*l = append(*l, f...)
+	return nil
+}
+
+// Save returns all of l's fields as a slice of Fields.
+func (l *FieldList) Save() ([]Field, *DocumentMetadata, error) {
+	return *l, nil, nil
+}
+
+var _ FieldLoadSaver = (*FieldList)(nil)
