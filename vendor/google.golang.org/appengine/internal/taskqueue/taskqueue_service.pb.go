@@ -1732,4 +1732,134 @@ func (m *TaskQueueQueryAndOwnTasksRequest) GetQueueName() []byte {
 	return nil
 }
 
-func (m *TaskQueueQueryAndOwnTasksRequest) GetLeaseSeconds() float64 
+func (m *TaskQueueQueryAndOwnTasksRequest) GetLeaseSeconds() float64 {
+	if m != nil && m.LeaseSeconds != nil {
+		return *m.LeaseSeconds
+	}
+	return 0
+}
+
+func (m *TaskQueueQueryAndOwnTasksRequest) GetMaxTasks() int64 {
+	if m != nil && m.MaxTasks != nil {
+		return *m.MaxTasks
+	}
+	return 0
+}
+
+func (m *TaskQueueQueryAndOwnTasksRequest) GetGroupByTag() bool {
+	if m != nil && m.GroupByTag != nil {
+		return *m.GroupByTag
+	}
+	return Default_TaskQueueQueryAndOwnTasksRequest_GroupByTag
+}
+
+func (m *TaskQueueQueryAndOwnTasksRequest) GetTag() []byte {
+	if m != nil {
+		return m.Tag
+	}
+	return nil
+}
+
+type TaskQueueQueryAndOwnTasksResponse struct {
+	Task             []*TaskQueueQueryAndOwnTasksResponse_Task `protobuf:"group,1,rep,name=Task" json:"task,omitempty"`
+	XXX_unrecognized []byte                                    `json:"-"`
+}
+
+func (m *TaskQueueQueryAndOwnTasksResponse) Reset()         { *m = TaskQueueQueryAndOwnTasksResponse{} }
+func (m *TaskQueueQueryAndOwnTasksResponse) String() string { return proto.CompactTextString(m) }
+func (*TaskQueueQueryAndOwnTasksResponse) ProtoMessage()    {}
+
+func (m *TaskQueueQueryAndOwnTasksResponse) GetTask() []*TaskQueueQueryAndOwnTasksResponse_Task {
+	if m != nil {
+		return m.Task
+	}
+	return nil
+}
+
+type TaskQueueQueryAndOwnTasksResponse_Task struct {
+	TaskName         []byte `protobuf:"bytes,2,req,name=task_name" json:"task_name,omitempty"`
+	EtaUsec          *int64 `protobuf:"varint,3,req,name=eta_usec" json:"eta_usec,omitempty"`
+	RetryCount       *int32 `protobuf:"varint,4,opt,name=retry_count,def=0" json:"retry_count,omitempty"`
+	Body             []byte `protobuf:"bytes,5,opt,name=body" json:"body,omitempty"`
+	Tag              []byte `protobuf:"bytes,6,opt,name=tag" json:"tag,omitempty"`
+	XXX_unrecognized []byte `json:"-"`
+}
+
+func (m *TaskQueueQueryAndOwnTasksResponse_Task) Reset() {
+	*m = TaskQueueQueryAndOwnTasksResponse_Task{}
+}
+func (m *TaskQueueQueryAndOwnTasksResponse_Task) String() string { return proto.CompactTextString(m) }
+func (*TaskQueueQueryAndOwnTasksResponse_Task) ProtoMessage()    {}
+
+const Default_TaskQueueQueryAndOwnTasksResponse_Task_RetryCount int32 = 0
+
+func (m *TaskQueueQueryAndOwnTasksResponse_Task) GetTaskName() []byte {
+	if m != nil {
+		return m.TaskName
+	}
+	return nil
+}
+
+func (m *TaskQueueQueryAndOwnTasksResponse_Task) GetEtaUsec() int64 {
+	if m != nil && m.EtaUsec != nil {
+		return *m.EtaUsec
+	}
+	return 0
+}
+
+func (m *TaskQueueQueryAndOwnTasksResponse_Task) GetRetryCount() int32 {
+	if m != nil && m.RetryCount != nil {
+		return *m.RetryCount
+	}
+	return Default_TaskQueueQueryAndOwnTasksResponse_Task_RetryCount
+}
+
+func (m *TaskQueueQueryAndOwnTasksResponse_Task) GetBody() []byte {
+	if m != nil {
+		return m.Body
+	}
+	return nil
+}
+
+func (m *TaskQueueQueryAndOwnTasksResponse_Task) GetTag() []byte {
+	if m != nil {
+		return m.Tag
+	}
+	return nil
+}
+
+type TaskQueueModifyTaskLeaseRequest struct {
+	QueueName        []byte   `protobuf:"bytes,1,req,name=queue_name" json:"queue_name,omitempty"`
+	TaskName         []byte   `protobuf:"bytes,2,req,name=task_name" json:"task_name,omitempty"`
+	EtaUsec          *int64   `protobuf:"varint,3,req,name=eta_usec" json:"eta_usec,omitempty"`
+	LeaseSeconds     *float64 `protobuf:"fixed64,4,req,name=lease_seconds" json:"lease_seconds,omitempty"`
+	XXX_unrecognized []byte   `json:"-"`
+}
+
+func (m *TaskQueueModifyTaskLeaseRequest) Reset()         { *m = TaskQueueModifyTaskLeaseRequest{} }
+func (m *TaskQueueModifyTaskLeaseRequest) String() string { return proto.CompactTextString(m) }
+func (*TaskQueueModifyTaskLeaseRequest) ProtoMessage()    {}
+
+func (m *TaskQueueModifyTaskLeaseRequest) GetQueueName() []byte {
+	if m != nil {
+		return m.QueueName
+	}
+	return nil
+}
+
+func (m *TaskQueueModifyTaskLeaseRequest) GetTaskName() []byte {
+	if m != nil {
+		return m.TaskName
+	}
+	return nil
+}
+
+func (m *TaskQueueModifyTaskLeaseRequest) GetEtaUsec() int64 {
+	if m != nil && m.EtaUsec != nil {
+		return *m.EtaUsec
+	}
+	return 0
+}
+
+func (m *TaskQueueModifyTaskLeaseRequest) GetLeaseSeconds() float64 {
+	if m != 
