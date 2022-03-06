@@ -124,4 +124,51 @@ func (c *remoteContext) call(ctx context.Context, service, method string, in, ou
 	}
 
 	if remResp.Response == nil {
-		return fmt
+		return fmt.Errorf("unexpected response: %s", proto.MarshalTextString(remResp))
+	}
+
+	return proto.Unmarshal(remResp.Response, out)
+}
+
+// This is a forgiving regexp designed to parse the app ID from YAML.
+var appIDRE = regexp.MustCompile(`app_id["']?\s*:\s*['"]?([-a-z0-9.:~]+)`)
+
+func getAppID(client *http.Client, url string) (string, error) {
+	// Generate a pseudo-random token for handshaking.
+	token := strconv.Itoa(rand.New(rand.NewSource(time.Now().UnixNano())).Int())
+
+	resp, err := client.Get(fmt.Sprintf("%s?rtok=%s", url, token))
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("bad response %d; body: %q", resp.StatusCode, body)
+	}
+	if err != nil {
+		return "", fmt.Errorf("failed reading response: %v", err)
+	}
+
+	// Check the token is present in response.
+	if !bytes.Contains(body, []byte(token)) {
+		return "", fmt.Errorf("token not found: want %q; body %q", token, body)
+	}
+
+	match := appIDRE.FindSubmatch(body)
+	if match == nil {
+		return "", fmt.Errorf("app ID not found: body %q", body)
+	}
+
+	return string(match[1]), nil
+}
+
+type headerAddingRoundTripper struct {
+	Wrapped http.RoundTripper
+}
+
+func (t *headerAddingRoundTripper) RoundTrip(r *http.Request) (*http.Response, error) {
+	r.Header.Set("X-Appcfg-Api-Version", "1")
+	return t.Wrapped.RoundTrip(r)
+}
