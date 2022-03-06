@@ -402,3 +402,126 @@ func (cd Codec) set(c context.Context, items []*Item, policy pb.MemcacheSetReque
 }
 
 // Set writes the given item, unconditionally.
+func (cd Codec) Set(c context.Context, item *Item) error {
+	return singleError(cd.set(c, []*Item{item}, pb.MemcacheSetRequest_SET))
+}
+
+// SetMulti is a batch version of Set.
+// appengine.MultiError may be returned.
+func (cd Codec) SetMulti(c context.Context, items []*Item) error {
+	return cd.set(c, items, pb.MemcacheSetRequest_SET)
+}
+
+// Add writes the given item, if no value already exists for its key.
+// ErrNotStored is returned if that condition is not met.
+func (cd Codec) Add(c context.Context, item *Item) error {
+	return singleError(cd.set(c, []*Item{item}, pb.MemcacheSetRequest_ADD))
+}
+
+// AddMulti is a batch version of Add.
+// appengine.MultiError may be returned.
+func (cd Codec) AddMulti(c context.Context, items []*Item) error {
+	return cd.set(c, items, pb.MemcacheSetRequest_ADD)
+}
+
+// CompareAndSwap writes the given item that was previously returned by Get,
+// if the value was neither modified or evicted between the Get and the
+// CompareAndSwap calls. The item's Key should not change between calls but
+// all other item fields may differ.
+// ErrCASConflict is returned if the value was modified in between the calls.
+// ErrNotStored is returned if the value was evicted in between the calls.
+func (cd Codec) CompareAndSwap(c context.Context, item *Item) error {
+	return singleError(cd.set(c, []*Item{item}, pb.MemcacheSetRequest_CAS))
+}
+
+// CompareAndSwapMulti is a batch version of CompareAndSwap.
+// appengine.MultiError may be returned.
+func (cd Codec) CompareAndSwapMulti(c context.Context, items []*Item) error {
+	return cd.set(c, items, pb.MemcacheSetRequest_CAS)
+}
+
+var (
+	// Gob is a Codec that uses the gob package.
+	Gob = Codec{gobMarshal, gobUnmarshal}
+	// JSON is a Codec that uses the json package.
+	JSON = Codec{json.Marshal, json.Unmarshal}
+)
+
+func gobMarshal(v interface{}) ([]byte, error) {
+	var buf bytes.Buffer
+	if err := gob.NewEncoder(&buf).Encode(v); err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
+}
+
+func gobUnmarshal(data []byte, v interface{}) error {
+	return gob.NewDecoder(bytes.NewBuffer(data)).Decode(v)
+}
+
+// Statistics represents a set of statistics about the memcache cache.
+// This may include items that have expired but have not yet been removed from the cache.
+type Statistics struct {
+	Hits     uint64 // Counter of cache hits
+	Misses   uint64 // Counter of cache misses
+	ByteHits uint64 // Counter of bytes transferred for gets
+
+	Items uint64 // Items currently in the cache
+	Bytes uint64 // Size of all items currently in the cache
+
+	Oldest int64 // Age of access of the oldest item, in seconds
+}
+
+// Stats retrieves the current memcache statistics.
+func Stats(c context.Context) (*Statistics, error) {
+	req := &pb.MemcacheStatsRequest{}
+	res := &pb.MemcacheStatsResponse{}
+	if err := internal.Call(c, "memcache", "Stats", req, res); err != nil {
+		return nil, err
+	}
+	if res.Stats == nil {
+		return nil, ErrNoStats
+	}
+	return &Statistics{
+		Hits:     *res.Stats.Hits,
+		Misses:   *res.Stats.Misses,
+		ByteHits: *res.Stats.ByteHits,
+		Items:    *res.Stats.Items,
+		Bytes:    *res.Stats.Bytes,
+		Oldest:   int64(*res.Stats.OldestItemAge),
+	}, nil
+}
+
+// Flush flushes all items from memcache.
+func Flush(c context.Context) error {
+	req := &pb.MemcacheFlushRequest{}
+	res := &pb.MemcacheFlushResponse{}
+	return internal.Call(c, "memcache", "FlushAll", req, res)
+}
+
+func namespaceMod(m proto.Message, namespace string) {
+	switch m := m.(type) {
+	case *pb.MemcacheDeleteRequest:
+		if m.NameSpace == nil {
+			m.NameSpace = &namespace
+		}
+	case *pb.MemcacheGetRequest:
+		if m.NameSpace == nil {
+			m.NameSpace = &namespace
+		}
+	case *pb.MemcacheIncrementRequest:
+		if m.NameSpace == nil {
+			m.NameSpace = &namespace
+		}
+	case *pb.MemcacheSetRequest:
+		if m.NameSpace == nil {
+			m.NameSpace = &namespace
+		}
+		// MemcacheFlushRequest, MemcacheStatsRequest do not apply namespace.
+	}
+}
+
+func init() {
+	internal.RegisterErrorCodeMap("memcache", pb.MemcacheServiceError_ErrorCode_name)
+	internal.NamespaceMods["memcache"] = namespaceMod
+}
