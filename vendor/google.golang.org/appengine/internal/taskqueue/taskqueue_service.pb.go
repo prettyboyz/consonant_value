@@ -1862,4 +1862,27 @@ func (m *TaskQueueModifyTaskLeaseRequest) GetEtaUsec() int64 {
 }
 
 func (m *TaskQueueModifyTaskLeaseRequest) GetLeaseSeconds() float64 {
-	if m != 
+	if m != nil && m.LeaseSeconds != nil {
+		return *m.LeaseSeconds
+	}
+	return 0
+}
+
+type TaskQueueModifyTaskLeaseResponse struct {
+	UpdatedEtaUsec   *int64 `protobuf:"varint,1,req,name=updated_eta_usec" json:"updated_eta_usec,omitempty"`
+	XXX_unrecognized []byte `json:"-"`
+}
+
+func (m *TaskQueueModifyTaskLeaseResponse) Reset()         { *m = TaskQueueModifyTaskLeaseResponse{} }
+func (m *TaskQueueModifyTaskLeaseResponse) String() string { return proto.CompactTextString(m) }
+func (*TaskQueueModifyTaskLeaseResponse) ProtoMessage()    {}
+
+func (m *TaskQueueModifyTaskLeaseResponse) GetUpdatedEtaUsec() int64 {
+	if m != nil && m.UpdatedEtaUsec != nil {
+		return *m.UpdatedEtaUsec
+	}
+	return 0
+}
+
+func init() {
+}
