@@ -82,4 +82,170 @@ func loadCodec(t reflect.Type) (*structCodec, error) {
 
 	for i, I := 0, t.NumField(); i < I; i++ {
 		f := t.Field(i)
-		name, opts := f.Tag.Get("search"),
+		name, opts := f.Tag.Get("search"), ""
+		if i := strings.Index(name, ","); i != -1 {
+			name, opts = name[:i], name[i+1:]
+		}
+		ignore := false
+		if name == "-" {
+			ignore = true
+		} else if name == "" {
+			name = f.Name
+		} else if !validFieldName(name) {
+			return nil, fmt.Errorf("search: struct tag has invalid field name: %q", name)
+		}
+		facet := opts == "facet"
+		codec.byIndex = append(codec.byIndex, structTag{name: name, facet: facet, ignore: ignore})
+		if facet {
+			codec.facetByName[name] = i
+		} else {
+			codec.fieldByName[name] = i
+		}
+	}
+
+	codecs[t] = codec
+	return codec, nil
+}
+
+// structFLS adapts a struct to be a FieldLoadSaver.
+type structFLS struct {
+	v     reflect.Value
+	codec *structCodec
+}
+
+func (s structFLS) Load(fields []Field, meta *DocumentMetadata) error {
+	var err error
+	for _, field := range fields {
+		i, ok := s.codec.fieldByName[field.Name]
+		if !ok {
+			// Note the error, but keep going.
+			err = &ErrFieldMismatch{
+				FieldName: field.Name,
+				Reason:    "no such struct field",
+			}
+			continue
+
+		}
+		f := s.v.Field(i)
+		if !f.CanSet() {
+			// Note the error, but keep going.
+			err = &ErrFieldMismatch{
+				FieldName: field.Name,
+				Reason:    "cannot set struct field",
+			}
+			continue
+		}
+		v := reflect.ValueOf(field.Value)
+		if ft, vt := f.Type(), v.Type(); ft != vt {
+			err = &ErrFieldMismatch{
+				FieldName: field.Name,
+				Reason:    fmt.Sprintf("type mismatch: %v for %v data", ft, vt),
+			}
+			continue
+		}
+		f.Set(v)
+	}
+	if meta == nil {
+		return err
+	}
+	for _, facet := range meta.Facets {
+		i, ok := s.codec.facetByName[facet.Name]
+		if !ok {
+			// Note the error, but keep going.
+			if err == nil {
+				err = &ErrFacetMismatch{
+					StructType: s.v.Type(),
+					FacetName:  facet.Name,
+					Reason:     "no matching field found",
+				}
+			}
+			continue
+		}
+		f := s.v.Field(i)
+		if !f.CanSet() {
+			// Note the error, but keep going.
+			if err == nil {
+				err = &ErrFacetMismatch{
+					StructType: s.v.Type(),
+					FacetName:  facet.Name,
+					Reason:     "unable to set unexported field of struct",
+				}
+			}
+			continue
+		}
+		v := reflect.ValueOf(facet.Value)
+		if ft, vt := f.Type(), v.Type(); ft != vt {
+			if err == nil {
+				err = &ErrFacetMismatch{
+					StructType: s.v.Type(),
+					FacetName:  facet.Name,
+					Reason:     fmt.Sprintf("type mismatch: %v for %d data", ft, vt),
+				}
+				continue
+			}
+		}
+		f.Set(v)
+	}
+	return err
+}
+
+func (s structFLS) Save() ([]Field, *DocumentMetadata, error) {
+	fields := make([]Field, 0, len(s.codec.fieldByName))
+	var facets []Facet
+	for i, tag := range s.codec.byIndex {
+		if tag.ignore {
+			continue
+		}
+		f := s.v.Field(i)
+		if !f.CanSet() {
+			continue
+		}
+		if tag.facet {
+			facets = append(facets, Facet{Name: tag.name, Value: f.Interface()})
+		} else {
+			fields = append(fields, Field{Name: tag.name, Value: f.Interface()})
+		}
+	}
+	return fields, &DocumentMetadata{Facets: facets}, nil
+}
+
+// newStructFLS returns a FieldLoadSaver for the struct pointer p.
+func newStructFLS(p interface{}) (FieldLoadSaver, error) {
+	v := reflect.ValueOf(p)
+	if v.Kind() != reflect.Ptr || v.IsNil() || v.Elem().Kind() != reflect.Struct {
+		return nil, ErrInvalidDocumentType
+	}
+	codec, err := loadCodec(v.Elem().Type())
+	if err != nil {
+		return nil, err
+	}
+	return structFLS{v.Elem(), codec}, nil
+}
+
+func loadStructWithMeta(dst interface{}, f []Field, meta *DocumentMetadata) error {
+	x, err := newStructFLS(dst)
+	if err != nil {
+		return err
+	}
+	return x.Load(f, meta)
+}
+
+func saveStructWithMeta(src interface{}) ([]Field, *DocumentMetadata, error) {
+	x, err := newStructFLS(src)
+	if err != nil {
+		return nil, nil, err
+	}
+	return x.Save()
+}
+
+// LoadStruct loads the fields from f to dst. dst must be a struct pointer.
+func LoadStruct(dst interface{}, f []Field) error {
+	return loadStructWithMeta(dst, f, nil)
+}
+
+// SaveStruct returns the fields from src as a slice of Field.
+// src must be a struct pointer.
+func SaveStruct(src interface{}) ([]Field, error) {
+	f, _, err := saveStructWithMeta(src)
+	return f, err
+}
