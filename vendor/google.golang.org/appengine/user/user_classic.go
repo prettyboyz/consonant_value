@@ -15,4 +15,30 @@ import (
 )
 
 func Current(ctx context.Context) *User {
-	c, err := in
+	c, err := internal.ClassicContextFromContext(ctx)
+	if err != nil {
+		panic(err)
+	}
+	u := user.Current(c)
+	if u == nil {
+		return nil
+	}
+	// Map appengine/user.User to this package's User type.
+	return &User{
+		Email:             u.Email,
+		AuthDomain:        u.AuthDomain,
+		Admin:             u.Admin,
+		ID:                u.ID,
+		FederatedIdentity: u.FederatedIdentity,
+		FederatedProvider: u.FederatedProvider,
+	}
+}
+
+func IsAdmin(ctx context.Context) bool {
+	c, err := internal.ClassicContextFromContext(ctx)
+	if err != nil {
+		panic(err)
+	}
+
+	return user.IsAdmin(c)
+}
