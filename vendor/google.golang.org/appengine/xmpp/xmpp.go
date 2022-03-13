@@ -245,4 +245,9 @@ func GetPresenceMulti(c context.Context, to []string, from string) ([]string, er
 	if anyErr {
 		return presences, errs
 	}
-	ret
+	return presences, nil
+}
+
+func init() {
+	internal.RegisterErrorCodeMap("xmpp", pb.XmppServiceError_ErrorCode_name)
+}
