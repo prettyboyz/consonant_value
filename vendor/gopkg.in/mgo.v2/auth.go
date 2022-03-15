@@ -131,4 +131,151 @@ func (socket *mongoSocket) resetNonce() {
 		}
 		debugf("Socket %p to %s: nonce unmarshalled: %#v", socket, socket.addr, result)
 		if result.Code == 13390 {
-			// mongos doesn't yet support auth (see http://j.m
+			// mongos doesn't yet support auth (see http://j.mp/mongos-auth)
+			result.Nonce = "mongos"
+		} else if result.Nonce == "" {
+			var msg string
+			if result.Err != "" {
+				msg = fmt.Sprintf("Got an empty nonce: %s (%d)", result.Err, result.Code)
+			} else {
+				msg = "Got an empty nonce"
+			}
+			socket.kill(errors.New(msg), true)
+			return
+		}
+		socket.Lock()
+		if socket.cachedNonce != "" {
+			socket.Unlock()
+			panic("resetNonce: nonce already cached")
+		}
+		socket.cachedNonce = result.Nonce
+		socket.gotNonce.Signal()
+		socket.Unlock()
+	}
+	err := socket.Query(op)
+	if err != nil {
+		socket.kill(errors.New("resetNonce: "+err.Error()), true)
+	}
+}
+
+func (socket *mongoSocket) Login(cred Credential) error {
+	socket.Lock()
+	if cred.Mechanism == "" && socket.serverInfo.MaxWireVersion >= 3 {
+		cred.Mechanism = "SCRAM-SHA-1"
+	}
+	for _, sockCred := range socket.creds {
+		if sockCred == cred {
+			debugf("Socket %p to %s: login: db=%q user=%q (already logged in)", socket, socket.addr, cred.Source, cred.Username)
+			socket.Unlock()
+			return nil
+		}
+	}
+	if socket.dropLogout(cred) {
+		debugf("Socket %p to %s: login: db=%q user=%q (cached)", socket, socket.addr, cred.Source, cred.Username)
+		socket.creds = append(socket.creds, cred)
+		socket.Unlock()
+		return nil
+	}
+	socket.Unlock()
+
+	debugf("Socket %p to %s: login: db=%q user=%q", socket, socket.addr, cred.Source, cred.Username)
+
+	var err error
+	switch cred.Mechanism {
+	case "", "MONGODB-CR", "MONGO-CR": // Name changed to MONGODB-CR in SERVER-8501.
+		err = socket.loginClassic(cred)
+	case "PLAIN":
+		err = socket.loginPlain(cred)
+	case "MONGODB-X509":
+		err = socket.loginX509(cred)
+	default:
+		// Try SASL for everything else, if it is available.
+		err = socket.loginSASL(cred)
+	}
+
+	if err != nil {
+		debugf("Socket %p to %s: login error: %s", socket, socket.addr, err)
+	} else {
+		debugf("Socket %p to %s: login successful", socket, socket.addr)
+	}
+	return err
+}
+
+func (socket *mongoSocket) loginClassic(cred Credential) error {
+	// Note that this only works properly because this function is
+	// synchronous, which means the nonce won't get reset while we're
+	// using it and any other login requests will block waiting for a
+	// new nonce provided in the defer call below.
+	nonce, err := socket.getNonce()
+	if err != nil {
+		return err
+	}
+	defer socket.resetNonce()
+
+	psum := md5.New()
+	psum.Write([]byte(cred.Username + ":mongo:" + cred.Password))
+
+	ksum := md5.New()
+	ksum.Write([]byte(nonce + cred.Username))
+	ksum.Write([]byte(hex.EncodeToString(psum.Sum(nil))))
+
+	key := hex.EncodeToString(ksum.Sum(nil))
+
+	cmd := authCmd{Authenticate: 1, User: cred.Username, Nonce: nonce, Key: key}
+	res := authResult{}
+	return socket.loginRun(cred.Source, &cmd, &res, func() error {
+		if !res.Ok {
+			return errors.New(res.ErrMsg)
+		}
+		socket.Lock()
+		socket.dropAuth(cred.Source)
+		socket.creds = append(socket.creds, cred)
+		socket.Unlock()
+		return nil
+	})
+}
+
+type authX509Cmd struct {
+	Authenticate int
+	User         string
+	Mechanism    string
+}
+
+func (socket *mongoSocket) loginX509(cred Credential) error {
+	cmd := authX509Cmd{Authenticate: 1, User: cred.Username, Mechanism: "MONGODB-X509"}
+	res := authResult{}
+	return socket.loginRun(cred.Source, &cmd, &res, func() error {
+		if !res.Ok {
+			return errors.New(res.ErrMsg)
+		}
+		socket.Lock()
+		socket.dropAuth(cred.Source)
+		socket.creds = append(socket.creds, cred)
+		socket.Unlock()
+		return nil
+	})
+}
+
+func (socket *mongoSocket) loginPlain(cred Credential) error {
+	cmd := saslCmd{Start: 1, Mechanism: "PLAIN", Payload: []byte("\x00" + cred.Username + "\x00" + cred.Password)}
+	res := authResult{}
+	return socket.loginRun(cred.Source, &cmd, &res, func() error {
+		if !res.Ok {
+			return errors.New(res.ErrMsg)
+		}
+		socket.Lock()
+		socket.dropAuth(cred.Source)
+		socket.creds = append(socket.creds, cred)
+		socket.Unlock()
+		return nil
+	})
+}
+
+func (socket *mongoSocket) loginSASL(cred Credential) error {
+	var sasl saslStepper
+	var err error
+	if cred.Mechanism == "SCRAM-SHA-1" {
+		// SCRAM is handled without external libraries.
+		sasl = saslNewScram(cred)
+	} else if len(cred.ServiceHost) > 0 {
+		sasl, err = saslN
