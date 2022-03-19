@@ -444,4 +444,24 @@ func (socket *mongoSocket) flushLogout() (ops []interface{}) {
 	return
 }
 
-func (socket *mongoSocket) dropAuth(db string) (cred Crede
+func (socket *mongoSocket) dropAuth(db string) (cred Credential, found bool) {
+	for i, sockCred := range socket.creds {
+		if sockCred.Source == db {
+			copy(socket.creds[i:], socket.creds[i+1:])
+			socket.creds = socket.creds[:len(socket.creds)-1]
+			return sockCred, true
+		}
+	}
+	return cred, false
+}
+
+func (socket *mongoSocket) dropLogout(cred Credential) (found bool) {
+	for i, sockCred := range socket.logout {
+		if sockCred == cred {
+			copy(socket.logout[i:], socket.logout[i+1:])
+			socket.logout = socket.logout[:len(socket.logout)-1]
+			return true
+		}
+	}
+	return false
+}
