@@ -278,4 +278,170 @@ func (socket *mongoSocket) loginSASL(cred Credential) error {
 		// SCRAM is handled without external libraries.
 		sasl = saslNewScram(cred)
 	} else if len(cred.ServiceHost) > 0 {
-		sasl, err = saslN
+		sasl, err = saslNew(cred, cred.ServiceHost)
+	} else {
+		sasl, err = saslNew(cred, socket.Server().Addr)
+	}
+	if err != nil {
+		return err
+	}
+	defer sasl.Close()
+
+	// The goal of this logic is to carry a locked socket until the
+	// local SASL step confirms the auth is valid; the socket needs to be
+	// locked so that concurrent action doesn't leave the socket in an
+	// auth state that doesn't reflect the operations that took place.
+	// As a simple case, imagine inverting login=>logout to logout=>login.
+	//
+	// The logic below works because the lock func isn't called concurrently.
+	locked := false
+	lock := func(b bool) {
+		if locked != b {
+			locked = b
+			if b {
+				socket.Lock()
+			} else {
+				socket.Unlock()
+			}
+		}
+	}
+
+	lock(true)
+	defer lock(false)
+
+	start := 1
+	cmd := saslCmd{}
+	res := saslResult{}
+	for {
+		payload, done, err := sasl.Step(res.Payload)
+		if err != nil {
+			return err
+		}
+		if done && res.Done {
+			socket.dropAuth(cred.Source)
+			socket.creds = append(socket.creds, cred)
+			break
+		}
+		lock(false)
+
+		cmd = saslCmd{
+			Start:          start,
+			Continue:       1 - start,
+			ConversationId: res.ConversationId,
+			Mechanism:      cred.Mechanism,
+			Payload:        payload,
+		}
+		start = 0
+		err = socket.loginRun(cred.Source, &cmd, &res, func() error {
+			// See the comment on lock for why this is necessary.
+			lock(true)
+			if !res.Ok || res.NotOk {
+				return fmt.Errorf("server returned error on SASL authentication step: %s", res.ErrMsg)
+			}
+			return nil
+		})
+		if err != nil {
+			return err
+		}
+		if done && res.Done {
+			socket.dropAuth(cred.Source)
+			socket.creds = append(socket.creds, cred)
+			break
+		}
+	}
+
+	return nil
+}
+
+func saslNewScram(cred Credential) *saslScram {
+	credsum := md5.New()
+	credsum.Write([]byte(cred.Username + ":mongo:" + cred.Password))
+	client := scram.NewClient(sha1.New, cred.Username, hex.EncodeToString(credsum.Sum(nil)))
+	return &saslScram{cred: cred, client: client}
+}
+
+type saslScram struct {
+	cred   Credential
+	client *scram.Client
+}
+
+func (s *saslScram) Close() {}
+
+func (s *saslScram) Step(serverData []byte) (clientData []byte, done bool, err error) {
+	more := s.client.Step(serverData)
+	return s.client.Out(), !more, s.client.Err()
+}
+
+func (socket *mongoSocket) loginRun(db string, query, result interface{}, f func() error) error {
+	var mutex sync.Mutex
+	var replyErr error
+	mutex.Lock()
+
+	op := queryOp{}
+	op.query = query
+	op.collection = db + ".$cmd"
+	op.limit = -1
+	op.replyFunc = func(err error, reply *replyOp, docNum int, docData []byte) {
+		defer mutex.Unlock()
+
+		if err != nil {
+			replyErr = err
+			return
+		}
+
+		err = bson.Unmarshal(docData, result)
+		if err != nil {
+			replyErr = err
+		} else {
+			// Must handle this within the read loop for the socket, so
+			// that concurrent login requests are properly ordered.
+			replyErr = f()
+		}
+	}
+
+	err := socket.Query(&op)
+	if err != nil {
+		return err
+	}
+	mutex.Lock() // Wait.
+	return replyErr
+}
+
+func (socket *mongoSocket) Logout(db string) {
+	socket.Lock()
+	cred, found := socket.dropAuth(db)
+	if found {
+		debugf("Socket %p to %s: logout: db=%q (flagged)", socket, socket.addr, db)
+		socket.logout = append(socket.logout, cred)
+	}
+	socket.Unlock()
+}
+
+func (socket *mongoSocket) LogoutAll() {
+	socket.Lock()
+	if l := len(socket.creds); l > 0 {
+		debugf("Socket %p to %s: logout all (flagged %d)", socket, socket.addr, l)
+		socket.logout = append(socket.logout, socket.creds...)
+		socket.creds = socket.creds[0:0]
+	}
+	socket.Unlock()
+}
+
+func (socket *mongoSocket) flushLogout() (ops []interface{}) {
+	socket.Lock()
+	if l := len(socket.logout); l > 0 {
+		debugf("Socket %p to %s: logout all (flushing %d)", socket, socket.addr, l)
+		for i := 0; i != l; i++ {
+			op := queryOp{}
+			op.query = &logoutCmd{1}
+			op.collection = socket.logout[i].Source + ".$cmd"
+			op.limit = -1
+			ops = append(ops, &op)
+		}
+		socket.logout = socket.logout[0:0]
+	}
+	socket.Unlock()
+	return
+}
+
+func (socket *mongoSocket) dropAuth(db string) (cred Crede
