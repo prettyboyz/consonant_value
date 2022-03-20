@@ -306,4 +306,5 @@ func muladd(h, l uint64, mul uint32, add uint32) (resh, resl uint64, overflow ui
 	c = c&(1<<32-1) + b>>32
 	d = d&(1<<32-1) + c>>32
 
-	return (d<<32 | c&(1<<32-1)), (b<<3
+	return (d<<32 | c&(1<<32-1)), (b<<32 | a&(1<<32-1)), uint32(d >> 32)
+}
