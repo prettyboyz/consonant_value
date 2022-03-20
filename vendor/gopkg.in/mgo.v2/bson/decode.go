@@ -157,4 +157,200 @@ func (d *decoder) readDocTo(out reflect.Value) {
 	start := d.i
 
 	origout := out
-	if outk == reflect.I
+	if outk == reflect.Interface {
+		if d.docType.Kind() == reflect.Map {
+			mv := reflect.MakeMap(d.docType)
+			out.Set(mv)
+			out = mv
+		} else {
+			dv := reflect.New(d.docType).Elem()
+			out.Set(dv)
+			out = dv
+		}
+		outt = out.Type()
+		outk = outt.Kind()
+	}
+
+	docType := d.docType
+	keyType := typeString
+	convertKey := false
+	switch outk {
+	case reflect.Map:
+		keyType = outt.Key()
+		if keyType.Kind() != reflect.String {
+			panic("BSON map must have string keys. Got: " + outt.String())
+		}
+		if keyType != typeString {
+			convertKey = true
+		}
+		elemType = outt.Elem()
+		if elemType == typeIface {
+			d.docType = outt
+		}
+		if out.IsNil() {
+			out.Set(reflect.MakeMap(out.Type()))
+		} else if out.Len() > 0 {
+			clearMap(out)
+		}
+	case reflect.Struct:
+		if outt != typeRaw {
+			sinfo, err := getStructInfo(out.Type())
+			if err != nil {
+				panic(err)
+			}
+			fieldsMap = sinfo.FieldsMap
+			out.Set(sinfo.Zero)
+			if sinfo.InlineMap != -1 {
+				inlineMap = out.Field(sinfo.InlineMap)
+				if !inlineMap.IsNil() && inlineMap.Len() > 0 {
+					clearMap(inlineMap)
+				}
+				elemType = inlineMap.Type().Elem()
+				if elemType == typeIface {
+					d.docType = inlineMap.Type()
+				}
+			}
+		}
+	case reflect.Slice:
+		switch outt.Elem() {
+		case typeDocElem:
+			origout.Set(d.readDocElems(outt))
+			return
+		case typeRawDocElem:
+			origout.Set(d.readRawDocElems(outt))
+			return
+		}
+		fallthrough
+	default:
+		panic("Unsupported document type for unmarshalling: " + out.Type().String())
+	}
+
+	end := int(d.readInt32())
+	end += d.i - 4
+	if end <= d.i || end > len(d.in) || d.in[end-1] != '\x00' {
+		corrupted()
+	}
+	for d.in[d.i] != '\x00' {
+		kind := d.readByte()
+		name := d.readCStr()
+		if d.i >= end {
+			corrupted()
+		}
+
+		switch outk {
+		case reflect.Map:
+			e := reflect.New(elemType).Elem()
+			if d.readElemTo(e, kind) {
+				k := reflect.ValueOf(name)
+				if convertKey {
+					k = k.Convert(keyType)
+				}
+				out.SetMapIndex(k, e)
+			}
+		case reflect.Struct:
+			if outt == typeRaw {
+				d.dropElem(kind)
+			} else {
+				if info, ok := fieldsMap[name]; ok {
+					if info.Inline == nil {
+						d.readElemTo(out.Field(info.Num), kind)
+					} else {
+						d.readElemTo(out.FieldByIndex(info.Inline), kind)
+					}
+				} else if inlineMap.IsValid() {
+					if inlineMap.IsNil() {
+						inlineMap.Set(reflect.MakeMap(inlineMap.Type()))
+					}
+					e := reflect.New(elemType).Elem()
+					if d.readElemTo(e, kind) {
+						inlineMap.SetMapIndex(reflect.ValueOf(name), e)
+					}
+				} else {
+					d.dropElem(kind)
+				}
+			}
+		case reflect.Slice:
+		}
+
+		if d.i >= end {
+			corrupted()
+		}
+	}
+	d.i++ // '\x00'
+	if d.i != end {
+		corrupted()
+	}
+	d.docType = docType
+
+	if outt == typeRaw {
+		out.Set(reflect.ValueOf(Raw{0x03, d.in[start:d.i]}))
+	}
+}
+
+func (d *decoder) readArrayDocTo(out reflect.Value) {
+	end := int(d.readInt32())
+	end += d.i - 4
+	if end <= d.i || end > len(d.in) || d.in[end-1] != '\x00' {
+		corrupted()
+	}
+	i := 0
+	l := out.Len()
+	for d.in[d.i] != '\x00' {
+		if i >= l {
+			panic("Length mismatch on array field")
+		}
+		kind := d.readByte()
+		for d.i < end && d.in[d.i] != '\x00' {
+			d.i++
+		}
+		if d.i >= end {
+			corrupted()
+		}
+		d.i++
+		d.readElemTo(out.Index(i), kind)
+		if d.i >= end {
+			corrupted()
+		}
+		i++
+	}
+	if i != l {
+		panic("Length mismatch on array field")
+	}
+	d.i++ // '\x00'
+	if d.i != end {
+		corrupted()
+	}
+}
+
+func (d *decoder) readSliceDoc(t reflect.Type) interface{} {
+	tmp := make([]reflect.Value, 0, 8)
+	elemType := t.Elem()
+	if elemType == typeRawDocElem {
+		d.dropElem(0x04)
+		return reflect.Zero(t).Interface()
+	}
+
+	end := int(d.readInt32())
+	end += d.i - 4
+	if end <= d.i || end > len(d.in) || d.in[end-1] != '\x00' {
+		corrupted()
+	}
+	for d.in[d.i] != '\x00' {
+		kind := d.readByte()
+		for d.i < end && d.in[d.i] != '\x00' {
+			d.i++
+		}
+		if d.i >= end {
+			corrupted()
+		}
+		d.i++
+		e := reflect.New(elemType).Elem()
+		if d.readElemTo(e, kind) {
+			tmp = append(tmp, e)
+		}
+		if d.i >= end {
+			corrupted()
+		}
+	}
+	d.i++ // '\x00'
+	i
