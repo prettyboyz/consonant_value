@@ -353,4 +353,182 @@ func (d *decoder) readSliceDoc(t reflect.Type) interface{} {
 		}
 	}
 	d.i++ // '\x00'
-	i
+	if d.i != end {
+		corrupted()
+	}
+
+	n := len(tmp)
+	slice := reflect.MakeSlice(t, n, n)
+	for i := 0; i != n; i++ {
+		slice.Index(i).Set(tmp[i])
+	}
+	return slice.Interface()
+}
+
+var typeSlice = reflect.TypeOf([]interface{}{})
+var typeIface = typeSlice.Elem()
+
+func (d *decoder) readDocElems(typ reflect.Type) reflect.Value {
+	docType := d.docType
+	d.docType = typ
+	slice := make([]DocElem, 0, 8)
+	d.readDocWith(func(kind byte, name string) {
+		e := DocElem{Name: name}
+		v := reflect.ValueOf(&e.Value)
+		if d.readElemTo(v.Elem(), kind) {
+			slice = append(slice, e)
+		}
+	})
+	slicev := reflect.New(typ).Elem()
+	slicev.Set(reflect.ValueOf(slice))
+	d.docType = docType
+	return slicev
+}
+
+func (d *decoder) readRawDocElems(typ reflect.Type) reflect.Value {
+	docType := d.docType
+	d.docType = typ
+	slice := make([]RawDocElem, 0, 8)
+	d.readDocWith(func(kind byte, name string) {
+		e := RawDocElem{Name: name}
+		v := reflect.ValueOf(&e.Value)
+		if d.readElemTo(v.Elem(), kind) {
+			slice = append(slice, e)
+		}
+	})
+	slicev := reflect.New(typ).Elem()
+	slicev.Set(reflect.ValueOf(slice))
+	d.docType = docType
+	return slicev
+}
+
+func (d *decoder) readDocWith(f func(kind byte, name string)) {
+	end := int(d.readInt32())
+	end += d.i - 4
+	if end <= d.i || end > len(d.in) || d.in[end-1] != '\x00' {
+		corrupted()
+	}
+	for d.in[d.i] != '\x00' {
+		kind := d.readByte()
+		name := d.readCStr()
+		if d.i >= end {
+			corrupted()
+		}
+		f(kind, name)
+		if d.i >= end {
+			corrupted()
+		}
+	}
+	d.i++ // '\x00'
+	if d.i != end {
+		corrupted()
+	}
+}
+
+// --------------------------------------------------------------------------
+// Unmarshaling of individual elements within a document.
+
+var blackHole = settableValueOf(struct{}{})
+
+func (d *decoder) dropElem(kind byte) {
+	d.readElemTo(blackHole, kind)
+}
+
+// Attempt to decode an element from the document and put it into out.
+// If the types are not compatible, the returned ok value will be
+// false and out will be unchanged.
+func (d *decoder) readElemTo(out reflect.Value, kind byte) (good bool) {
+
+	start := d.i
+
+	if kind == 0x03 {
+		// Delegate unmarshaling of documents.
+		outt := out.Type()
+		outk := out.Kind()
+		switch outk {
+		case reflect.Interface, reflect.Ptr, reflect.Struct, reflect.Map:
+			d.readDocTo(out)
+			return true
+		}
+		if setterStyle(outt) != setterNone {
+			d.readDocTo(out)
+			return true
+		}
+		if outk == reflect.Slice {
+			switch outt.Elem() {
+			case typeDocElem:
+				out.Set(d.readDocElems(outt))
+			case typeRawDocElem:
+				out.Set(d.readRawDocElems(outt))
+			default:
+				d.readDocTo(blackHole)
+			}
+			return true
+		}
+		d.readDocTo(blackHole)
+		return true
+	}
+
+	var in interface{}
+
+	switch kind {
+	case 0x01: // Float64
+		in = d.readFloat64()
+	case 0x02: // UTF-8 string
+		in = d.readStr()
+	case 0x03: // Document
+		panic("Can't happen. Handled above.")
+	case 0x04: // Array
+		outt := out.Type()
+		if setterStyle(outt) != setterNone {
+			// Skip the value so its data is handed to the setter below.
+			d.dropElem(kind)
+			break
+		}
+		for outt.Kind() == reflect.Ptr {
+			outt = outt.Elem()
+		}
+		switch outt.Kind() {
+		case reflect.Array:
+			d.readArrayDocTo(out)
+			return true
+		case reflect.Slice:
+			in = d.readSliceDoc(outt)
+		default:
+			in = d.readSliceDoc(typeSlice)
+		}
+	case 0x05: // Binary
+		b := d.readBinary()
+		if b.Kind == 0x00 || b.Kind == 0x02 {
+			in = b.Data
+		} else {
+			in = b
+		}
+	case 0x06: // Undefined (obsolete, but still seen in the wild)
+		in = Undefined
+	case 0x07: // ObjectId
+		in = ObjectId(d.readBytes(12))
+	case 0x08: // Bool
+		in = d.readBool()
+	case 0x09: // Timestamp
+		// MongoDB handles timestamps as milliseconds.
+		i := d.readInt64()
+		if i == -62135596800000 {
+			in = time.Time{} // In UTC for convenience.
+		} else {
+			in = time.Unix(i/1e3, i%1e3*1e6)
+		}
+	case 0x0A: // Nil
+		in = nil
+	case 0x0B: // RegEx
+		in = d.readRegEx()
+	case 0x0C:
+		in = DBPointer{Namespace: d.readStr(), Id: ObjectId(d.readBytes(12))}
+	case 0x0D: // JavaScript without scope
+		in = JavaScript{Code: d.readStr()}
+	case 0x0E: // Symbol
+		in = Symbol(d.readStr())
+	case 0x0F: // JavaScript with scope
+		d.i += 4 // Skip length
+		js := JavaScript{d.readStr(), make(M)}
+		d.
