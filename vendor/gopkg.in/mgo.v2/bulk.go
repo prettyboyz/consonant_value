@@ -138,4 +138,138 @@ func (b *Bulk) action(op bulkOp, opcount int) *bulkAction {
 		action = &b.actions[len(b.actions)-1]
 	} else if !b.ordered {
 		for i := range b.actions {
-			if b.actions[i]
+			if b.actions[i].op == op {
+				action = &b.actions[i]
+				break
+			}
+		}
+	}
+	if action == nil {
+		b.actions = append(b.actions, bulkAction{op: op})
+		action = &b.actions[len(b.actions)-1]
+	}
+	for i := 0; i < opcount; i++ {
+		action.idxs = append(action.idxs, b.opcount)
+		b.opcount++
+	}
+	return action
+}
+
+// Insert queues up the provided documents for insertion.
+func (b *Bulk) Insert(docs ...interface{}) {
+	action := b.action(bulkInsert, len(docs))
+	action.docs = append(action.docs, docs...)
+}
+
+// Remove queues up the provided selectors for removing matching documents.
+// Each selector will remove only a single matching document.
+func (b *Bulk) Remove(selectors ...interface{}) {
+	action := b.action(bulkRemove, len(selectors))
+	for _, selector := range selectors {
+		if selector == nil {
+			selector = bson.D{}
+		}
+		action.docs = append(action.docs, &deleteOp{
+			Collection: b.c.FullName,
+			Selector:   selector,
+			Flags:      1,
+			Limit:      1,
+		})
+	}
+}
+
+// RemoveAll queues up the provided selectors for removing all matching documents.
+// Each selector will remove all matching documents.
+func (b *Bulk) RemoveAll(selectors ...interface{}) {
+	action := b.action(bulkRemove, len(selectors))
+	for _, selector := range selectors {
+		if selector == nil {
+			selector = bson.D{}
+		}
+		action.docs = append(action.docs, &deleteOp{
+			Collection: b.c.FullName,
+			Selector:   selector,
+			Flags:      0,
+			Limit:      0,
+		})
+	}
+}
+
+// Update queues up the provided pairs of updating instructions.
+// The first element of each pair selects which documents must be
+// updated, and the second element defines how to update it.
+// Each pair matches exactly one document for updating at most.
+func (b *Bulk) Update(pairs ...interface{}) {
+	if len(pairs)%2 != 0 {
+		panic("Bulk.Update requires an even number of parameters")
+	}
+	action := b.action(bulkUpdate, len(pairs)/2)
+	for i := 0; i < len(pairs); i += 2 {
+		selector := pairs[i]
+		if selector == nil {
+			selector = bson.D{}
+		}
+		action.docs = append(action.docs, &updateOp{
+			Collection: b.c.FullName,
+			Selector:   selector,
+			Update:     pairs[i+1],
+		})
+	}
+}
+
+// UpdateAll queues up the provided pairs of updating instructions.
+// The first element of each pair selects which documents must be
+// updated, and the second element defines how to update it.
+// Each pair updates all documents matching the selector.
+func (b *Bulk) UpdateAll(pairs ...interface{}) {
+	if len(pairs)%2 != 0 {
+		panic("Bulk.UpdateAll requires an even number of parameters")
+	}
+	action := b.action(bulkUpdate, len(pairs)/2)
+	for i := 0; i < len(pairs); i += 2 {
+		selector := pairs[i]
+		if selector == nil {
+			selector = bson.D{}
+		}
+		action.docs = append(action.docs, &updateOp{
+			Collection: b.c.FullName,
+			Selector:   selector,
+			Update:     pairs[i+1],
+			Flags:      2,
+			Multi:      true,
+		})
+	}
+}
+
+// Upsert queues up the provided pairs of upserting instructions.
+// The first element of each pair selects which documents must be
+// updated, and the second element defines how to update it.
+// Each pair matches exactly one document for updating at most.
+func (b *Bulk) Upsert(pairs ...interface{}) {
+	if len(pairs)%2 != 0 {
+		panic("Bulk.Update requires an even number of parameters")
+	}
+	action := b.action(bulkUpdate, len(pairs)/2)
+	for i := 0; i < len(pairs); i += 2 {
+		selector := pairs[i]
+		if selector == nil {
+			selector = bson.D{}
+		}
+		action.docs = append(action.docs, &updateOp{
+			Collection: b.c.FullName,
+			Selector:   selector,
+			Update:     pairs[i+1],
+			Flags:      1,
+			Upsert:     true,
+		})
+	}
+}
+
+// Run runs all the operations queued up.
+//
+// If an error is reported on an unordered bulk operation, the error value may
+// be an aggregation of all issues observed. As an exception to that, Insert
+// operations running on MongoDB versions prior to 2.6 will report the last
+// error only due to a limitation in the wire protocol.
+func (b *Bulk) Run() (*BulkResult, error) {
+	var result B
