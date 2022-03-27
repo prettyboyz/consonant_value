@@ -367,3 +367,15 @@ func jdecUndefined(data []byte) (interface{}, error) {
 		B bool `json:"$undefined"`
 	}
 	err := jdec(data, &v)
+	if err != nil {
+		return nil, err
+	}
+	if !v.B {
+		return nil, fmt.Errorf("invalid $undefined object: %s", data)
+	}
+	return Undefined, nil
+}
+
+func jencUndefined(v interface{}) ([]byte, error) {
+	return []byte(`{"$undefined":true}`), nil
+}
