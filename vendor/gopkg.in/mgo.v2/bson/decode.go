@@ -531,4 +531,169 @@ func (d *decoder) readElemTo(out reflect.Value, kind byte) (good bool) {
 	case 0x0F: // JavaScript with scope
 		d.i += 4 // Skip length
 		js := JavaScript{d.readStr(), make(M)}
-		d.
+		d.readDocTo(reflect.ValueOf(js.Scope))
+		in = js
+	case 0x10: // Int32
+		in = int(d.readInt32())
+	case 0x11: // Mongo-specific timestamp
+		in = MongoTimestamp(d.readInt64())
+	case 0x12: // Int64
+		in = d.readInt64()
+	case 0x13: // Decimal128
+		in = Decimal128{
+			l: uint64(d.readInt64()),
+			h: uint64(d.readInt64()),
+		}
+	case 0x7F: // Max key
+		in = MaxKey
+	case 0xFF: // Min key
+		in = MinKey
+	default:
+		panic(fmt.Sprintf("Unknown element kind (0x%02X)", kind))
+	}
+
+	outt := out.Type()
+
+	if outt == typeRaw {
+		out.Set(reflect.ValueOf(Raw{kind, d.in[start:d.i]}))
+		return true
+	}
+
+	if setter := getSetter(outt, out); setter != nil {
+		err := setter.SetBSON(Raw{kind, d.in[start:d.i]})
+		if err == SetZero {
+			out.Set(reflect.Zero(outt))
+			return true
+		}
+		if err == nil {
+			return true
+		}
+		if _, ok := err.(*TypeError); !ok {
+			panic(err)
+		}
+		return false
+	}
+
+	if in == nil {
+		out.Set(reflect.Zero(outt))
+		return true
+	}
+
+	outk := outt.Kind()
+
+	// Dereference and initialize pointer if necessary.
+	first := true
+	for outk == reflect.Ptr {
+		if !out.IsNil() {
+			out = out.Elem()
+		} else {
+			elem := reflect.New(outt.Elem())
+			if first {
+				// Only set if value is compatible.
+				first = false
+				defer func(out, elem reflect.Value) {
+					if good {
+						out.Set(elem)
+					}
+				}(out, elem)
+			} else {
+				out.Set(elem)
+			}
+			out = elem
+		}
+		outt = out.Type()
+		outk = outt.Kind()
+	}
+
+	inv := reflect.ValueOf(in)
+	if outt == inv.Type() {
+		out.Set(inv)
+		return true
+	}
+
+	switch outk {
+	case reflect.Interface:
+		out.Set(inv)
+		return true
+	case reflect.String:
+		switch inv.Kind() {
+		case reflect.String:
+			out.SetString(inv.String())
+			return true
+		case reflect.Slice:
+			if b, ok := in.([]byte); ok {
+				out.SetString(string(b))
+				return true
+			}
+		case reflect.Int, reflect.Int64:
+			if outt == typeJSONNumber {
+				out.SetString(strconv.FormatInt(inv.Int(), 10))
+				return true
+			}
+		case reflect.Float64:
+			if outt == typeJSONNumber {
+				out.SetString(strconv.FormatFloat(inv.Float(), 'f', -1, 64))
+				return true
+			}
+		}
+	case reflect.Slice, reflect.Array:
+		// Remember, array (0x04) slices are built with the correct
+		// element type.  If we are here, must be a cross BSON kind
+		// conversion (e.g. 0x05 unmarshalling on string).
+		if outt.Elem().Kind() != reflect.Uint8 {
+			break
+		}
+		switch inv.Kind() {
+		case reflect.String:
+			slice := []byte(inv.String())
+			out.Set(reflect.ValueOf(slice))
+			return true
+		case reflect.Slice:
+			switch outt.Kind() {
+			case reflect.Array:
+				reflect.Copy(out, inv)
+			case reflect.Slice:
+				out.SetBytes(inv.Bytes())
+			}
+			return true
+		}
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		switch inv.Kind() {
+		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+			out.SetInt(inv.Int())
+			return true
+		case reflect.Float32, reflect.Float64:
+			out.SetInt(int64(inv.Float()))
+			return true
+		case reflect.Bool:
+			if inv.Bool() {
+				out.SetInt(1)
+			} else {
+				out.SetInt(0)
+			}
+			return true
+		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+			panic("can't happen: no uint types in BSON (!?)")
+		}
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+		switch inv.Kind() {
+		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+			out.SetUint(uint64(inv.Int()))
+			return true
+		case reflect.Float32, reflect.Float64:
+			out.SetUint(uint64(inv.Float()))
+			return true
+		case reflect.Bool:
+			if inv.Bool() {
+				out.SetUint(1)
+			} else {
+				out.SetUint(0)
+			}
+			return true
+		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+			panic("Can't happen. No uint types in BSON.")
+		}
+	case reflect.Float32, reflect.Float64:
+		switch inv.Kind() {
+		case reflect.Float32, reflect.Float64:
+			out.SetFloat(inv.Float())
