@@ -697,3 +697,153 @@ func (d *decoder) readElemTo(out reflect.Value, kind byte) (good bool) {
 		switch inv.Kind() {
 		case reflect.Float32, reflect.Float64:
 			out.SetFloat(inv.Float())
+			return true
+		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+			out.SetFloat(float64(inv.Int()))
+			return true
+		case reflect.Bool:
+			if inv.Bool() {
+				out.SetFloat(1)
+			} else {
+				out.SetFloat(0)
+			}
+			return true
+		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+			panic("Can't happen. No uint types in BSON?")
+		}
+	case reflect.Bool:
+		switch inv.Kind() {
+		case reflect.Bool:
+			out.SetBool(inv.Bool())
+			return true
+		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+			out.SetBool(inv.Int() != 0)
+			return true
+		case reflect.Float32, reflect.Float64:
+			out.SetBool(inv.Float() != 0)
+			return true
+		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+			panic("Can't happen. No uint types in BSON?")
+		}
+	case reflect.Struct:
+		if outt == typeURL && inv.Kind() == reflect.String {
+			u, err := url.Parse(inv.String())
+			if err != nil {
+				panic(err)
+			}
+			out.Set(reflect.ValueOf(u).Elem())
+			return true
+		}
+		if outt == typeBinary {
+			if b, ok := in.([]byte); ok {
+				out.Set(reflect.ValueOf(Binary{Data: b}))
+				return true
+			}
+		}
+	}
+
+	return false
+}
+
+// --------------------------------------------------------------------------
+// Parsers of basic types.
+
+func (d *decoder) readRegEx() RegEx {
+	re := RegEx{}
+	re.Pattern = d.readCStr()
+	re.Options = d.readCStr()
+	return re
+}
+
+func (d *decoder) readBinary() Binary {
+	l := d.readInt32()
+	b := Binary{}
+	b.Kind = d.readByte()
+	b.Data = d.readBytes(l)
+	if b.Kind == 0x02 && len(b.Data) >= 4 {
+		// Weird obsolete format with redundant length.
+		b.Data = b.Data[4:]
+	}
+	return b
+}
+
+func (d *decoder) readStr() string {
+	l := d.readInt32()
+	b := d.readBytes(l - 1)
+	if d.readByte() != '\x00' {
+		corrupted()
+	}
+	return string(b)
+}
+
+func (d *decoder) readCStr() string {
+	start := d.i
+	end := start
+	l := len(d.in)
+	for ; end != l; end++ {
+		if d.in[end] == '\x00' {
+			break
+		}
+	}
+	d.i = end + 1
+	if d.i > l {
+		corrupted()
+	}
+	return string(d.in[start:end])
+}
+
+func (d *decoder) readBool() bool {
+	b := d.readByte()
+	if b == 0 {
+		return false
+	}
+	if b == 1 {
+		return true
+	}
+	panic(fmt.Sprintf("encoded boolean must be 1 or 0, found %d", b))
+}
+
+func (d *decoder) readFloat64() float64 {
+	return math.Float64frombits(uint64(d.readInt64()))
+}
+
+func (d *decoder) readInt32() int32 {
+	b := d.readBytes(4)
+	return int32((uint32(b[0]) << 0) |
+		(uint32(b[1]) << 8) |
+		(uint32(b[2]) << 16) |
+		(uint32(b[3]) << 24))
+}
+
+func (d *decoder) readInt64() int64 {
+	b := d.readBytes(8)
+	return int64((uint64(b[0]) << 0) |
+		(uint64(b[1]) << 8) |
+		(uint64(b[2]) << 16) |
+		(uint64(b[3]) << 24) |
+		(uint64(b[4]) << 32) |
+		(uint64(b[5]) << 40) |
+		(uint64(b[6]) << 48) |
+		(uint64(b[7]) << 56))
+}
+
+func (d *decoder) readByte() byte {
+	i := d.i
+	d.i++
+	if d.i > len(d.in) {
+		corrupted()
+	}
+	return d.in[i]
+}
+
+func (d *decoder) readBytes(length int32) []byte {
+	if length < 0 {
+		corrupted()
+	}
+	start := d.i
+	d.i += int(length)
+	if d.i < start || d.i > len(d.in) {
+		corrupted()
+	}
+	return d.in[start : start+int(length)]
+}
