@@ -272,4 +272,80 @@ func (b *Bulk) Upsert(pairs ...interface{}) {
 // operations running on MongoDB versions prior to 2.6 will report the last
 // error only due to a limitation in the wire protocol.
 func (b *Bulk) Run() (*BulkResult, error) {
-	var result B
+	var result BulkResult
+	var berr BulkError
+	var failed bool
+	for i := range b.actions {
+		action := &b.actions[i]
+		var ok bool
+		switch action.op {
+		case bulkInsert:
+			ok = b.runInsert(action, &result, &berr)
+		case bulkUpdate:
+			ok = b.runUpdate(action, &result, &berr)
+		case bulkRemove:
+			ok = b.runRemove(action, &result, &berr)
+		default:
+			panic("unknown bulk operation")
+		}
+		if !ok {
+			failed = true
+			if b.ordered {
+				break
+			}
+		}
+	}
+	if failed {
+		sort.Sort(bulkErrorCases(berr.ecases))
+		return nil, &berr
+	}
+	return &result, nil
+}
+
+func (b *Bulk) runInsert(action *bulkAction, result *BulkResult, berr *BulkError) bool {
+	op := &insertOp{b.c.FullName, action.docs, 0}
+	if !b.ordered {
+		op.flags = 1 // ContinueOnError
+	}
+	lerr, err := b.c.writeOp(op, b.ordered)
+	return b.checkSuccess(action, berr, lerr, err)
+}
+
+func (b *Bulk) runUpdate(action *bulkAction, result *BulkResult, berr *BulkError) bool {
+	lerr, err := b.c.writeOp(bulkUpdateOp(action.docs), b.ordered)
+	if lerr != nil {
+		result.Matched += lerr.N
+		result.Modified += lerr.modified
+	}
+	return b.checkSuccess(action, berr, lerr, err)
+}
+
+func (b *Bulk) runRemove(action *bulkAction, result *BulkResult, berr *BulkError) bool {
+	lerr, err := b.c.writeOp(bulkDeleteOp(action.docs), b.ordered)
+	if lerr != nil {
+		result.Matched += lerr.N
+		result.Modified += lerr.modified
+	}
+	return b.checkSuccess(action, berr, lerr, err)
+}
+
+func (b *Bulk) checkSuccess(action *bulkAction, berr *BulkError, lerr *LastError, err error) bool {
+	if lerr != nil && len(lerr.ecases) > 0 {
+		for i := 0; i < len(lerr.ecases); i++ {
+			// Map back from the local error index into the visible one.
+			ecase := lerr.ecases[i]
+			idx := ecase.Index
+			if idx >= 0 {
+				idx = action.idxs[idx]
+			}
+			berr.ecases = append(berr.ecases, BulkErrorCase{idx, ecase.Err})
+		}
+		return false
+	} else if err != nil {
+		for i := 0; i < len(action.idxs); i++ {
+			berr.ecases = append(berr.ecases, BulkErrorCase{action.idxs[i], err})
+		}
+		return false
+	}
+	return true
+}
