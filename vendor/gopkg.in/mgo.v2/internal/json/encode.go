@@ -70,4 +70,98 @@ import (
 //   Field int `json:"-"`
 //
 //   // Field appears in JSON as key "myName".
-//   Field int `js
+//   Field int `json:"myName"`
+//
+//   // Field appears in JSON as key "myName" and
+//   // the field is omitted from the object if its value is empty,
+//   // as defined above.
+//   Field int `json:"myName,omitempty"`
+//
+//   // Field appears in JSON as key "Field" (the default), but
+//   // the field is skipped if empty.
+//   // Note the leading comma.
+//   Field int `json:",omitempty"`
+//
+// The "string" option signals that a field is stored as JSON inside a
+// JSON-encoded string. It applies only to fields of string, floating point,
+// integer, or boolean types. This extra level of encoding is sometimes used
+// when communicating with JavaScript programs:
+//
+//    Int64String int64 `json:",string"`
+//
+// The key name will be used if it's a non-empty string consisting of
+// only Unicode letters, digits, dollar signs, percent signs, hyphens,
+// underscores and slashes.
+//
+// Anonymous struct fields are usually marshaled as if their inner exported fields
+// were fields in the outer struct, subject to the usual Go visibility rules amended
+// as described in the next paragraph.
+// An anonymous struct field with a name given in its JSON tag is treated as
+// having that name, rather than being anonymous.
+// An anonymous struct field of interface type is treated the same as having
+// that type as its name, rather than being anonymous.
+//
+// The Go visibility rules for struct fields are amended for JSON when
+// deciding which field to marshal or unmarshal. If there are
+// multiple fields at the same level, and that level is the least
+// nested (and would therefore be the nesting level selected by the
+// usual Go rules), the following extra rules apply:
+//
+// 1) Of those fields, if any are JSON-tagged, only tagged fields are considered,
+// even if there are multiple untagged fields that would otherwise conflict.
+// 2) If there is exactly one field (tagged or not according to the first rule), that is selected.
+// 3) Otherwise there are multiple fields, and all are ignored; no error occurs.
+//
+// Handling of anonymous struct fields is new in Go 1.1.
+// Prior to Go 1.1, anonymous struct fields were ignored. To force ignoring of
+// an anonymous struct field in both current and earlier versions, give the field
+// a JSON tag of "-".
+//
+// Map values encode as JSON objects. The map's key type must either be a string
+// or implement encoding.TextMarshaler.  The map keys are used as JSON object
+// keys, subject to the UTF-8 coercion described for string values above.
+//
+// Pointer values encode as the value pointed to.
+// A nil pointer encodes as the null JSON value.
+//
+// Interface values encode as the value contained in the interface.
+// A nil interface value encodes as the null JSON value.
+//
+// Channel, complex, and function values cannot be encoded in JSON.
+// Attempting to encode such a value causes Marshal to return
+// an UnsupportedTypeError.
+//
+// JSON cannot represent cyclic data structures and Marshal does not
+// handle them. Passing cyclic structures to Marshal will result in
+// an infinite recursion.
+//
+func Marshal(v interface{}) ([]byte, error) {
+	e := &encodeState{}
+	err := e.marshal(v, encOpts{escapeHTML: true})
+	if err != nil {
+		return nil, err
+	}
+	return e.Bytes(), nil
+}
+
+// MarshalIndent is like Marshal but applies Indent to format the output.
+func MarshalIndent(v interface{}, prefix, indent string) ([]byte, error) {
+	b, err := Marshal(v)
+	if err != nil {
+		return nil, err
+	}
+	var buf bytes.Buffer
+	err = Indent(&buf, b, prefix, indent)
+	if err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
+}
+
+// HTMLEscape appends to dst the JSON-encoded src with <, >, &, U+2028 and U+2029
+// characters inside string literals changed to \u003c, \u003e, \u0026, \u2028, \u2029
+// so that the JSON will be safe to embed inside HTML <script> tags.
+// For historical reasons, web browsers don't honor standard HTML
+// escaping within <script> tags, so an alternative JSON encoding must
+// be used.
+func HTMLEscape(dst *bytes
