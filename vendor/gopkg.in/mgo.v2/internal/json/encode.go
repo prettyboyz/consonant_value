@@ -327,4 +327,164 @@ func valueEncoder(v reflect.Value) encoderFunc {
 func typeEncoder(t reflect.Type) encoderFunc {
 	encoderCache.RLock()
 	f := encoderCache.m[t]
-	encoderC
+	encoderCache.RUnlock()
+	if f != nil {
+		return f
+	}
+
+	// To deal with recursive types, populate the map with an
+	// indirect func before we build it. This type waits on the
+	// real func (f) to be ready and then calls it. This indirect
+	// func is only used for recursive types.
+	encoderCache.Lock()
+	if encoderCache.m == nil {
+		encoderCache.m = make(map[reflect.Type]encoderFunc)
+	}
+	var wg sync.WaitGroup
+	wg.Add(1)
+	encoderCache.m[t] = func(e *encodeState, v reflect.Value, opts encOpts) {
+		wg.Wait()
+		f(e, v, opts)
+	}
+	encoderCache.Unlock()
+
+	// Compute fields without lock.
+	// Might duplicate effort but won't hold other computations back.
+	innerf := newTypeEncoder(t, true)
+	f = func(e *encodeState, v reflect.Value, opts encOpts) {
+		encode, ok := e.ext.encode[v.Type()]
+		if !ok {
+			innerf(e, v, opts)
+			return
+		}
+
+		b, err := encode(v.Interface())
+		if err == nil {
+			// copy JSON into buffer, checking validity.
+			err = compact(&e.Buffer, b, opts.escapeHTML)
+		}
+		if err != nil {
+			e.error(&MarshalerError{v.Type(), err})
+		}
+	}
+	wg.Done()
+	encoderCache.Lock()
+	encoderCache.m[t] = f
+	encoderCache.Unlock()
+	return f
+}
+
+var (
+	marshalerType     = reflect.TypeOf(new(Marshaler)).Elem()
+	textMarshalerType = reflect.TypeOf(new(encoding.TextMarshaler)).Elem()
+)
+
+// newTypeEncoder constructs an encoderFunc for a type.
+// The returned encoder only checks CanAddr when allowAddr is true.
+func newTypeEncoder(t reflect.Type, allowAddr bool) encoderFunc {
+	if t.Implements(marshalerType) {
+		return marshalerEncoder
+	}
+	if t.Kind() != reflect.Ptr && allowAddr {
+		if reflect.PtrTo(t).Implements(marshalerType) {
+			return newCondAddrEncoder(addrMarshalerEncoder, newTypeEncoder(t, false))
+		}
+	}
+
+	if t.Implements(textMarshalerType) {
+		return textMarshalerEncoder
+	}
+	if t.Kind() != reflect.Ptr && allowAddr {
+		if reflect.PtrTo(t).Implements(textMarshalerType) {
+			return newCondAddrEncoder(addrTextMarshalerEncoder, newTypeEncoder(t, false))
+		}
+	}
+
+	switch t.Kind() {
+	case reflect.Bool:
+		return boolEncoder
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		return intEncoder
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+		return uintEncoder
+	case reflect.Float32:
+		return float32Encoder
+	case reflect.Float64:
+		return float64Encoder
+	case reflect.String:
+		return stringEncoder
+	case reflect.Interface:
+		return interfaceEncoder
+	case reflect.Struct:
+		return newStructEncoder(t)
+	case reflect.Map:
+		return newMapEncoder(t)
+	case reflect.Slice:
+		return newSliceEncoder(t)
+	case reflect.Array:
+		return newArrayEncoder(t)
+	case reflect.Ptr:
+		return newPtrEncoder(t)
+	default:
+		return unsupportedTypeEncoder
+	}
+}
+
+func invalidValueEncoder(e *encodeState, v reflect.Value, _ encOpts) {
+	e.WriteString("null")
+}
+
+func marshalerEncoder(e *encodeState, v reflect.Value, opts encOpts) {
+	if v.Kind() == reflect.Ptr && v.IsNil() {
+		e.WriteString("null")
+		return
+	}
+	m := v.Interface().(Marshaler)
+	b, err := m.MarshalJSON()
+	if err == nil {
+		// copy JSON into buffer, checking validity.
+		err = compact(&e.Buffer, b, opts.escapeHTML)
+	}
+	if err != nil {
+		e.error(&MarshalerError{v.Type(), err})
+	}
+}
+
+func addrMarshalerEncoder(e *encodeState, v reflect.Value, _ encOpts) {
+	va := v.Addr()
+	if va.IsNil() {
+		e.WriteString("null")
+		return
+	}
+	m := va.Interface().(Marshaler)
+	b, err := m.MarshalJSON()
+	if err == nil {
+		// copy JSON into buffer, checking validity.
+		err = compact(&e.Buffer, b, true)
+	}
+	if err != nil {
+		e.error(&MarshalerError{v.Type(), err})
+	}
+}
+
+func textMarshalerEncoder(e *encodeState, v reflect.Value, opts encOpts) {
+	if v.Kind() == reflect.Ptr && v.IsNil() {
+		e.WriteString("null")
+		return
+	}
+	m := v.Interface().(encoding.TextMarshaler)
+	b, err := m.MarshalText()
+	if err != nil {
+		e.error(&MarshalerError{v.Type(), err})
+	}
+	e.stringBytes(b, opts.escapeHTML)
+}
+
+func addrTextMarshalerEncoder(e *encodeState, v reflect.Value, opts encOpts) {
+	va := v.Addr()
+	if va.IsNil() {
+		e.WriteString("null")
+		return
+	}
+	m := va.Interface().(encoding.TextMarshaler)
+	b, err := m.MarshalTe
