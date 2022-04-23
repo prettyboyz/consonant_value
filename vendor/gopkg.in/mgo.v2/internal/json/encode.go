@@ -164,4 +164,167 @@ func MarshalIndent(v interface{}, prefix, indent string) ([]byte, error) {
 // For historical reasons, web browsers don't honor standard HTML
 // escaping within <script> tags, so an alternative JSON encoding must
 // be used.
-func HTMLEscape(dst *bytes
+func HTMLEscape(dst *bytes.Buffer, src []byte) {
+	// The characters can only appear in string literals,
+	// so just scan the string one byte at a time.
+	start := 0
+	for i, c := range src {
+		if c == '<' || c == '>' || c == '&' {
+			if start < i {
+				dst.Write(src[start:i])
+			}
+			dst.WriteString(`\u00`)
+			dst.WriteByte(hex[c>>4])
+			dst.WriteByte(hex[c&0xF])
+			start = i + 1
+		}
+		// Convert U+2028 and U+2029 (E2 80 A8 and E2 80 A9).
+		if c == 0xE2 && i+2 < len(src) && src[i+1] == 0x80 && src[i+2]&^1 == 0xA8 {
+			if start < i {
+				dst.Write(src[start:i])
+			}
+			dst.WriteString(`\u202`)
+			dst.WriteByte(hex[src[i+2]&0xF])
+			start = i + 3
+		}
+	}
+	if start < len(src) {
+		dst.Write(src[start:])
+	}
+}
+
+// Marshaler is the interface implemented by types that
+// can marshal themselves into valid JSON.
+type Marshaler interface {
+	MarshalJSON() ([]byte, error)
+}
+
+// An UnsupportedTypeError is returned by Marshal when attempting
+// to encode an unsupported value type.
+type UnsupportedTypeError struct {
+	Type reflect.Type
+}
+
+func (e *UnsupportedTypeError) Error() string {
+	return "json: unsupported type: " + e.Type.String()
+}
+
+type UnsupportedValueError struct {
+	Value reflect.Value
+	Str   string
+}
+
+func (e *UnsupportedValueError) Error() string {
+	return "json: unsupported value: " + e.Str
+}
+
+// Before Go 1.2, an InvalidUTF8Error was returned by Marshal when
+// attempting to encode a string value with invalid UTF-8 sequences.
+// As of Go 1.2, Marshal instead coerces the string to valid UTF-8 by
+// replacing invalid bytes with the Unicode replacement rune U+FFFD.
+// This error is no longer generated but is kept for backwards compatibility
+// with programs that might mention it.
+type InvalidUTF8Error struct {
+	S string // the whole string value that caused the error
+}
+
+func (e *InvalidUTF8Error) Error() string {
+	return "json: invalid UTF-8 in string: " + strconv.Quote(e.S)
+}
+
+type MarshalerError struct {
+	Type reflect.Type
+	Err  error
+}
+
+func (e *MarshalerError) Error() string {
+	return "json: error calling MarshalJSON for type " + e.Type.String() + ": " + e.Err.Error()
+}
+
+var hex = "0123456789abcdef"
+
+// An encodeState encodes JSON into a bytes.Buffer.
+type encodeState struct {
+	bytes.Buffer // accumulated output
+	scratch      [64]byte
+	ext          Extension
+}
+
+var encodeStatePool sync.Pool
+
+func newEncodeState() *encodeState {
+	if v := encodeStatePool.Get(); v != nil {
+		e := v.(*encodeState)
+		e.Reset()
+		return e
+	}
+	return new(encodeState)
+}
+
+func (e *encodeState) marshal(v interface{}, opts encOpts) (err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			if _, ok := r.(runtime.Error); ok {
+				panic(r)
+			}
+			if s, ok := r.(string); ok {
+				panic(s)
+			}
+			err = r.(error)
+		}
+	}()
+	e.reflectValue(reflect.ValueOf(v), opts)
+	return nil
+}
+
+func (e *encodeState) error(err error) {
+	panic(err)
+}
+
+func isEmptyValue(v reflect.Value) bool {
+	switch v.Kind() {
+	case reflect.Array, reflect.Map, reflect.Slice, reflect.String:
+		return v.Len() == 0
+	case reflect.Bool:
+		return !v.Bool()
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		return v.Int() == 0
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+		return v.Uint() == 0
+	case reflect.Float32, reflect.Float64:
+		return v.Float() == 0
+	case reflect.Interface, reflect.Ptr:
+		return v.IsNil()
+	}
+	return false
+}
+
+func (e *encodeState) reflectValue(v reflect.Value, opts encOpts) {
+	valueEncoder(v)(e, v, opts)
+}
+
+type encOpts struct {
+	// quoted causes primitive fields to be encoded inside JSON strings.
+	quoted bool
+	// escapeHTML causes '<', '>', and '&' to be escaped in JSON strings.
+	escapeHTML bool
+}
+
+type encoderFunc func(e *encodeState, v reflect.Value, opts encOpts)
+
+var encoderCache struct {
+	sync.RWMutex
+	m map[reflect.Type]encoderFunc
+}
+
+func valueEncoder(v reflect.Value) encoderFunc {
+	if !v.IsValid() {
+		return invalidValueEncoder
+	}
+	return typeEncoder(v.Type())
+}
+
+func typeEncoder(t reflect.Type) encoderFunc {
+	encoderCache.RLock()
+	f := encoderCache.m[t]
+	encoderC
