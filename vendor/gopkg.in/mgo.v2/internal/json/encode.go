@@ -676,4 +676,173 @@ func encodeByteSlice(e *encodeState, v reflect.Value, _ encOpts) {
 	s := v.Bytes()
 	e.WriteByte('"')
 	if len(s) < 1024 {
-		//
+		// for small buffers, using Encode directly is much faster.
+		dst := make([]byte, base64.StdEncoding.EncodedLen(len(s)))
+		base64.StdEncoding.Encode(dst, s)
+		e.Write(dst)
+	} else {
+		// for large buffers, avoid unnecessary extra temporary
+		// buffer space.
+		enc := base64.NewEncoder(base64.StdEncoding, e)
+		enc.Write(s)
+		enc.Close()
+	}
+	e.WriteByte('"')
+}
+
+// sliceEncoder just wraps an arrayEncoder, checking to make sure the value isn't nil.
+type sliceEncoder struct {
+	arrayEnc encoderFunc
+}
+
+func (se *sliceEncoder) encode(e *encodeState, v reflect.Value, opts encOpts) {
+	if v.IsNil() {
+		e.WriteString("null")
+		return
+	}
+	se.arrayEnc(e, v, opts)
+}
+
+func newSliceEncoder(t reflect.Type) encoderFunc {
+	// Byte slices get special treatment; arrays don't.
+	if t.Elem().Kind() == reflect.Uint8 &&
+		!t.Elem().Implements(marshalerType) &&
+		!t.Elem().Implements(textMarshalerType) {
+		return encodeByteSlice
+	}
+	enc := &sliceEncoder{newArrayEncoder(t)}
+	return enc.encode
+}
+
+type arrayEncoder struct {
+	elemEnc encoderFunc
+}
+
+func (ae *arrayEncoder) encode(e *encodeState, v reflect.Value, opts encOpts) {
+	e.WriteByte('[')
+	n := v.Len()
+	for i := 0; i < n; i++ {
+		if i > 0 {
+			e.WriteByte(',')
+		}
+		ae.elemEnc(e, v.Index(i), opts)
+	}
+	e.WriteByte(']')
+}
+
+func newArrayEncoder(t reflect.Type) encoderFunc {
+	enc := &arrayEncoder{typeEncoder(t.Elem())}
+	return enc.encode
+}
+
+type ptrEncoder struct {
+	elemEnc encoderFunc
+}
+
+func (pe *ptrEncoder) encode(e *encodeState, v reflect.Value, opts encOpts) {
+	if v.IsNil() {
+		e.WriteString("null")
+		return
+	}
+	pe.elemEnc(e, v.Elem(), opts)
+}
+
+func newPtrEncoder(t reflect.Type) encoderFunc {
+	enc := &ptrEncoder{typeEncoder(t.Elem())}
+	return enc.encode
+}
+
+type condAddrEncoder struct {
+	canAddrEnc, elseEnc encoderFunc
+}
+
+func (ce *condAddrEncoder) encode(e *encodeState, v reflect.Value, opts encOpts) {
+	if v.CanAddr() {
+		ce.canAddrEnc(e, v, opts)
+	} else {
+		ce.elseEnc(e, v, opts)
+	}
+}
+
+// newCondAddrEncoder returns an encoder that checks whether its value
+// CanAddr and delegates to canAddrEnc if so, else to elseEnc.
+func newCondAddrEncoder(canAddrEnc, elseEnc encoderFunc) encoderFunc {
+	enc := &condAddrEncoder{canAddrEnc: canAddrEnc, elseEnc: elseEnc}
+	return enc.encode
+}
+
+func isValidTag(s string) bool {
+	if s == "" {
+		return false
+	}
+	for _, c := range s {
+		switch {
+		case strings.ContainsRune("!#$%&()*+-./:<=>?@[]^_{|}~ ", c):
+			// Backslash and quote chars are reserved, but
+			// otherwise any punctuation chars are allowed
+			// in a tag name.
+		default:
+			if !unicode.IsLetter(c) && !unicode.IsDigit(c) {
+				return false
+			}
+		}
+	}
+	return true
+}
+
+func fieldByIndex(v reflect.Value, index []int) reflect.Value {
+	for _, i := range index {
+		if v.Kind() == reflect.Ptr {
+			if v.IsNil() {
+				return reflect.Value{}
+			}
+			v = v.Elem()
+		}
+		v = v.Field(i)
+	}
+	return v
+}
+
+func typeByIndex(t reflect.Type, index []int) reflect.Type {
+	for _, i := range index {
+		if t.Kind() == reflect.Ptr {
+			t = t.Elem()
+		}
+		t = t.Field(i).Type
+	}
+	return t
+}
+
+type reflectWithString struct {
+	v reflect.Value
+	s string
+}
+
+func (w *reflectWithString) resolve() error {
+	if w.v.Kind() == reflect.String {
+		w.s = w.v.String()
+		return nil
+	}
+	buf, err := w.v.Interface().(encoding.TextMarshaler).MarshalText()
+	w.s = string(buf)
+	return err
+}
+
+// byString is a slice of reflectWithString where the reflect.Value is either
+// a string or an encoding.TextMarshaler.
+// It implements the methods to sort by string.
+type byString []reflectWithString
+
+func (sv byString) Len() int           { return len(sv) }
+func (sv byString) Swap(i, j int)      { sv[i], sv[j] = sv[j], sv[i] }
+func (sv byString) Less(i, j int) bool { return sv[i].s < sv[j].s }
+
+// NOTE: keep in sync with stringBytes below.
+func (e *encodeState) string(s string, escapeHTML bool) int {
+	len0 := e.Len()
+	e.WriteByte('"')
+	start := 0
+	for i := 0; i < len(s); {
+		if b := s[i]; b < utf8.RuneSelf {
+			if 0x20 <= b && b != '\\' && b != '"' &&
+				(!escapeH
