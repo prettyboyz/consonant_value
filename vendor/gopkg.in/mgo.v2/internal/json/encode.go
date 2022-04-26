@@ -487,4 +487,193 @@ func addrTextMarshalerEncoder(e *encodeState, v reflect.Value, opts encOpts) {
 		return
 	}
 	m := va.Interface().(encoding.TextMarshaler)
-	b, err := m.MarshalTe
+	b, err := m.MarshalText()
+	if err != nil {
+		e.error(&MarshalerError{v.Type(), err})
+	}
+	e.stringBytes(b, opts.escapeHTML)
+}
+
+func boolEncoder(e *encodeState, v reflect.Value, opts encOpts) {
+	if opts.quoted {
+		e.WriteByte('"')
+	}
+	if v.Bool() {
+		e.WriteString("true")
+	} else {
+		e.WriteString("false")
+	}
+	if opts.quoted {
+		e.WriteByte('"')
+	}
+}
+
+func intEncoder(e *encodeState, v reflect.Value, opts encOpts) {
+	b := strconv.AppendInt(e.scratch[:0], v.Int(), 10)
+	if opts.quoted {
+		e.WriteByte('"')
+	}
+	e.Write(b)
+	if opts.quoted {
+		e.WriteByte('"')
+	}
+}
+
+func uintEncoder(e *encodeState, v reflect.Value, opts encOpts) {
+	b := strconv.AppendUint(e.scratch[:0], v.Uint(), 10)
+	if opts.quoted {
+		e.WriteByte('"')
+	}
+	e.Write(b)
+	if opts.quoted {
+		e.WriteByte('"')
+	}
+}
+
+type floatEncoder int // number of bits
+
+func (bits floatEncoder) encode(e *encodeState, v reflect.Value, opts encOpts) {
+	f := v.Float()
+	if math.IsInf(f, 0) || math.IsNaN(f) {
+		e.error(&UnsupportedValueError{v, strconv.FormatFloat(f, 'g', -1, int(bits))})
+	}
+	b := strconv.AppendFloat(e.scratch[:0], f, 'g', -1, int(bits))
+	if opts.quoted {
+		e.WriteByte('"')
+	}
+	e.Write(b)
+	if opts.quoted {
+		e.WriteByte('"')
+	}
+}
+
+var (
+	float32Encoder = (floatEncoder(32)).encode
+	float64Encoder = (floatEncoder(64)).encode
+)
+
+func stringEncoder(e *encodeState, v reflect.Value, opts encOpts) {
+	if v.Type() == numberType {
+		numStr := v.String()
+		// In Go1.5 the empty string encodes to "0", while this is not a valid number literal
+		// we keep compatibility so check validity after this.
+		if numStr == "" {
+			numStr = "0" // Number's zero-val
+		}
+		if !isValidNumber(numStr) {
+			e.error(fmt.Errorf("json: invalid number literal %q", numStr))
+		}
+		e.WriteString(numStr)
+		return
+	}
+	if opts.quoted {
+		sb, err := Marshal(v.String())
+		if err != nil {
+			e.error(err)
+		}
+		e.string(string(sb), opts.escapeHTML)
+	} else {
+		e.string(v.String(), opts.escapeHTML)
+	}
+}
+
+func interfaceEncoder(e *encodeState, v reflect.Value, opts encOpts) {
+	if v.IsNil() {
+		e.WriteString("null")
+		return
+	}
+	e.reflectValue(v.Elem(), opts)
+}
+
+func unsupportedTypeEncoder(e *encodeState, v reflect.Value, _ encOpts) {
+	e.error(&UnsupportedTypeError{v.Type()})
+}
+
+type structEncoder struct {
+	fields    []field
+	fieldEncs []encoderFunc
+}
+
+func (se *structEncoder) encode(e *encodeState, v reflect.Value, opts encOpts) {
+	e.WriteByte('{')
+	first := true
+	for i, f := range se.fields {
+		fv := fieldByIndex(v, f.index)
+		if !fv.IsValid() || f.omitEmpty && isEmptyValue(fv) {
+			continue
+		}
+		if first {
+			first = false
+		} else {
+			e.WriteByte(',')
+		}
+		e.string(f.name, opts.escapeHTML)
+		e.WriteByte(':')
+		opts.quoted = f.quoted
+		se.fieldEncs[i](e, fv, opts)
+	}
+	e.WriteByte('}')
+}
+
+func newStructEncoder(t reflect.Type) encoderFunc {
+	fields := cachedTypeFields(t)
+	se := &structEncoder{
+		fields:    fields,
+		fieldEncs: make([]encoderFunc, len(fields)),
+	}
+	for i, f := range fields {
+		se.fieldEncs[i] = typeEncoder(typeByIndex(t, f.index))
+	}
+	return se.encode
+}
+
+type mapEncoder struct {
+	elemEnc encoderFunc
+}
+
+func (me *mapEncoder) encode(e *encodeState, v reflect.Value, opts encOpts) {
+	if v.IsNil() {
+		e.WriteString("null")
+		return
+	}
+	e.WriteByte('{')
+
+	// Extract and sort the keys.
+	keys := v.MapKeys()
+	sv := make([]reflectWithString, len(keys))
+	for i, v := range keys {
+		sv[i].v = v
+		if err := sv[i].resolve(); err != nil {
+			e.error(&MarshalerError{v.Type(), err})
+		}
+	}
+	sort.Sort(byString(sv))
+
+	for i, kv := range sv {
+		if i > 0 {
+			e.WriteByte(',')
+		}
+		e.string(kv.s, opts.escapeHTML)
+		e.WriteByte(':')
+		me.elemEnc(e, v.MapIndex(kv.v), opts)
+	}
+	e.WriteByte('}')
+}
+
+func newMapEncoder(t reflect.Type) encoderFunc {
+	if t.Key().Kind() != reflect.String && !t.Key().Implements(textMarshalerType) {
+		return unsupportedTypeEncoder
+	}
+	me := &mapEncoder{typeEncoder(t.Elem())}
+	return me.encode
+}
+
+func encodeByteSlice(e *encodeState, v reflect.Value, _ encOpts) {
+	if v.IsNil() {
+		e.WriteString("null")
+		return
+	}
+	s := v.Bytes()
+	e.WriteByte('"')
+	if len(s) < 1024 {
+		//
