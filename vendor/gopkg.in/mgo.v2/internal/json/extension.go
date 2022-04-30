@@ -50,4 +50,46 @@ func (e *Extension) Extend(ext *Extension) {
 // A function with the provided name will be unmarshaled as the document
 // {key: {args[0]: ..., args[N]: ...}}.
 func (e *Extension) DecodeFunc(name string, key string, args ...string) {
-	if e.func
+	if e.funcs == nil {
+		e.funcs = make(map[string]funcExt)
+	}
+	e.funcs[name] = funcExt{key, args}
+}
+
+// DecodeConst defines a constant name that may be observed inside JSON content
+// and will be decoded with the provided value.
+func (e *Extension) DecodeConst(name string, value interface{}) {
+	if e.consts == nil {
+		e.consts = make(map[string]interface{})
+	}
+	e.consts[name] = value
+}
+
+// DecodeKeyed defines a key that when observed as the first element inside a
+// JSON document triggers the decoding of that document via the provided
+// decode function.
+func (e *Extension) DecodeKeyed(key string, decode func(data []byte) (interface{}, error)) {
+	if e.keyed == nil {
+		e.keyed = make(map[string]func([]byte) (interface{}, error))
+	}
+	e.keyed[key] = decode
+}
+
+// DecodeUnquotedKeys defines whether to accept map keys that are unquoted strings.
+func (e *Extension) DecodeUnquotedKeys(accept bool) {
+	e.unquotedKeys = accept
+}
+
+// DecodeTrailingCommas defines whether to accept trailing commas in maps and arrays.
+func (e *Extension) DecodeTrailingCommas(accept bool) {
+	e.trailingCommas = accept
+}
+
+// EncodeType registers a function to encode values with the same type of the
+// provided sample.
+func (e *Extension) EncodeType(sample interface{}, encode func(v interface{}) ([]byte, error)) {
+	if e.encode == nil {
+		e.encode = make(map[reflect.Type]func(v interface{}) ([]byte, error))
+	}
+	e.encode[reflect.TypeOf(sample)] = encode
+}
