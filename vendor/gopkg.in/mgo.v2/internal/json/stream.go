@@ -238,4 +238,165 @@ func (enc *Encoder) DisableHTMLEscaping() {
 // RawMessage is a raw encoded JSON value.
 // It implements Marshaler and Unmarshaler and can
 // be used to delay JSON decoding or precompute a JSON encoding.
-type RawMessage []by
+type RawMessage []byte
+
+// MarshalJSON returns *m as the JSON encoding of m.
+func (m *RawMessage) MarshalJSON() ([]byte, error) {
+	return *m, nil
+}
+
+// UnmarshalJSON sets *m to a copy of data.
+func (m *RawMessage) UnmarshalJSON(data []byte) error {
+	if m == nil {
+		return errors.New("json.RawMessage: UnmarshalJSON on nil pointer")
+	}
+	*m = append((*m)[0:0], data...)
+	return nil
+}
+
+var _ Marshaler = (*RawMessage)(nil)
+var _ Unmarshaler = (*RawMessage)(nil)
+
+// A Token holds a value of one of these types:
+//
+//	Delim, for the four JSON delimiters [ ] { }
+//	bool, for JSON booleans
+//	float64, for JSON numbers
+//	Number, for JSON numbers
+//	string, for JSON string literals
+//	nil, for JSON null
+//
+type Token interface{}
+
+const (
+	tokenTopValue = iota
+	tokenArrayStart
+	tokenArrayValue
+	tokenArrayComma
+	tokenObjectStart
+	tokenObjectKey
+	tokenObjectColon
+	tokenObjectValue
+	tokenObjectComma
+)
+
+// advance tokenstate from a separator state to a value state
+func (dec *Decoder) tokenPrepareForDecode() error {
+	// Note: Not calling peek before switch, to avoid
+	// putting peek into the standard Decode path.
+	// peek is only called when using the Token API.
+	switch dec.tokenState {
+	case tokenArrayComma:
+		c, err := dec.peek()
+		if err != nil {
+			return err
+		}
+		if c != ',' {
+			return &SyntaxError{"expected comma after array element", 0}
+		}
+		dec.scanp++
+		dec.tokenState = tokenArrayValue
+	case tokenObjectColon:
+		c, err := dec.peek()
+		if err != nil {
+			return err
+		}
+		if c != ':' {
+			return &SyntaxError{"expected colon after object key", 0}
+		}
+		dec.scanp++
+		dec.tokenState = tokenObjectValue
+	}
+	return nil
+}
+
+func (dec *Decoder) tokenValueAllowed() bool {
+	switch dec.tokenState {
+	case tokenTopValue, tokenArrayStart, tokenArrayValue, tokenObjectValue:
+		return true
+	}
+	return false
+}
+
+func (dec *Decoder) tokenValueEnd() {
+	switch dec.tokenState {
+	case tokenArrayStart, tokenArrayValue:
+		dec.tokenState = tokenArrayComma
+	case tokenObjectValue:
+		dec.tokenState = tokenObjectComma
+	}
+}
+
+// A Delim is a JSON array or object delimiter, one of [ ] { or }.
+type Delim rune
+
+func (d Delim) String() string {
+	return string(d)
+}
+
+// Token returns the next JSON token in the input stream.
+// At the end of the input stream, Token returns nil, io.EOF.
+//
+// Token guarantees that the delimiters [ ] { } it returns are
+// properly nested and matched: if Token encounters an unexpected
+// delimiter in the input, it will return an error.
+//
+// The input stream consists of basic JSON values—bool, string,
+// number, and null—along with delimiters [ ] { } of type Delim
+// to mark the start and end of arrays and objects.
+// Commas and colons are elided.
+func (dec *Decoder) Token() (Token, error) {
+	for {
+		c, err := dec.peek()
+		if err != nil {
+			return nil, err
+		}
+		switch c {
+		case '[':
+			if !dec.tokenValueAllowed() {
+				return dec.tokenError(c)
+			}
+			dec.scanp++
+			dec.tokenStack = append(dec.tokenStack, dec.tokenState)
+			dec.tokenState = tokenArrayStart
+			return Delim('['), nil
+
+		case ']':
+			if dec.tokenState != tokenArrayStart && dec.tokenState != tokenArrayComma {
+				return dec.tokenError(c)
+			}
+			dec.scanp++
+			dec.tokenState = dec.tokenStack[len(dec.tokenStack)-1]
+			dec.tokenStack = dec.tokenStack[:len(dec.tokenStack)-1]
+			dec.tokenValueEnd()
+			return Delim(']'), nil
+
+		case '{':
+			if !dec.tokenValueAllowed() {
+				return dec.tokenError(c)
+			}
+			dec.scanp++
+			dec.tokenStack = append(dec.tokenStack, dec.tokenState)
+			dec.tokenState = tokenObjectStart
+			return Delim('{'), nil
+
+		case '}':
+			if dec.tokenState != tokenObjectStart && dec.tokenState != tokenObjectComma {
+				return dec.tokenError(c)
+			}
+			dec.scanp++
+			dec.tokenState = dec.tokenStack[len(dec.tokenStack)-1]
+			dec.tokenStack = dec.tokenStack[:len(dec.tokenStack)-1]
+			dec.tokenValueEnd()
+			return Delim('}'), nil
+
+		case ':':
+			if dec.tokenState != tokenObjectColon {
+				return dec.tokenError(c)
+			}
+			dec.scanp++
+			dec.tokenState = tokenObjectValue
+			continue
+
+		case ',':
+			if dec.tokenState == tokenArrayCom
