@@ -399,4 +399,112 @@ func (dec *Decoder) Token() (Token, error) {
 			continue
 
 		case ',':
-			if dec.tokenState == tokenArrayCom
+			if dec.tokenState == tokenArrayComma {
+				dec.scanp++
+				dec.tokenState = tokenArrayValue
+				continue
+			}
+			if dec.tokenState == tokenObjectComma {
+				dec.scanp++
+				dec.tokenState = tokenObjectKey
+				continue
+			}
+			return dec.tokenError(c)
+
+		case '"':
+			if dec.tokenState == tokenObjectStart || dec.tokenState == tokenObjectKey {
+				var x string
+				old := dec.tokenState
+				dec.tokenState = tokenTopValue
+				err := dec.Decode(&x)
+				dec.tokenState = old
+				if err != nil {
+					clearOffset(err)
+					return nil, err
+				}
+				dec.tokenState = tokenObjectColon
+				return x, nil
+			}
+			fallthrough
+
+		default:
+			if !dec.tokenValueAllowed() {
+				return dec.tokenError(c)
+			}
+			var x interface{}
+			if err := dec.Decode(&x); err != nil {
+				clearOffset(err)
+				return nil, err
+			}
+			return x, nil
+		}
+	}
+}
+
+func clearOffset(err error) {
+	if s, ok := err.(*SyntaxError); ok {
+		s.Offset = 0
+	}
+}
+
+func (dec *Decoder) tokenError(c byte) (Token, error) {
+	var context string
+	switch dec.tokenState {
+	case tokenTopValue:
+		context = " looking for beginning of value"
+	case tokenArrayStart, tokenArrayValue, tokenObjectValue:
+		context = " looking for beginning of value"
+	case tokenArrayComma:
+		context = " after array element"
+	case tokenObjectKey:
+		context = " looking for beginning of object key string"
+	case tokenObjectColon:
+		context = " after object key"
+	case tokenObjectComma:
+		context = " after object key:value pair"
+	}
+	return nil, &SyntaxError{"invalid character " + quoteChar(c) + " " + context, 0}
+}
+
+// More reports whether there is another element in the
+// current array or object being parsed.
+func (dec *Decoder) More() bool {
+	c, err := dec.peek()
+	return err == nil && c != ']' && c != '}'
+}
+
+func (dec *Decoder) peek() (byte, error) {
+	var err error
+	for {
+		for i := dec.scanp; i < len(dec.buf); i++ {
+			c := dec.buf[i]
+			if isSpace(c) {
+				continue
+			}
+			dec.scanp = i
+			return c, nil
+		}
+		// buffer has been scanned, now report any error
+		if err != nil {
+			return 0, err
+		}
+		err = dec.refill()
+	}
+}
+
+/*
+TODO
+
+// EncodeToken writes the given JSON token to the stream.
+// It returns an error if the delimiters [ ] { } are not properly used.
+//
+// EncodeToken does not call Flush, because usually it is part of
+// a larger operation such as Encode, and those will call Flush when finished.
+// Callers that create an Encoder and then invoke EncodeToken directly,
+// without using Encode, need to call Flush when finished to ensure that
+// the JSON is written to the underlying writer.
+func (e *Encoder) EncodeToken(t Token) error  {
+	...
+}
+
+*/
