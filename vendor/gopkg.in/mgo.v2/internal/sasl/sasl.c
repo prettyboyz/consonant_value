@@ -66,4 +66,12 @@ sasl_callback_t *mgo_sasl_callbacks(const char *username, const char *password)
 
 	cb[n].id = SASL_CB_AUTHNAME;
 	cb[n].proc = (callback)&mgo_sasl_simple;
-	cb[n].
+	cb[n].context = (char*)username;
+	n++;
+
+	cb[n].id = SASL_CB_LIST_END;
+	cb[n].proc = NULL;
+	cb[n].context = NULL;
+
+	return cb;
+}
