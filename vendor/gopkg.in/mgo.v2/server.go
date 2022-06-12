@@ -53,4 +53,135 @@ type mongoServer struct {
 	pingValue     time.Duration
 	pingIndex     int
 	pingCount     uint32
-	pingWindow    [6]time.Durat
+	pingWindow    [6]time.Duration
+	info          *mongoServerInfo
+}
+
+type dialer struct {
+	old func(addr net.Addr) (net.Conn, error)
+	new func(addr *ServerAddr) (net.Conn, error)
+}
+
+func (dial dialer) isSet() bool {
+	return dial.old != nil || dial.new != nil
+}
+
+type mongoServerInfo struct {
+	Master         bool
+	Mongos         bool
+	Tags           bson.D
+	MaxWireVersion int
+	SetName        string
+}
+
+var defaultServerInfo mongoServerInfo
+
+func newServer(addr string, tcpaddr *net.TCPAddr, sync chan bool, dial dialer) *mongoServer {
+	server := &mongoServer{
+		Addr:         addr,
+		ResolvedAddr: tcpaddr.String(),
+		tcpaddr:      tcpaddr,
+		sync:         sync,
+		dial:         dial,
+		info:         &defaultServerInfo,
+		pingValue:    time.Hour, // Push it back before an actual ping.
+	}
+	go server.pinger(true)
+	return server
+}
+
+var errPoolLimit = errors.New("per-server connection limit reached")
+var errServerClosed = errors.New("server was closed")
+
+// AcquireSocket returns a socket for communicating with the server.
+// This will attempt to reuse an old connection, if one is available. Otherwise,
+// it will establish a new one. The returned socket is owned by the call site,
+// and will return to the cache when the socket has its Release method called
+// the same number of times as AcquireSocket + Acquire were called for it.
+// If the poolLimit argument is greater than zero and the number of sockets in
+// use in this server is greater than the provided limit, errPoolLimit is
+// returned.
+func (server *mongoServer) AcquireSocket(poolLimit int, timeout time.Duration) (socket *mongoSocket, abended bool, err error) {
+	for {
+		server.Lock()
+		abended = server.abended
+		if server.closed {
+			server.Unlock()
+			return nil, abended, errServerClosed
+		}
+		n := len(server.unusedSockets)
+		if poolLimit > 0 && len(server.liveSockets)-n >= poolLimit {
+			server.Unlock()
+			return nil, false, errPoolLimit
+		}
+		if n > 0 {
+			socket = server.unusedSockets[n-1]
+			server.unusedSockets[n-1] = nil // Help GC.
+			server.unusedSockets = server.unusedSockets[:n-1]
+			info := server.info
+			server.Unlock()
+			err = socket.InitialAcquire(info, timeout)
+			if err != nil {
+				continue
+			}
+		} else {
+			server.Unlock()
+			socket, err = server.Connect(timeout)
+			if err == nil {
+				server.Lock()
+				// We've waited for the Connect, see if we got
+				// closed in the meantime
+				if server.closed {
+					server.Unlock()
+					socket.Release()
+					socket.Close()
+					return nil, abended, errServerClosed
+				}
+				server.liveSockets = append(server.liveSockets, socket)
+				server.Unlock()
+			}
+		}
+		return
+	}
+	panic("unreachable")
+}
+
+// Connect establishes a new connection to the server. This should
+// generally be done through server.AcquireSocket().
+func (server *mongoServer) Connect(timeout time.Duration) (*mongoSocket, error) {
+	server.RLock()
+	master := server.info.Master
+	dial := server.dial
+	server.RUnlock()
+
+	logf("Establishing new connection to %s (timeout=%s)...", server.Addr, timeout)
+	var conn net.Conn
+	var err error
+	switch {
+	case !dial.isSet():
+		// Cannot do this because it lacks timeout support. :-(
+		//conn, err = net.DialTCP("tcp", nil, server.tcpaddr)
+		conn, err = net.DialTimeout("tcp", server.ResolvedAddr, timeout)
+		if tcpconn, ok := conn.(*net.TCPConn); ok {
+			tcpconn.SetKeepAlive(true)
+		} else if err == nil {
+			panic("internal error: obtained TCP connection is not a *net.TCPConn!?")
+		}
+	case dial.old != nil:
+		conn, err = dial.old(server.tcpaddr)
+	case dial.new != nil:
+		conn, err = dial.new(&ServerAddr{server.Addr, server.tcpaddr})
+	default:
+		panic("dialer is set, but both dial.old and dial.new are nil")
+	}
+	if err != nil {
+		logf("Connection to %s failed: %v", server.Addr, err.Error())
+		return nil, err
+	}
+	logf("Connection to %s established.", server.Addr)
+
+	stats.conn(+1, master)
+	return newSocket(server, conn, timeout), nil
+}
+
+// Close forces closing all sockets that are alive, whethe
