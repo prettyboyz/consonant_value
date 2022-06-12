@@ -184,4 +184,183 @@ func (server *mongoServer) Connect(timeout time.Duration) (*mongoSocket, error) 
 	return newSocket(server, conn, timeout), nil
 }
 
-// Close forces closing all sockets that are alive, whethe
+// Close forces closing all sockets that are alive, whether
+// they're currently in use or not.
+func (server *mongoServer) Close() {
+	server.Lock()
+	server.closed = true
+	liveSockets := server.liveSockets
+	unusedSockets := server.unusedSockets
+	server.liveSockets = nil
+	server.unusedSockets = nil
+	server.Unlock()
+	logf("Connections to %s closing (%d live sockets).", server.Addr, len(liveSockets))
+	for i, s := range liveSockets {
+		s.Close()
+		liveSockets[i] = nil
+	}
+	for i := range unusedSockets {
+		unusedSockets[i] = nil
+	}
+}
+
+// RecycleSocket puts socket back into the unused cache.
+func (server *mongoServer) RecycleSocket(socket *mongoSocket) {
+	server.Lock()
+	if !server.closed {
+		server.unusedSockets = append(server.unusedSockets, socket)
+	}
+	server.Unlock()
+}
+
+func removeSocket(sockets []*mongoSocket, socket *mongoSocket) []*mongoSocket {
+	for i, s := range sockets {
+		if s == socket {
+			copy(sockets[i:], sockets[i+1:])
+			n := len(sockets) - 1
+			sockets[n] = nil
+			sockets = sockets[:n]
+			break
+		}
+	}
+	return sockets
+}
+
+// AbendSocket notifies the server that the given socket has terminated
+// abnormally, and thus should be discarded rather than cached.
+func (server *mongoServer) AbendSocket(socket *mongoSocket) {
+	server.Lock()
+	server.abended = true
+	if server.closed {
+		server.Unlock()
+		return
+	}
+	server.liveSockets = removeSocket(server.liveSockets, socket)
+	server.unusedSockets = removeSocket(server.unusedSockets, socket)
+	server.Unlock()
+	// Maybe just a timeout, but suggest a cluster sync up just in case.
+	select {
+	case server.sync <- true:
+	default:
+	}
+}
+
+func (server *mongoServer) SetInfo(info *mongoServerInfo) {
+	server.Lock()
+	server.info = info
+	server.Unlock()
+}
+
+func (server *mongoServer) Info() *mongoServerInfo {
+	server.Lock()
+	info := server.info
+	server.Unlock()
+	return info
+}
+
+func (server *mongoServer) hasTags(serverTags []bson.D) bool {
+NextTagSet:
+	for _, tags := range serverTags {
+	NextReqTag:
+		for _, req := range tags {
+			for _, has := range server.info.Tags {
+				if req.Name == has.Name {
+					if req.Value == has.Value {
+						continue NextReqTag
+					}
+					continue NextTagSet
+				}
+			}
+			continue NextTagSet
+		}
+		return true
+	}
+	return false
+}
+
+var pingDelay = 15 * time.Second
+
+func (server *mongoServer) pinger(loop bool) {
+	var delay time.Duration
+	if raceDetector {
+		// This variable is only ever touched by tests.
+		globalMutex.Lock()
+		delay = pingDelay
+		globalMutex.Unlock()
+	} else {
+		delay = pingDelay
+	}
+	op := queryOp{
+		collection: "admin.$cmd",
+		query:      bson.D{{"ping", 1}},
+		flags:      flagSlaveOk,
+		limit:      -1,
+	}
+	for {
+		if loop {
+			time.Sleep(delay)
+		}
+		op := op
+		socket, _, err := server.AcquireSocket(0, delay)
+		if err == nil {
+			start := time.Now()
+			_, _ = socket.SimpleQuery(&op)
+			delay := time.Now().Sub(start)
+
+			server.pingWindow[server.pingIndex] = delay
+			server.pingIndex = (server.pingIndex + 1) % len(server.pingWindow)
+			server.pingCount++
+			var max time.Duration
+			for i := 0; i < len(server.pingWindow) && uint32(i) < server.pingCount; i++ {
+				if server.pingWindow[i] > max {
+					max = server.pingWindow[i]
+				}
+			}
+			socket.Release()
+			server.Lock()
+			if server.closed {
+				loop = false
+			}
+			server.pingValue = max
+			server.Unlock()
+			logf("Ping for %s is %d ms", server.Addr, max/time.Millisecond)
+		} else if err == errServerClosed {
+			return
+		}
+		if !loop {
+			return
+		}
+	}
+}
+
+type mongoServerSlice []*mongoServer
+
+func (s mongoServerSlice) Len() int {
+	return len(s)
+}
+
+func (s mongoServerSlice) Less(i, j int) bool {
+	return s[i].ResolvedAddr < s[j].ResolvedAddr
+}
+
+func (s mongoServerSlice) Swap(i, j int) {
+	s[i], s[j] = s[j], s[i]
+}
+
+func (s mongoServerSlice) Sort() {
+	sort.Sort(s)
+}
+
+func (s mongoServerSlice) Search(resolvedAddr string) (i int, ok bool) {
+	n := len(s)
+	i = sort.Search(n, func(i int) bool {
+		return s[i].ResolvedAddr >= resolvedAddr
+	})
+	return i, i != n && s[i].ResolvedAddr == resolvedAddr
+}
+
+type mongoServers struct {
+	slice mongoServerSlice
+}
+
+func (servers *mongoServers) Search(resolvedAddr string) (server *
