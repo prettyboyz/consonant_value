@@ -363,4 +363,101 @@ type mongoServers struct {
 	slice mongoServerSlice
 }
 
-func (servers *mongoServers) Search(resolvedAddr string) (server *
+func (servers *mongoServers) Search(resolvedAddr string) (server *mongoServer) {
+	if i, ok := servers.slice.Search(resolvedAddr); ok {
+		return servers.slice[i]
+	}
+	return nil
+}
+
+func (servers *mongoServers) Add(server *mongoServer) {
+	servers.slice = append(servers.slice, server)
+	servers.slice.Sort()
+}
+
+func (servers *mongoServers) Remove(other *mongoServer) (server *mongoServer) {
+	if i, found := servers.slice.Search(other.ResolvedAddr); found {
+		server = servers.slice[i]
+		copy(servers.slice[i:], servers.slice[i+1:])
+		n := len(servers.slice) - 1
+		servers.slice[n] = nil // Help GC.
+		servers.slice = servers.slice[:n]
+	}
+	return
+}
+
+func (servers *mongoServers) Slice() []*mongoServer {
+	return ([]*mongoServer)(servers.slice)
+}
+
+func (servers *mongoServers) Get(i int) *mongoServer {
+	return servers.slice[i]
+}
+
+func (servers *mongoServers) Len() int {
+	return len(servers.slice)
+}
+
+func (servers *mongoServers) Empty() bool {
+	return len(servers.slice) == 0
+}
+
+func (servers *mongoServers) HasMongos() bool {
+	for _, s := range servers.slice {
+		if s.Info().Mongos {
+			return true
+		}
+	}
+	return false
+}
+
+// BestFit returns the best guess of what would be the most interesting
+// server to perform operations on at this point in time.
+func (servers *mongoServers) BestFit(mode Mode, serverTags []bson.D) *mongoServer {
+	var best *mongoServer
+	for _, next := range servers.slice {
+		if best == nil {
+			best = next
+			best.RLock()
+			if serverTags != nil && !next.info.Mongos && !best.hasTags(serverTags) {
+				best.RUnlock()
+				best = nil
+			}
+			continue
+		}
+		next.RLock()
+		swap := false
+		switch {
+		case serverTags != nil && !next.info.Mongos && !next.hasTags(serverTags):
+			// Must have requested tags.
+		case mode == Secondary && next.info.Master && !next.info.Mongos:
+			// Must be a secondary or mongos.
+		case next.info.Master != best.info.Master && mode != Nearest:
+			// Prefer slaves, unless the mode is PrimaryPreferred.
+			swap = (mode == PrimaryPreferred) != best.info.Master
+		case absDuration(next.pingValue-best.pingValue) > 15*time.Millisecond:
+			// Prefer nearest server.
+			swap = next.pingValue < best.pingValue
+		case len(next.liveSockets)-len(next.unusedSockets) < len(best.liveSockets)-len(best.unusedSockets):
+			// Prefer servers with less connections.
+			swap = true
+		}
+		if swap {
+			best.RUnlock()
+			best = next
+		} else {
+			next.RUnlock()
+		}
+	}
+	if best != nil {
+		best.RUnlock()
+	}
+	return best
+}
+
+func absDuration(d time.Duration) time.Duration {
+	if d < 0 {
+		return -d
+	}
+	return d
+}
