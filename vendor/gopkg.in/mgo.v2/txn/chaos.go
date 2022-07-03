@@ -27,3 +27,42 @@ type Chaos struct {
 }
 
 // SetChaos sets the failure injection parameters to c.
+func SetChaos(c Chaos) {
+	chaosSetting = c
+	chaosEnabled = c.KillChance > 0 || c.SlowdownChance > 0
+}
+
+func chaos(bpname string) {
+	if !chaosEnabled {
+		return
+	}
+	switch chaosSetting.Breakpoint {
+	case "", bpname:
+		kc := chaosSetting.KillChance
+		if kc > 0 && mrand.Intn(1000) < int(kc*1000) {
+			panic(chaosError{})
+		}
+		if bpname == "insert" {
+			return
+		}
+		sc := chaosSetting.SlowdownChance
+		if sc > 0 && mrand.Intn(1000) < int(sc*1000) {
+			time.Sleep(chaosSetting.Slowdown)
+		}
+	}
+}
+
+type chaosError struct{}
+
+func (f *flusher) handleChaos(err *error) {
+	v := recover()
+	if v == nil {
+		return
+	}
+	if _, ok := v.(chaosError); ok {
+		f.debugf("Killed by chaos!")
+		*err = ErrChaos
+		return
+	}
+	panic(v)
+}
