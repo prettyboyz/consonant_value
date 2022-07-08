@@ -199,4 +199,145 @@ type IntSliceFlag struct {
 
 // NewIntSliceFlag creates a new IntSliceFlag
 func NewIntSliceFlag(fl cli.IntSliceFlag) *IntSliceFlag {
-	return &I
+	return &IntSliceFlag{IntSliceFlag: fl, set: nil}
+}
+
+// Apply saves the flagSet for later usage calls, then calls the
+// wrapped IntSliceFlag.Apply
+func (f *IntSliceFlag) Apply(set *flag.FlagSet) {
+	f.set = set
+	f.IntSliceFlag.Apply(set)
+}
+
+// ApplyWithError saves the flagSet for later usage calls, then calls the
+// wrapped IntSliceFlag.ApplyWithError
+func (f *IntSliceFlag) ApplyWithError(set *flag.FlagSet) error {
+	f.set = set
+	return f.IntSliceFlag.ApplyWithError(set)
+}
+
+// Int64SliceFlag is the flag type that wraps cli.Int64SliceFlag to allow
+// for other values to be specified
+type Int64SliceFlag struct {
+	cli.Int64SliceFlag
+	set *flag.FlagSet
+}
+
+// NewInt64SliceFlag creates a new Int64SliceFlag
+func NewInt64SliceFlag(fl cli.Int64SliceFlag) *Int64SliceFlag {
+	return &Int64SliceFlag{Int64SliceFlag: fl, set: nil}
+}
+
+// Apply saves the flagSet for later usage calls, then calls the
+// wrapped Int64SliceFlag.Apply
+func (f *Int64SliceFlag) Apply(set *flag.FlagSet) {
+	f.set = set
+	f.Int64SliceFlag.Apply(set)
+}
+
+// ApplyWithError saves the flagSet for later usage calls, then calls the
+// wrapped Int64SliceFlag.ApplyWithError
+func (f *Int64SliceFlag) ApplyWithError(set *flag.FlagSet) error {
+	f.set = set
+	return f.Int64SliceFlag.ApplyWithError(set)
+}
+
+// StringFlag is the flag type that wraps cli.StringFlag to allow
+// for other values to be specified
+type StringFlag struct {
+	cli.StringFlag
+	set *flag.FlagSet
+}
+
+// NewStringFlag creates a new StringFlag
+func NewStringFlag(fl cli.StringFlag) *StringFlag {
+	return &StringFlag{StringFlag: fl, set: nil}
+}
+
+// Apply saves the flagSet for later usage calls, then calls the
+// wrapped StringFlag.Apply
+func (f *StringFlag) Apply(set *flag.FlagSet) {
+	f.set = set
+	f.StringFlag.Apply(set)
+}
+
+// ApplyWithError saves the flagSet for later usage calls, then calls the
+// wrapped StringFlag.ApplyWithError
+func (f *StringFlag) ApplyWithError(set *flag.FlagSet) error {
+	f.set = set
+	return f.StringFlag.ApplyWithError(set)
+}
+
+// StringSliceFlag is the flag type that wraps cli.StringSliceFlag to allow
+// for other values to be specified
+type StringSliceFlag struct {
+	cli.StringSliceFlag
+	set *flag.FlagSet
+}
+
+// NewStringSliceFlag creates a new StringSliceFlag
+func NewStringSliceFlag(fl cli.StringSliceFlag) *StringSliceFlag {
+	return &StringSliceFlag{StringSliceFlag: fl, set: nil}
+}
+
+// Apply saves the flagSet for later usage calls, then calls the
+// wrapped StringSliceFlag.Apply
+func (f *StringSliceFlag) Apply(set *flag.FlagSet) {
+	f.set = set
+	f.StringSliceFlag.Apply(set)
+}
+
+// ApplyWithError saves the flagSet for later usage calls, then calls the
+// wrapped StringSliceFlag.ApplyWithError
+func (f *StringSliceFlag) ApplyWithError(set *flag.FlagSet) error {
+	f.set = set
+	return f.StringSliceFlag.ApplyWithError(set)
+}
+
+// Uint64Flag is the flag type that wraps cli.Uint64Flag to allow
+// for other values to be specified
+type Uint64Flag struct {
+	cli.Uint64Flag
+	set *flag.FlagSet
+}
+
+// NewUint64Flag creates a new Uint64Flag
+func NewUint64Flag(fl cli.Uint64Flag) *Uint64Flag {
+	return &Uint64Flag{Uint64Flag: fl, set: nil}
+}
+
+// Apply saves the flagSet for later usage calls, then calls the
+// wrapped Uint64Flag.Apply
+func (f *Uint64Flag) Apply(set *flag.FlagSet) {
+	f.set = set
+	f.Uint64Flag.Apply(set)
+}
+
+// ApplyWithError saves the flagSet for later usage calls, then calls the
+// wrapped Uint64Flag.ApplyWithError
+func (f *Uint64Flag) ApplyWithError(set *flag.FlagSet) error {
+	f.set = set
+	return f.Uint64Flag.ApplyWithError(set)
+}
+
+// UintFlag is the flag type that wraps cli.UintFlag to allow
+// for other values to be specified
+type UintFlag struct {
+	cli.UintFlag
+	set *flag.FlagSet
+}
+
+// NewUintFlag creates a new UintFlag
+func NewUintFlag(fl cli.UintFlag) *UintFlag {
+	return &UintFlag{UintFlag: fl, set: nil}
+}
+
+// Apply saves the flagSet for later usage calls, then calls the
+// wrapped UintFlag.Apply
+func (f *UintFlag) Apply(set *flag.FlagSet) {
+	f.set = set
+	f.UintFlag.Apply(set)
+}
+
+// ApplyWithError saves the flagSet for later usage calls, then calls the
+// wrapped Uint
