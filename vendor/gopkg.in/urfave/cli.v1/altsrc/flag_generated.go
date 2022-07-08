@@ -340,4 +340,8 @@ func (f *UintFlag) Apply(set *flag.FlagSet) {
 }
 
 // ApplyWithError saves the flagSet for later usage calls, then calls the
-// wrapped Uint
+// wrapped UintFlag.ApplyWithError
+func (f *UintFlag) ApplyWithError(set *flag.FlagSet) error {
+	f.set = set
+	return f.UintFlag.ApplyWithError(set)
+}
