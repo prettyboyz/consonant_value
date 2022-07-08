@@ -1,9 +1,9 @@
-// +build go1.7
+// +build !go1.7
 
 package tomb
 
 import (
-	"context"
+	"golang.org/x/net/context"
 )
 
 // WithContext returns a new tomb that is killed when the provided parent
