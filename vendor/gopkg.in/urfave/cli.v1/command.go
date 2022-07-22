@@ -99,4 +99,188 @@ func (c Command) Run(ctx *Context) (err error) {
 		firstFlagIndex := -1
 		terminatorIndex := -1
 		for index, arg := range ctx.Args() {
-			if arg 
+			if arg == "--" {
+				terminatorIndex = index
+				break
+			} else if arg == "-" {
+				// Do nothing. A dash alone is not really a flag.
+				continue
+			} else if strings.HasPrefix(arg, "-") && firstFlagIndex == -1 {
+				firstFlagIndex = index
+			}
+		}
+
+		if firstFlagIndex > -1 {
+			args := ctx.Args()
+			regularArgs := make([]string, len(args[1:firstFlagIndex]))
+			copy(regularArgs, args[1:firstFlagIndex])
+
+			var flagArgs []string
+			if terminatorIndex > -1 {
+				flagArgs = args[firstFlagIndex:terminatorIndex]
+				regularArgs = append(regularArgs, args[terminatorIndex:]...)
+			} else {
+				flagArgs = args[firstFlagIndex:]
+			}
+
+			err = set.Parse(append(flagArgs, regularArgs...))
+		} else {
+			err = set.Parse(ctx.Args().Tail())
+		}
+	} else {
+		err = set.Parse(ctx.Args().Tail())
+	}
+
+	nerr := normalizeFlags(c.Flags, set)
+	if nerr != nil {
+		fmt.Fprintln(ctx.App.Writer, nerr)
+		fmt.Fprintln(ctx.App.Writer)
+		ShowCommandHelp(ctx, c.Name)
+		return nerr
+	}
+
+	context := NewContext(ctx.App, set, ctx)
+	if checkCommandCompletions(context, c.Name) {
+		return nil
+	}
+
+	if err != nil {
+		if c.OnUsageError != nil {
+			err := c.OnUsageError(ctx, err, false)
+			HandleExitCoder(err)
+			return err
+		}
+		fmt.Fprintln(ctx.App.Writer, "Incorrect Usage:", err.Error())
+		fmt.Fprintln(ctx.App.Writer)
+		ShowCommandHelp(ctx, c.Name)
+		return err
+	}
+
+	if checkCommandHelp(context, c.Name) {
+		return nil
+	}
+
+	if c.After != nil {
+		defer func() {
+			afterErr := c.After(context)
+			if afterErr != nil {
+				HandleExitCoder(err)
+				if err != nil {
+					err = NewMultiError(err, afterErr)
+				} else {
+					err = afterErr
+				}
+			}
+		}()
+	}
+
+	if c.Before != nil {
+		err = c.Before(context)
+		if err != nil {
+			fmt.Fprintln(ctx.App.Writer, err)
+			fmt.Fprintln(ctx.App.Writer)
+			ShowCommandHelp(ctx, c.Name)
+			HandleExitCoder(err)
+			return err
+		}
+	}
+
+	if c.Action == nil {
+		c.Action = helpSubcommand.Action
+	}
+
+	context.Command = c
+	err = HandleAction(c.Action, context)
+
+	if err != nil {
+		HandleExitCoder(err)
+	}
+	return err
+}
+
+// Names returns the names including short names and aliases.
+func (c Command) Names() []string {
+	names := []string{c.Name}
+
+	if c.ShortName != "" {
+		names = append(names, c.ShortName)
+	}
+
+	return append(names, c.Aliases...)
+}
+
+// HasName returns true if Command.Name or Command.ShortName matches given name
+func (c Command) HasName(name string) bool {
+	for _, n := range c.Names() {
+		if n == name {
+			return true
+		}
+	}
+	return false
+}
+
+func (c Command) startApp(ctx *Context) error {
+	app := NewApp()
+	app.Metadata = ctx.App.Metadata
+	// set the name and usage
+	app.Name = fmt.Sprintf("%s %s", ctx.App.Name, c.Name)
+	if c.HelpName == "" {
+		app.HelpName = c.HelpName
+	} else {
+		app.HelpName = app.Name
+	}
+
+	if c.Description != "" {
+		app.Usage = c.Description
+	} else {
+		app.Usage = c.Usage
+	}
+
+	// set CommandNotFound
+	app.CommandNotFound = ctx.App.CommandNotFound
+
+	// set the flags and commands
+	app.Commands = c.Subcommands
+	app.Flags = c.Flags
+	app.HideHelp = c.HideHelp
+
+	app.Version = ctx.App.Version
+	app.HideVersion = ctx.App.HideVersion
+	app.Compiled = ctx.App.Compiled
+	app.Author = ctx.App.Author
+	app.Email = ctx.App.Email
+	app.Writer = ctx.App.Writer
+
+	app.categories = CommandCategories{}
+	for _, command := range c.Subcommands {
+		app.categories = app.categories.AddCommand(command.Category, command)
+	}
+
+	sort.Sort(app.categories)
+
+	// bash completion
+	app.EnableBashCompletion = ctx.App.EnableBashCompletion
+	if c.BashComplete != nil {
+		app.BashComplete = c.BashComplete
+	}
+
+	// set the actions
+	app.Before = c.Before
+	app.After = c.After
+	if c.Action != nil {
+		app.Action = c.Action
+	} else {
+		app.Action = helpSubcommand.Action
+	}
+
+	for index, cc := range app.Commands {
+		app.Commands[index].commandNamePath = []string{c.Name, cc.Name}
+	}
+
+	return app.RunAsSubcommand(ctx)
+}
+
+// VisibleFlags returns a slice of the Flags with Hidden=false
+func (c Command) VisibleFlags() []Flag {
+	return visibleFlags(c.Flags)
+}
