@@ -163,4 +163,114 @@ func (c *Context) value(name string) interface{} {
 type Args []string
 
 // Args returns the command line arguments associated with the context.
-func (c *Contex
+func (c *Context) Args() Args {
+	args := Args(c.flagSet.Args())
+	return args
+}
+
+// NArg returns the number of the command line arguments.
+func (c *Context) NArg() int {
+	return len(c.Args())
+}
+
+// Get returns the nth argument, or else a blank string
+func (a Args) Get(n int) string {
+	if len(a) > n {
+		return a[n]
+	}
+	return ""
+}
+
+// First returns the first argument, or else a blank string
+func (a Args) First() string {
+	return a.Get(0)
+}
+
+// Tail returns the rest of the arguments (not the first one)
+// or else an empty string slice
+func (a Args) Tail() []string {
+	if len(a) >= 2 {
+		return []string(a)[1:]
+	}
+	return []string{}
+}
+
+// Present checks if there are any arguments present
+func (a Args) Present() bool {
+	return len(a) != 0
+}
+
+// Swap swaps arguments at the given indexes
+func (a Args) Swap(from, to int) error {
+	if from >= len(a) || to >= len(a) {
+		return errors.New("index out of range")
+	}
+	a[from], a[to] = a[to], a[from]
+	return nil
+}
+
+func globalContext(ctx *Context) *Context {
+	if ctx == nil {
+		return nil
+	}
+
+	for {
+		if ctx.parentContext == nil {
+			return ctx
+		}
+		ctx = ctx.parentContext
+	}
+}
+
+func lookupGlobalFlagSet(name string, ctx *Context) *flag.FlagSet {
+	if ctx.parentContext != nil {
+		ctx = ctx.parentContext
+	}
+	for ; ctx != nil; ctx = ctx.parentContext {
+		if f := ctx.flagSet.Lookup(name); f != nil {
+			return ctx.flagSet
+		}
+	}
+	return nil
+}
+
+func copyFlag(name string, ff *flag.Flag, set *flag.FlagSet) {
+	switch ff.Value.(type) {
+	case *StringSlice:
+	default:
+		set.Set(name, ff.Value.String())
+	}
+}
+
+func normalizeFlags(flags []Flag, set *flag.FlagSet) error {
+	visited := make(map[string]bool)
+	set.Visit(func(f *flag.Flag) {
+		visited[f.Name] = true
+	})
+	for _, f := range flags {
+		parts := strings.Split(f.GetName(), ",")
+		if len(parts) == 1 {
+			continue
+		}
+		var ff *flag.Flag
+		for _, name := range parts {
+			name = strings.Trim(name, " ")
+			if visited[name] {
+				if ff != nil {
+					return errors.New("Cannot use two forms of the same flag: " + name + " " + ff.Name)
+				}
+				ff = set.Lookup(name)
+			}
+		}
+		if ff == nil {
+			continue
+		}
+		for _, name := range parts {
+			name = strings.Trim(name, " ")
+			if !visited[name] {
+				copyFlag(name, ff, set)
+			}
+		}
+	}
+	return nil
+}
