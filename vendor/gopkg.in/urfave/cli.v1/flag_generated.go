@@ -215,4 +215,192 @@ func (f GenericFlag) String() string {
 
 // GetName returns the name of the flag
 func (f GenericFlag) GetName() string {
-	re
+	return f.Name
+}
+
+// Generic looks up the value of a local GenericFlag, returns
+// nil if not found
+func (c *Context) Generic(name string) interface{} {
+	return lookupGeneric(name, c.flagSet)
+}
+
+// GlobalGeneric looks up the value of a global GenericFlag, returns
+// nil if not found
+func (c *Context) GlobalGeneric(name string) interface{} {
+	if fs := lookupGlobalFlagSet(name, c); fs != nil {
+		return lookupGeneric(name, fs)
+	}
+	return nil
+}
+
+func lookupGeneric(name string, set *flag.FlagSet) interface{} {
+	f := set.Lookup(name)
+	if f != nil {
+		parsed, err := f.Value, error(nil)
+		if err != nil {
+			return nil
+		}
+		return parsed
+	}
+	return nil
+}
+
+// Int64Flag is a flag with type int64
+type Int64Flag struct {
+	Name        string
+	Usage       string
+	EnvVar      string
+	Hidden      bool
+	Value       int64
+	Destination *int64
+}
+
+// String returns a readable representation of this value
+// (for usage defaults)
+func (f Int64Flag) String() string {
+	return FlagStringer(f)
+}
+
+// GetName returns the name of the flag
+func (f Int64Flag) GetName() string {
+	return f.Name
+}
+
+// Int64 looks up the value of a local Int64Flag, returns
+// 0 if not found
+func (c *Context) Int64(name string) int64 {
+	return lookupInt64(name, c.flagSet)
+}
+
+// GlobalInt64 looks up the value of a global Int64Flag, returns
+// 0 if not found
+func (c *Context) GlobalInt64(name string) int64 {
+	if fs := lookupGlobalFlagSet(name, c); fs != nil {
+		return lookupInt64(name, fs)
+	}
+	return 0
+}
+
+func lookupInt64(name string, set *flag.FlagSet) int64 {
+	f := set.Lookup(name)
+	if f != nil {
+		parsed, err := strconv.ParseInt(f.Value.String(), 0, 64)
+		if err != nil {
+			return 0
+		}
+		return parsed
+	}
+	return 0
+}
+
+// IntFlag is a flag with type int
+type IntFlag struct {
+	Name        string
+	Usage       string
+	EnvVar      string
+	Hidden      bool
+	Value       int
+	Destination *int
+}
+
+// String returns a readable representation of this value
+// (for usage defaults)
+func (f IntFlag) String() string {
+	return FlagStringer(f)
+}
+
+// GetName returns the name of the flag
+func (f IntFlag) GetName() string {
+	return f.Name
+}
+
+// Int looks up the value of a local IntFlag, returns
+// 0 if not found
+func (c *Context) Int(name string) int {
+	return lookupInt(name, c.flagSet)
+}
+
+// GlobalInt looks up the value of a global IntFlag, returns
+// 0 if not found
+func (c *Context) GlobalInt(name string) int {
+	if fs := lookupGlobalFlagSet(name, c); fs != nil {
+		return lookupInt(name, fs)
+	}
+	return 0
+}
+
+func lookupInt(name string, set *flag.FlagSet) int {
+	f := set.Lookup(name)
+	if f != nil {
+		parsed, err := strconv.ParseInt(f.Value.String(), 0, 64)
+		if err != nil {
+			return 0
+		}
+		return int(parsed)
+	}
+	return 0
+}
+
+// IntSliceFlag is a flag with type *IntSlice
+type IntSliceFlag struct {
+	Name   string
+	Usage  string
+	EnvVar string
+	Hidden bool
+	Value  *IntSlice
+}
+
+// String returns a readable representation of this value
+// (for usage defaults)
+func (f IntSliceFlag) String() string {
+	return FlagStringer(f)
+}
+
+// GetName returns the name of the flag
+func (f IntSliceFlag) GetName() string {
+	return f.Name
+}
+
+// IntSlice looks up the value of a local IntSliceFlag, returns
+// nil if not found
+func (c *Context) IntSlice(name string) []int {
+	return lookupIntSlice(name, c.flagSet)
+}
+
+// GlobalIntSlice looks up the value of a global IntSliceFlag, returns
+// nil if not found
+func (c *Context) GlobalIntSlice(name string) []int {
+	if fs := lookupGlobalFlagSet(name, c); fs != nil {
+		return lookupIntSlice(name, fs)
+	}
+	return nil
+}
+
+func lookupIntSlice(name string, set *flag.FlagSet) []int {
+	f := set.Lookup(name)
+	if f != nil {
+		parsed, err := (f.Value.(*IntSlice)).Value(), error(nil)
+		if err != nil {
+			return nil
+		}
+		return parsed
+	}
+	return nil
+}
+
+// Int64SliceFlag is a flag with type *Int64Slice
+type Int64SliceFlag struct {
+	Name   string
+	Usage  string
+	EnvVar string
+	Hidden bool
+	Value  *Int64Slice
+}
+
+// String returns a readable representation of this value
+// (for usage defaults)
+func (f Int64SliceFlag) String() string {
+	return FlagStringer(f)
+}
+
+// GetNam
