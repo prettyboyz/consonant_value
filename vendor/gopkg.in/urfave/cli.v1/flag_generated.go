@@ -403,4 +403,179 @@ func (f Int64SliceFlag) String() string {
 	return FlagStringer(f)
 }
 
-// GetNam
+// GetName returns the name of the flag
+func (f Int64SliceFlag) GetName() string {
+	return f.Name
+}
+
+// Int64Slice looks up the value of a local Int64SliceFlag, returns
+// nil if not found
+func (c *Context) Int64Slice(name string) []int64 {
+	return lookupInt64Slice(name, c.flagSet)
+}
+
+// GlobalInt64Slice looks up the value of a global Int64SliceFlag, returns
+// nil if not found
+func (c *Context) GlobalInt64Slice(name string) []int64 {
+	if fs := lookupGlobalFlagSet(name, c); fs != nil {
+		return lookupInt64Slice(name, fs)
+	}
+	return nil
+}
+
+func lookupInt64Slice(name string, set *flag.FlagSet) []int64 {
+	f := set.Lookup(name)
+	if f != nil {
+		parsed, err := (f.Value.(*Int64Slice)).Value(), error(nil)
+		if err != nil {
+			return nil
+		}
+		return parsed
+	}
+	return nil
+}
+
+// StringFlag is a flag with type string
+type StringFlag struct {
+	Name        string
+	Usage       string
+	EnvVar      string
+	Hidden      bool
+	Value       string
+	Destination *string
+}
+
+// String returns a readable representation of this value
+// (for usage defaults)
+func (f StringFlag) String() string {
+	return FlagStringer(f)
+}
+
+// GetName returns the name of the flag
+func (f StringFlag) GetName() string {
+	return f.Name
+}
+
+// String looks up the value of a local StringFlag, returns
+// "" if not found
+func (c *Context) String(name string) string {
+	return lookupString(name, c.flagSet)
+}
+
+// GlobalString looks up the value of a global StringFlag, returns
+// "" if not found
+func (c *Context) GlobalString(name string) string {
+	if fs := lookupGlobalFlagSet(name, c); fs != nil {
+		return lookupString(name, fs)
+	}
+	return ""
+}
+
+func lookupString(name string, set *flag.FlagSet) string {
+	f := set.Lookup(name)
+	if f != nil {
+		parsed, err := f.Value.String(), error(nil)
+		if err != nil {
+			return ""
+		}
+		return parsed
+	}
+	return ""
+}
+
+// StringSliceFlag is a flag with type *StringSlice
+type StringSliceFlag struct {
+	Name   string
+	Usage  string
+	EnvVar string
+	Hidden bool
+	Value  *StringSlice
+}
+
+// String returns a readable representation of this value
+// (for usage defaults)
+func (f StringSliceFlag) String() string {
+	return FlagStringer(f)
+}
+
+// GetName returns the name of the flag
+func (f StringSliceFlag) GetName() string {
+	return f.Name
+}
+
+// StringSlice looks up the value of a local StringSliceFlag, returns
+// nil if not found
+func (c *Context) StringSlice(name string) []string {
+	return lookupStringSlice(name, c.flagSet)
+}
+
+// GlobalStringSlice looks up the value of a global StringSliceFlag, returns
+// nil if not found
+func (c *Context) GlobalStringSlice(name string) []string {
+	if fs := lookupGlobalFlagSet(name, c); fs != nil {
+		return lookupStringSlice(name, fs)
+	}
+	return nil
+}
+
+func lookupStringSlice(name string, set *flag.FlagSet) []string {
+	f := set.Lookup(name)
+	if f != nil {
+		parsed, err := (f.Value.(*StringSlice)).Value(), error(nil)
+		if err != nil {
+			return nil
+		}
+		return parsed
+	}
+	return nil
+}
+
+// Uint64Flag is a flag with type uint64
+type Uint64Flag struct {
+	Name        string
+	Usage       string
+	EnvVar      string
+	Hidden      bool
+	Value       uint64
+	Destination *uint64
+}
+
+// String returns a readable representation of this value
+// (for usage defaults)
+func (f Uint64Flag) String() string {
+	return FlagStringer(f)
+}
+
+// GetName returns the name of the flag
+func (f Uint64Flag) GetName() string {
+	return f.Name
+}
+
+// Uint64 looks up the value of a local Uint64Flag, returns
+// 0 if not found
+func (c *Context) Uint64(name string) uint64 {
+	return lookupUint64(name, c.flagSet)
+}
+
+// GlobalUint64 looks up the value of a global Uint64Flag, returns
+// 0 if not found
+func (c *Context) GlobalUint64(name string) uint64 {
+	if fs := lookupGlobalFlagSet(name, c); fs != nil {
+		return lookupUint64(name, fs)
+	}
+	return 0
+}
+
+func lookupUint64(name string, set *flag.FlagSet) uint64 {
+	f := set.Lookup(name)
+	if f != nil {
+		parsed, err := strconv.ParseUint(f.Value.String(), 0, 64)
+		if err != nil {
+			return 0
+		}
+		return parsed
+	}
+	return 0
+}
+
+// UintFlag is a flag with type 
