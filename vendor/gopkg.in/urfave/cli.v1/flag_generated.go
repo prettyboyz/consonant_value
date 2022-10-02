@@ -578,4 +578,50 @@ func lookupUint64(name string, set *flag.FlagSet) uint64 {
 	return 0
 }
 
-// UintFlag is a flag with type 
+// UintFlag is a flag with type uint
+type UintFlag struct {
+	Name        string
+	Usage       string
+	EnvVar      string
+	Hidden      bool
+	Value       uint
+	Destination *uint
+}
+
+// String returns a readable representation of this value
+// (for usage defaults)
+func (f UintFlag) String() string {
+	return FlagStringer(f)
+}
+
+// GetName returns the name of the flag
+func (f UintFlag) GetName() string {
+	return f.Name
+}
+
+// Uint looks up the value of a local UintFlag, returns
+// 0 if not found
+func (c *Context) Uint(name string) uint {
+	return lookupUint(name, c.flagSet)
+}
+
+// GlobalUint looks up the value of a global UintFlag, returns
+// 0 if not found
+func (c *Context) GlobalUint(name string) uint {
+	if fs := lookupGlobalFlagSet(name, c); fs != nil {
+		return lookupUint(name, fs)
+	}
+	return 0
+}
+
+func lookupUint(name string, set *flag.FlagSet) uint {
+	f := set.Lookup(name)
+	if f != nil {
+		parsed, err := strconv.ParseUint(f.Value.String(), 0, 64)
+		if err != nil {
+			return 0
+		}
+		return uint(parsed)
+	}
+	return 0
+}
