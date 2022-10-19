@@ -200,4 +200,95 @@ func printHelp(out io.Writer, templ string, data interface{}) {
 	t := template.Must(template.New("help").Funcs(funcMap).Parse(templ))
 	err := t.Execute(w, data)
 	if err != nil {
-		// If the writer is closed, t.Execute will fail, and there's noth
+		// If the writer is closed, t.Execute will fail, and there's nothing
+		// we can do to recover.
+		if os.Getenv("CLI_TEMPLATE_ERROR_DEBUG") != "" {
+			fmt.Fprintf(ErrWriter, "CLI TEMPLATE ERROR: %#v\n", err)
+		}
+		return
+	}
+	w.Flush()
+}
+
+func checkVersion(c *Context) bool {
+	found := false
+	if VersionFlag.Name != "" {
+		eachName(VersionFlag.Name, func(name string) {
+			if c.GlobalBool(name) || c.Bool(name) {
+				found = true
+			}
+		})
+	}
+	return found
+}
+
+func checkHelp(c *Context) bool {
+	found := false
+	if HelpFlag.Name != "" {
+		eachName(HelpFlag.Name, func(name string) {
+			if c.GlobalBool(name) || c.Bool(name) {
+				found = true
+			}
+		})
+	}
+	return found
+}
+
+func checkCommandHelp(c *Context, name string) bool {
+	if c.Bool("h") || c.Bool("help") {
+		ShowCommandHelp(c, name)
+		return true
+	}
+
+	return false
+}
+
+func checkSubcommandHelp(c *Context) bool {
+	if c.Bool("h") || c.Bool("help") {
+		ShowSubcommandHelp(c)
+		return true
+	}
+
+	return false
+}
+
+func checkShellCompleteFlag(a *App, arguments []string) (bool, []string) {
+	if !a.EnableBashCompletion {
+		return false, arguments
+	}
+
+	pos := len(arguments) - 1
+	lastArg := arguments[pos]
+
+	if lastArg != "--"+BashCompletionFlag.Name {
+		return false, arguments
+	}
+
+	return true, arguments[:pos]
+}
+
+func checkCompletions(c *Context) bool {
+	if !c.shellComplete {
+		return false
+	}
+
+	if args := c.Args(); args.Present() {
+		name := args.First()
+		if cmd := c.App.Command(name); cmd != nil {
+			// let the command handle the completion
+			return false
+		}
+	}
+
+	ShowCompletions(c)
+	return true
+}
+
+func checkCommandCompletions(c *Context, name string) bool {
+	if !c.shellComplete {
+		return false
+	}
+
+	ShowCommandCompletions(c, name)
+	return true
+}
