@@ -349,4 +349,128 @@ func yaml_sequence_end_event_initialize(event *yaml_event_t) bool {
 
 // Create MAPPING-START.
 func yaml_mapping_start_event_initialize(event *yaml_event_t, anchor, tag []byte, implicit bool, style yaml_mapping_style_t) bool {
-	*
+	*event = yaml_event_t{
+		typ:      yaml_MAPPING_START_EVENT,
+		anchor:   anchor,
+		tag:      tag,
+		implicit: implicit,
+		style:    yaml_style_t(style),
+	}
+	return true
+}
+
+// Create MAPPING-END.
+func yaml_mapping_end_event_initialize(event *yaml_event_t) bool {
+	*event = yaml_event_t{
+		typ: yaml_MAPPING_END_EVENT,
+	}
+	return true
+}
+
+// Destroy an event object.
+func yaml_event_delete(event *yaml_event_t) {
+	*event = yaml_event_t{}
+}
+
+///*
+// * Create a document object.
+// */
+//
+//YAML_DECLARE(int)
+//yaml_document_initialize(document *yaml_document_t,
+//        version_directive *yaml_version_directive_t,
+//        tag_directives_start *yaml_tag_directive_t,
+//        tag_directives_end *yaml_tag_directive_t,
+//        start_implicit int, end_implicit int)
+//{
+//    struct {
+//        error yaml_error_type_t
+//    } context
+//    struct {
+//        start *yaml_node_t
+//        end *yaml_node_t
+//        top *yaml_node_t
+//    } nodes = { NULL, NULL, NULL }
+//    version_directive_copy *yaml_version_directive_t = NULL
+//    struct {
+//        start *yaml_tag_directive_t
+//        end *yaml_tag_directive_t
+//        top *yaml_tag_directive_t
+//    } tag_directives_copy = { NULL, NULL, NULL }
+//    value yaml_tag_directive_t = { NULL, NULL }
+//    mark yaml_mark_t = { 0, 0, 0 }
+//
+//    assert(document) // Non-NULL document object is expected.
+//    assert((tag_directives_start && tag_directives_end) ||
+//            (tag_directives_start == tag_directives_end))
+//                            // Valid tag directives are expected.
+//
+//    if (!STACK_INIT(&context, nodes, INITIAL_STACK_SIZE)) goto error
+//
+//    if (version_directive) {
+//        version_directive_copy = yaml_malloc(sizeof(yaml_version_directive_t))
+//        if (!version_directive_copy) goto error
+//        version_directive_copy.major = version_directive.major
+//        version_directive_copy.minor = version_directive.minor
+//    }
+//
+//    if (tag_directives_start != tag_directives_end) {
+//        tag_directive *yaml_tag_directive_t
+//        if (!STACK_INIT(&context, tag_directives_copy, INITIAL_STACK_SIZE))
+//            goto error
+//        for (tag_directive = tag_directives_start
+//                tag_directive != tag_directives_end; tag_directive ++) {
+//            assert(tag_directive.handle)
+//            assert(tag_directive.prefix)
+//            if (!yaml_check_utf8(tag_directive.handle,
+//                        strlen((char *)tag_directive.handle)))
+//                goto error
+//            if (!yaml_check_utf8(tag_directive.prefix,
+//                        strlen((char *)tag_directive.prefix)))
+//                goto error
+//            value.handle = yaml_strdup(tag_directive.handle)
+//            value.prefix = yaml_strdup(tag_directive.prefix)
+//            if (!value.handle || !value.prefix) goto error
+//            if (!PUSH(&context, tag_directives_copy, value))
+//                goto error
+//            value.handle = NULL
+//            value.prefix = NULL
+//        }
+//    }
+//
+//    DOCUMENT_INIT(*document, nodes.start, nodes.end, version_directive_copy,
+//            tag_directives_copy.start, tag_directives_copy.top,
+//            start_implicit, end_implicit, mark, mark)
+//
+//    return 1
+//
+//error:
+//    STACK_DEL(&context, nodes)
+//    yaml_free(version_directive_copy)
+//    while (!STACK_EMPTY(&context, tag_directives_copy)) {
+//        value yaml_tag_directive_t = POP(&context, tag_directives_copy)
+//        yaml_free(value.handle)
+//        yaml_free(value.prefix)
+//    }
+//    STACK_DEL(&context, tag_directives_copy)
+//    yaml_free(value.handle)
+//    yaml_free(value.prefix)
+//
+//    return 0
+//}
+//
+///*
+// * Destroy a document object.
+// */
+//
+//YAML_DECLARE(void)
+//yaml_document_delete(document *yaml_document_t)
+//{
+//    struct {
+//        error yaml_error_type_t
+//    } context
+//    tag_directive *yaml_tag_directive_t
+//
+//    context.error = YAML_NO_ERROR // Eliminate a compliler warning.
+//
+//    assert(document) // Non-NULL doc
