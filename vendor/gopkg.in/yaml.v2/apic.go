@@ -473,4 +473,147 @@ func yaml_event_delete(event *yaml_event_t) {
 //
 //    context.error = YAML_NO_ERROR // Eliminate a compliler warning.
 //
-//    assert(document) // Non-NULL doc
+//    assert(document) // Non-NULL document object is expected.
+//
+//    while (!STACK_EMPTY(&context, document.nodes)) {
+//        node yaml_node_t = POP(&context, document.nodes)
+//        yaml_free(node.tag)
+//        switch (node.type) {
+//            case YAML_SCALAR_NODE:
+//                yaml_free(node.data.scalar.value)
+//                break
+//            case YAML_SEQUENCE_NODE:
+//                STACK_DEL(&context, node.data.sequence.items)
+//                break
+//            case YAML_MAPPING_NODE:
+//                STACK_DEL(&context, node.data.mapping.pairs)
+//                break
+//            default:
+//                assert(0) // Should not happen.
+//        }
+//    }
+//    STACK_DEL(&context, document.nodes)
+//
+//    yaml_free(document.version_directive)
+//    for (tag_directive = document.tag_directives.start
+//            tag_directive != document.tag_directives.end
+//            tag_directive++) {
+//        yaml_free(tag_directive.handle)
+//        yaml_free(tag_directive.prefix)
+//    }
+//    yaml_free(document.tag_directives.start)
+//
+//    memset(document, 0, sizeof(yaml_document_t))
+//}
+//
+///**
+// * Get a document node.
+// */
+//
+//YAML_DECLARE(yaml_node_t *)
+//yaml_document_get_node(document *yaml_document_t, index int)
+//{
+//    assert(document) // Non-NULL document object is expected.
+//
+//    if (index > 0 && document.nodes.start + index <= document.nodes.top) {
+//        return document.nodes.start + index - 1
+//    }
+//    return NULL
+//}
+//
+///**
+// * Get the root object.
+// */
+//
+//YAML_DECLARE(yaml_node_t *)
+//yaml_document_get_root_node(document *yaml_document_t)
+//{
+//    assert(document) // Non-NULL document object is expected.
+//
+//    if (document.nodes.top != document.nodes.start) {
+//        return document.nodes.start
+//    }
+//    return NULL
+//}
+//
+///*
+// * Add a scalar node to a document.
+// */
+//
+//YAML_DECLARE(int)
+//yaml_document_add_scalar(document *yaml_document_t,
+//        tag *yaml_char_t, value *yaml_char_t, length int,
+//        style yaml_scalar_style_t)
+//{
+//    struct {
+//        error yaml_error_type_t
+//    } context
+//    mark yaml_mark_t = { 0, 0, 0 }
+//    tag_copy *yaml_char_t = NULL
+//    value_copy *yaml_char_t = NULL
+//    node yaml_node_t
+//
+//    assert(document) // Non-NULL document object is expected.
+//    assert(value) // Non-NULL value is expected.
+//
+//    if (!tag) {
+//        tag = (yaml_char_t *)YAML_DEFAULT_SCALAR_TAG
+//    }
+//
+//    if (!yaml_check_utf8(tag, strlen((char *)tag))) goto error
+//    tag_copy = yaml_strdup(tag)
+//    if (!tag_copy) goto error
+//
+//    if (length < 0) {
+//        length = strlen((char *)value)
+//    }
+//
+//    if (!yaml_check_utf8(value, length)) goto error
+//    value_copy = yaml_malloc(length+1)
+//    if (!value_copy) goto error
+//    memcpy(value_copy, value, length)
+//    value_copy[length] = '\0'
+//
+//    SCALAR_NODE_INIT(node, tag_copy, value_copy, length, style, mark, mark)
+//    if (!PUSH(&context, document.nodes, node)) goto error
+//
+//    return document.nodes.top - document.nodes.start
+//
+//error:
+//    yaml_free(tag_copy)
+//    yaml_free(value_copy)
+//
+//    return 0
+//}
+//
+///*
+// * Add a sequence node to a document.
+// */
+//
+//YAML_DECLARE(int)
+//yaml_document_add_sequence(document *yaml_document_t,
+//        tag *yaml_char_t, style yaml_sequence_style_t)
+//{
+//    struct {
+//        error yaml_error_type_t
+//    } context
+//    mark yaml_mark_t = { 0, 0, 0 }
+//    tag_copy *yaml_char_t = NULL
+//    struct {
+//        start *yaml_node_item_t
+//        end *yaml_node_item_t
+//        top *yaml_node_item_t
+//    } items = { NULL, NULL, NULL }
+//    node yaml_node_t
+//
+//    assert(document) // Non-NULL document object is expected.
+//
+//    if (!tag) {
+//        tag = (yaml_char_t *)YAML_DEFAULT_SEQUENCE_TAG
+//    }
+//
+//    if (!yaml_check_utf8(tag, strlen((char *)tag))) goto error
+//    tag_copy = yaml_strdup(tag)
+//    if (!tag_copy) goto error
+//
+//    if (!STACK_
