@@ -616,4 +616,127 @@ func yaml_event_delete(event *yaml_event_t) {
 //    tag_copy = yaml_strdup(tag)
 //    if (!tag_copy) goto error
 //
-//    if (!STACK_
+//    if (!STACK_INIT(&context, items, INITIAL_STACK_SIZE)) goto error
+//
+//    SEQUENCE_NODE_INIT(node, tag_copy, items.start, items.end,
+//            style, mark, mark)
+//    if (!PUSH(&context, document.nodes, node)) goto error
+//
+//    return document.nodes.top - document.nodes.start
+//
+//error:
+//    STACK_DEL(&context, items)
+//    yaml_free(tag_copy)
+//
+//    return 0
+//}
+//
+///*
+// * Add a mapping node to a document.
+// */
+//
+//YAML_DECLARE(int)
+//yaml_document_add_mapping(document *yaml_document_t,
+//        tag *yaml_char_t, style yaml_mapping_style_t)
+//{
+//    struct {
+//        error yaml_error_type_t
+//    } context
+//    mark yaml_mark_t = { 0, 0, 0 }
+//    tag_copy *yaml_char_t = NULL
+//    struct {
+//        start *yaml_node_pair_t
+//        end *yaml_node_pair_t
+//        top *yaml_node_pair_t
+//    } pairs = { NULL, NULL, NULL }
+//    node yaml_node_t
+//
+//    assert(document) // Non-NULL document object is expected.
+//
+//    if (!tag) {
+//        tag = (yaml_char_t *)YAML_DEFAULT_MAPPING_TAG
+//    }
+//
+//    if (!yaml_check_utf8(tag, strlen((char *)tag))) goto error
+//    tag_copy = yaml_strdup(tag)
+//    if (!tag_copy) goto error
+//
+//    if (!STACK_INIT(&context, pairs, INITIAL_STACK_SIZE)) goto error
+//
+//    MAPPING_NODE_INIT(node, tag_copy, pairs.start, pairs.end,
+//            style, mark, mark)
+//    if (!PUSH(&context, document.nodes, node)) goto error
+//
+//    return document.nodes.top - document.nodes.start
+//
+//error:
+//    STACK_DEL(&context, pairs)
+//    yaml_free(tag_copy)
+//
+//    return 0
+//}
+//
+///*
+// * Append an item to a sequence node.
+// */
+//
+//YAML_DECLARE(int)
+//yaml_document_append_sequence_item(document *yaml_document_t,
+//        sequence int, item int)
+//{
+//    struct {
+//        error yaml_error_type_t
+//    } context
+//
+//    assert(document) // Non-NULL document is required.
+//    assert(sequence > 0
+//            && document.nodes.start + sequence <= document.nodes.top)
+//                            // Valid sequence id is required.
+//    assert(document.nodes.start[sequence-1].type == YAML_SEQUENCE_NODE)
+//                            // A sequence node is required.
+//    assert(item > 0 && document.nodes.start + item <= document.nodes.top)
+//                            // Valid item id is required.
+//
+//    if (!PUSH(&context,
+//                document.nodes.start[sequence-1].data.sequence.items, item))
+//        return 0
+//
+//    return 1
+//}
+//
+///*
+// * Append a pair of a key and a value to a mapping node.
+// */
+//
+//YAML_DECLARE(int)
+//yaml_document_append_mapping_pair(document *yaml_document_t,
+//        mapping int, key int, value int)
+//{
+//    struct {
+//        error yaml_error_type_t
+//    } context
+//
+//    pair yaml_node_pair_t
+//
+//    assert(document) // Non-NULL document is required.
+//    assert(mapping > 0
+//            && document.nodes.start + mapping <= document.nodes.top)
+//                            // Valid mapping id is required.
+//    assert(document.nodes.start[mapping-1].type == YAML_MAPPING_NODE)
+//                            // A mapping node is required.
+//    assert(key > 0 && document.nodes.start + key <= document.nodes.top)
+//                            // Valid key id is required.
+//    assert(value > 0 && document.nodes.start + value <= document.nodes.top)
+//                            // Valid value id is required.
+//
+//    pair.key = key
+//    pair.value = value
+//
+//    if (!PUSH(&context,
+//                document.nodes.start[mapping-1].data.mapping.pairs, pair))
+//        return 0
+//
+//    return 1
+//}
+//
+//
