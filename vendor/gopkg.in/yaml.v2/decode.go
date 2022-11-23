@@ -491,3 +491,193 @@ func (d *decoder) sequence(n *node, out reflect.Value) (good bool) {
 		return false
 	}
 	et := out.Type().Elem()
+
+	j := 0
+	for i := 0; i < l; i++ {
+		e := reflect.New(et).Elem()
+		if ok := d.unmarshal(n.children[i], e); ok {
+			out.Index(j).Set(e)
+			j++
+		}
+	}
+	out.Set(out.Slice(0, j))
+	if iface.IsValid() {
+		iface.Set(out)
+	}
+	return true
+}
+
+func (d *decoder) mapping(n *node, out reflect.Value) (good bool) {
+	switch out.Kind() {
+	case reflect.Struct:
+		return d.mappingStruct(n, out)
+	case reflect.Slice:
+		return d.mappingSlice(n, out)
+	case reflect.Map:
+		// okay
+	case reflect.Interface:
+		if d.mapType.Kind() == reflect.Map {
+			iface := out
+			out = reflect.MakeMap(d.mapType)
+			iface.Set(out)
+		} else {
+			slicev := reflect.New(d.mapType).Elem()
+			if !d.mappingSlice(n, slicev) {
+				return false
+			}
+			out.Set(slicev)
+			return true
+		}
+	default:
+		d.terror(n, yaml_MAP_TAG, out)
+		return false
+	}
+	outt := out.Type()
+	kt := outt.Key()
+	et := outt.Elem()
+
+	mapType := d.mapType
+	if outt.Key() == ifaceType && outt.Elem() == ifaceType {
+		d.mapType = outt
+	}
+
+	if out.IsNil() {
+		out.Set(reflect.MakeMap(outt))
+	}
+	l := len(n.children)
+	for i := 0; i < l; i += 2 {
+		if isMerge(n.children[i]) {
+			d.merge(n.children[i+1], out)
+			continue
+		}
+		k := reflect.New(kt).Elem()
+		if d.unmarshal(n.children[i], k) {
+			kkind := k.Kind()
+			if kkind == reflect.Interface {
+				kkind = k.Elem().Kind()
+			}
+			if kkind == reflect.Map || kkind == reflect.Slice {
+				failf("invalid map key: %#v", k.Interface())
+			}
+			e := reflect.New(et).Elem()
+			if d.unmarshal(n.children[i+1], e) {
+				out.SetMapIndex(k, e)
+			}
+		}
+	}
+	d.mapType = mapType
+	return true
+}
+
+func (d *decoder) mappingSlice(n *node, out reflect.Value) (good bool) {
+	outt := out.Type()
+	if outt.Elem() != mapItemType {
+		d.terror(n, yaml_MAP_TAG, out)
+		return false
+	}
+
+	mapType := d.mapType
+	d.mapType = outt
+
+	var slice []MapItem
+	var l = len(n.children)
+	for i := 0; i < l; i += 2 {
+		if isMerge(n.children[i]) {
+			d.merge(n.children[i+1], out)
+			continue
+		}
+		item := MapItem{}
+		k := reflect.ValueOf(&item.Key).Elem()
+		if d.unmarshal(n.children[i], k) {
+			v := reflect.ValueOf(&item.Value).Elem()
+			if d.unmarshal(n.children[i+1], v) {
+				slice = append(slice, item)
+			}
+		}
+	}
+	out.Set(reflect.ValueOf(slice))
+	d.mapType = mapType
+	return true
+}
+
+func (d *decoder) mappingStruct(n *node, out reflect.Value) (good bool) {
+	sinfo, err := getStructInfo(out.Type())
+	if err != nil {
+		panic(err)
+	}
+	name := settableValueOf("")
+	l := len(n.children)
+
+	var inlineMap reflect.Value
+	var elemType reflect.Type
+	if sinfo.InlineMap != -1 {
+		inlineMap = out.Field(sinfo.InlineMap)
+		inlineMap.Set(reflect.New(inlineMap.Type()).Elem())
+		elemType = inlineMap.Type().Elem()
+	}
+
+	for i := 0; i < l; i += 2 {
+		ni := n.children[i]
+		if isMerge(ni) {
+			d.merge(n.children[i+1], out)
+			continue
+		}
+		if !d.unmarshal(ni, name) {
+			continue
+		}
+		if info, ok := sinfo.FieldsMap[name.String()]; ok {
+			var field reflect.Value
+			if info.Inline == nil {
+				field = out.Field(info.Num)
+			} else {
+				field = out.FieldByIndex(info.Inline)
+			}
+			d.unmarshal(n.children[i+1], field)
+		} else if sinfo.InlineMap != -1 {
+			if inlineMap.IsNil() {
+				inlineMap.Set(reflect.MakeMap(inlineMap.Type()))
+			}
+			value := reflect.New(elemType).Elem()
+			d.unmarshal(n.children[i+1], value)
+			inlineMap.SetMapIndex(name, value)
+		}
+	}
+	return true
+}
+
+func failWantMap() {
+	failf("map merge requires map or sequence of maps as the value")
+}
+
+func (d *decoder) merge(n *node, out reflect.Value) {
+	switch n.kind {
+	case mappingNode:
+		d.unmarshal(n, out)
+	case aliasNode:
+		an, ok := d.doc.anchors[n.value]
+		if ok && an.kind != mappingNode {
+			failWantMap()
+		}
+		d.unmarshal(n, out)
+	case sequenceNode:
+		// Step backwards as earlier nodes take precedence.
+		for i := len(n.children) - 1; i >= 0; i-- {
+			ni := n.children[i]
+			if ni.kind == aliasNode {
+				an, ok := d.doc.anchors[ni.value]
+				if ok && an.kind != mappingNode {
+					failWantMap()
+				}
+			} else if ni.kind != mappingNode {
+				failWantMap()
+			}
+			d.unmarshal(ni, out)
+		}
+	default:
+		failWantMap()
+	}
+}
+
+func isMerge(n *node) bool {
+	return n.kind == scalarNode && n.value == "<<" && (n.implicit == true || n.tag == yaml_MERGE_TAG)
+}
