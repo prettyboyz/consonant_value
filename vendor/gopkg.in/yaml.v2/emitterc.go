@@ -282,4 +282,159 @@ func yaml_emitter_emit_stream_start(emitter *yaml_emitter_t, event *yaml_event_t
 	if emitter.best_indent < 2 || emitter.best_indent > 9 {
 		emitter.best_indent = 2
 	}
-	if emi
+	if emitter.best_width >= 0 && emitter.best_width <= emitter.best_indent*2 {
+		emitter.best_width = 80
+	}
+	if emitter.best_width < 0 {
+		emitter.best_width = 1<<31 - 1
+	}
+	if emitter.line_break == yaml_ANY_BREAK {
+		emitter.line_break = yaml_LN_BREAK
+	}
+
+	emitter.indent = -1
+	emitter.line = 0
+	emitter.column = 0
+	emitter.whitespace = true
+	emitter.indention = true
+
+	if emitter.encoding != yaml_UTF8_ENCODING {
+		if !yaml_emitter_write_bom(emitter) {
+			return false
+		}
+	}
+	emitter.state = yaml_EMIT_FIRST_DOCUMENT_START_STATE
+	return true
+}
+
+// Expect DOCUMENT-START or STREAM-END.
+func yaml_emitter_emit_document_start(emitter *yaml_emitter_t, event *yaml_event_t, first bool) bool {
+
+	if event.typ == yaml_DOCUMENT_START_EVENT {
+
+		if event.version_directive != nil {
+			if !yaml_emitter_analyze_version_directive(emitter, event.version_directive) {
+				return false
+			}
+		}
+
+		for i := 0; i < len(event.tag_directives); i++ {
+			tag_directive := &event.tag_directives[i]
+			if !yaml_emitter_analyze_tag_directive(emitter, tag_directive) {
+				return false
+			}
+			if !yaml_emitter_append_tag_directive(emitter, tag_directive, false) {
+				return false
+			}
+		}
+
+		for i := 0; i < len(default_tag_directives); i++ {
+			tag_directive := &default_tag_directives[i]
+			if !yaml_emitter_append_tag_directive(emitter, tag_directive, true) {
+				return false
+			}
+		}
+
+		implicit := event.implicit
+		if !first || emitter.canonical {
+			implicit = false
+		}
+
+		if emitter.open_ended && (event.version_directive != nil || len(event.tag_directives) > 0) {
+			if !yaml_emitter_write_indicator(emitter, []byte("..."), true, false, false) {
+				return false
+			}
+			if !yaml_emitter_write_indent(emitter) {
+				return false
+			}
+		}
+
+		if event.version_directive != nil {
+			implicit = false
+			if !yaml_emitter_write_indicator(emitter, []byte("%YAML"), true, false, false) {
+				return false
+			}
+			if !yaml_emitter_write_indicator(emitter, []byte("1.1"), true, false, false) {
+				return false
+			}
+			if !yaml_emitter_write_indent(emitter) {
+				return false
+			}
+		}
+
+		if len(event.tag_directives) > 0 {
+			implicit = false
+			for i := 0; i < len(event.tag_directives); i++ {
+				tag_directive := &event.tag_directives[i]
+				if !yaml_emitter_write_indicator(emitter, []byte("%TAG"), true, false, false) {
+					return false
+				}
+				if !yaml_emitter_write_tag_handle(emitter, tag_directive.handle) {
+					return false
+				}
+				if !yaml_emitter_write_tag_content(emitter, tag_directive.prefix, true) {
+					return false
+				}
+				if !yaml_emitter_write_indent(emitter) {
+					return false
+				}
+			}
+		}
+
+		if yaml_emitter_check_empty_document(emitter) {
+			implicit = false
+		}
+		if !implicit {
+			if !yaml_emitter_write_indent(emitter) {
+				return false
+			}
+			if !yaml_emitter_write_indicator(emitter, []byte("---"), true, false, false) {
+				return false
+			}
+			if emitter.canonical {
+				if !yaml_emitter_write_indent(emitter) {
+					return false
+				}
+			}
+		}
+
+		emitter.state = yaml_EMIT_DOCUMENT_CONTENT_STATE
+		return true
+	}
+
+	if event.typ == yaml_STREAM_END_EVENT {
+		if emitter.open_ended {
+			if !yaml_emitter_write_indicator(emitter, []byte("..."), true, false, false) {
+				return false
+			}
+			if !yaml_emitter_write_indent(emitter) {
+				return false
+			}
+		}
+		if !yaml_emitter_flush(emitter) {
+			return false
+		}
+		emitter.state = yaml_EMIT_END_STATE
+		return true
+	}
+
+	return yaml_emitter_set_emitter_error(emitter, "expected DOCUMENT-START or STREAM-END")
+}
+
+// Expect the root node.
+func yaml_emitter_emit_document_content(emitter *yaml_emitter_t, event *yaml_event_t) bool {
+	emitter.states = append(emitter.states, yaml_EMIT_DOCUMENT_END_STATE)
+	return yaml_emitter_emit_node(emitter, event, true, false, false, false)
+}
+
+// Expect DOCUMENT-END.
+func yaml_emitter_emit_document_end(emitter *yaml_emitter_t, event *yaml_event_t) bool {
+	if event.typ != yaml_DOCUMENT_END_EVENT {
+		return yaml_emitter_set_emitter_error(emitter, "expected DOCUMENT-END")
+	}
+	if !yaml_emitter_write_indent(emitter) {
+		return false
+	}
+	if !event.implicit {
+		// [Go] Allocate the slice elsewhere.
+		if !yaml_em
