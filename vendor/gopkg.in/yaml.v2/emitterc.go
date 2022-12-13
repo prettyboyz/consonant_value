@@ -437,4 +437,142 @@ func yaml_emitter_emit_document_end(emitter *yaml_emitter_t, event *yaml_event_t
 	}
 	if !event.implicit {
 		// [Go] Allocate the slice elsewhere.
-		if !yaml_em
+		if !yaml_emitter_write_indicator(emitter, []byte("..."), true, false, false) {
+			return false
+		}
+		if !yaml_emitter_write_indent(emitter) {
+			return false
+		}
+	}
+	if !yaml_emitter_flush(emitter) {
+		return false
+	}
+	emitter.state = yaml_EMIT_DOCUMENT_START_STATE
+	emitter.tag_directives = emitter.tag_directives[:0]
+	return true
+}
+
+// Expect a flow item node.
+func yaml_emitter_emit_flow_sequence_item(emitter *yaml_emitter_t, event *yaml_event_t, first bool) bool {
+	if first {
+		if !yaml_emitter_write_indicator(emitter, []byte{'['}, true, true, false) {
+			return false
+		}
+		if !yaml_emitter_increase_indent(emitter, true, false) {
+			return false
+		}
+		emitter.flow_level++
+	}
+
+	if event.typ == yaml_SEQUENCE_END_EVENT {
+		emitter.flow_level--
+		emitter.indent = emitter.indents[len(emitter.indents)-1]
+		emitter.indents = emitter.indents[:len(emitter.indents)-1]
+		if emitter.canonical && !first {
+			if !yaml_emitter_write_indicator(emitter, []byte{','}, false, false, false) {
+				return false
+			}
+			if !yaml_emitter_write_indent(emitter) {
+				return false
+			}
+		}
+		if !yaml_emitter_write_indicator(emitter, []byte{']'}, false, false, false) {
+			return false
+		}
+		emitter.state = emitter.states[len(emitter.states)-1]
+		emitter.states = emitter.states[:len(emitter.states)-1]
+
+		return true
+	}
+
+	if !first {
+		if !yaml_emitter_write_indicator(emitter, []byte{','}, false, false, false) {
+			return false
+		}
+	}
+
+	if emitter.canonical || emitter.column > emitter.best_width {
+		if !yaml_emitter_write_indent(emitter) {
+			return false
+		}
+	}
+	emitter.states = append(emitter.states, yaml_EMIT_FLOW_SEQUENCE_ITEM_STATE)
+	return yaml_emitter_emit_node(emitter, event, false, true, false, false)
+}
+
+// Expect a flow key node.
+func yaml_emitter_emit_flow_mapping_key(emitter *yaml_emitter_t, event *yaml_event_t, first bool) bool {
+	if first {
+		if !yaml_emitter_write_indicator(emitter, []byte{'{'}, true, true, false) {
+			return false
+		}
+		if !yaml_emitter_increase_indent(emitter, true, false) {
+			return false
+		}
+		emitter.flow_level++
+	}
+
+	if event.typ == yaml_MAPPING_END_EVENT {
+		emitter.flow_level--
+		emitter.indent = emitter.indents[len(emitter.indents)-1]
+		emitter.indents = emitter.indents[:len(emitter.indents)-1]
+		if emitter.canonical && !first {
+			if !yaml_emitter_write_indicator(emitter, []byte{','}, false, false, false) {
+				return false
+			}
+			if !yaml_emitter_write_indent(emitter) {
+				return false
+			}
+		}
+		if !yaml_emitter_write_indicator(emitter, []byte{'}'}, false, false, false) {
+			return false
+		}
+		emitter.state = emitter.states[len(emitter.states)-1]
+		emitter.states = emitter.states[:len(emitter.states)-1]
+		return true
+	}
+
+	if !first {
+		if !yaml_emitter_write_indicator(emitter, []byte{','}, false, false, false) {
+			return false
+		}
+	}
+	if emitter.canonical || emitter.column > emitter.best_width {
+		if !yaml_emitter_write_indent(emitter) {
+			return false
+		}
+	}
+
+	if !emitter.canonical && yaml_emitter_check_simple_key(emitter) {
+		emitter.states = append(emitter.states, yaml_EMIT_FLOW_MAPPING_SIMPLE_VALUE_STATE)
+		return yaml_emitter_emit_node(emitter, event, false, false, true, true)
+	}
+	if !yaml_emitter_write_indicator(emitter, []byte{'?'}, true, false, false) {
+		return false
+	}
+	emitter.states = append(emitter.states, yaml_EMIT_FLOW_MAPPING_VALUE_STATE)
+	return yaml_emitter_emit_node(emitter, event, false, false, true, false)
+}
+
+// Expect a flow value node.
+func yaml_emitter_emit_flow_mapping_value(emitter *yaml_emitter_t, event *yaml_event_t, simple bool) bool {
+	if simple {
+		if !yaml_emitter_write_indicator(emitter, []byte{':'}, false, false, false) {
+			return false
+		}
+	} else {
+		if emitter.canonical || emitter.column > emitter.best_width {
+			if !yaml_emitter_write_indent(emitter) {
+				return false
+			}
+		}
+		if !yaml_emitter_write_indicator(emitter, []byte{':'}, true, false, false) {
+			return false
+		}
+	}
+	emitter.states = append(emitter.states, yaml_EMIT_FLOW_MAPPING_KEY_STATE)
+	return yaml_emitter_emit_node(emitter, event, false, false, true, false)
+}
+
+// Expect a block item node.
+func yaml_emitter_emit_block_sequence_item(emitter
