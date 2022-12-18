@@ -575,4 +575,127 @@ func yaml_emitter_emit_flow_mapping_value(emitter *yaml_emitter_t, event *yaml_e
 }
 
 // Expect a block item node.
-func yaml_emitter_emit_block_sequence_item(emitter
+func yaml_emitter_emit_block_sequence_item(emitter *yaml_emitter_t, event *yaml_event_t, first bool) bool {
+	if first {
+		if !yaml_emitter_increase_indent(emitter, false, emitter.mapping_context && !emitter.indention) {
+			return false
+		}
+	}
+	if event.typ == yaml_SEQUENCE_END_EVENT {
+		emitter.indent = emitter.indents[len(emitter.indents)-1]
+		emitter.indents = emitter.indents[:len(emitter.indents)-1]
+		emitter.state = emitter.states[len(emitter.states)-1]
+		emitter.states = emitter.states[:len(emitter.states)-1]
+		return true
+	}
+	if !yaml_emitter_write_indent(emitter) {
+		return false
+	}
+	if !yaml_emitter_write_indicator(emitter, []byte{'-'}, true, false, true) {
+		return false
+	}
+	emitter.states = append(emitter.states, yaml_EMIT_BLOCK_SEQUENCE_ITEM_STATE)
+	return yaml_emitter_emit_node(emitter, event, false, true, false, false)
+}
+
+// Expect a block key node.
+func yaml_emitter_emit_block_mapping_key(emitter *yaml_emitter_t, event *yaml_event_t, first bool) bool {
+	if first {
+		if !yaml_emitter_increase_indent(emitter, false, false) {
+			return false
+		}
+	}
+	if event.typ == yaml_MAPPING_END_EVENT {
+		emitter.indent = emitter.indents[len(emitter.indents)-1]
+		emitter.indents = emitter.indents[:len(emitter.indents)-1]
+		emitter.state = emitter.states[len(emitter.states)-1]
+		emitter.states = emitter.states[:len(emitter.states)-1]
+		return true
+	}
+	if !yaml_emitter_write_indent(emitter) {
+		return false
+	}
+	if yaml_emitter_check_simple_key(emitter) {
+		emitter.states = append(emitter.states, yaml_EMIT_BLOCK_MAPPING_SIMPLE_VALUE_STATE)
+		return yaml_emitter_emit_node(emitter, event, false, false, true, true)
+	}
+	if !yaml_emitter_write_indicator(emitter, []byte{'?'}, true, false, true) {
+		return false
+	}
+	emitter.states = append(emitter.states, yaml_EMIT_BLOCK_MAPPING_VALUE_STATE)
+	return yaml_emitter_emit_node(emitter, event, false, false, true, false)
+}
+
+// Expect a block value node.
+func yaml_emitter_emit_block_mapping_value(emitter *yaml_emitter_t, event *yaml_event_t, simple bool) bool {
+	if simple {
+		if !yaml_emitter_write_indicator(emitter, []byte{':'}, false, false, false) {
+			return false
+		}
+	} else {
+		if !yaml_emitter_write_indent(emitter) {
+			return false
+		}
+		if !yaml_emitter_write_indicator(emitter, []byte{':'}, true, false, true) {
+			return false
+		}
+	}
+	emitter.states = append(emitter.states, yaml_EMIT_BLOCK_MAPPING_KEY_STATE)
+	return yaml_emitter_emit_node(emitter, event, false, false, true, false)
+}
+
+// Expect a node.
+func yaml_emitter_emit_node(emitter *yaml_emitter_t, event *yaml_event_t,
+	root bool, sequence bool, mapping bool, simple_key bool) bool {
+
+	emitter.root_context = root
+	emitter.sequence_context = sequence
+	emitter.mapping_context = mapping
+	emitter.simple_key_context = simple_key
+
+	switch event.typ {
+	case yaml_ALIAS_EVENT:
+		return yaml_emitter_emit_alias(emitter, event)
+	case yaml_SCALAR_EVENT:
+		return yaml_emitter_emit_scalar(emitter, event)
+	case yaml_SEQUENCE_START_EVENT:
+		return yaml_emitter_emit_sequence_start(emitter, event)
+	case yaml_MAPPING_START_EVENT:
+		return yaml_emitter_emit_mapping_start(emitter, event)
+	default:
+		return yaml_emitter_set_emitter_error(emitter,
+			"expected SCALAR, SEQUENCE-START, MAPPING-START, or ALIAS")
+	}
+}
+
+// Expect ALIAS.
+func yaml_emitter_emit_alias(emitter *yaml_emitter_t, event *yaml_event_t) bool {
+	if !yaml_emitter_process_anchor(emitter) {
+		return false
+	}
+	emitter.state = emitter.states[len(emitter.states)-1]
+	emitter.states = emitter.states[:len(emitter.states)-1]
+	return true
+}
+
+// Expect SCALAR.
+func yaml_emitter_emit_scalar(emitter *yaml_emitter_t, event *yaml_event_t) bool {
+	if !yaml_emitter_select_scalar_style(emitter, event) {
+		return false
+	}
+	if !yaml_emitter_process_anchor(emitter) {
+		return false
+	}
+	if !yaml_emitter_process_tag(emitter) {
+		return false
+	}
+	if !yaml_emitter_increase_indent(emitter, true, false) {
+		return false
+	}
+	if !yaml_emitter_process_scalar(emitter) {
+		return false
+	}
+	emitter.indent = emitter.indents[len(emitter.indents)-1]
+	emitter.indents = emitter.indents[:len(emitter.indents)-1]
+	emitter.state = emitter.states[len(emitter.states)-1]
+	emitte
