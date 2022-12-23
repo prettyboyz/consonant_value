@@ -698,4 +698,131 @@ func yaml_emitter_emit_scalar(emitter *yaml_emitter_t, event *yaml_event_t) bool
 	emitter.indent = emitter.indents[len(emitter.indents)-1]
 	emitter.indents = emitter.indents[:len(emitter.indents)-1]
 	emitter.state = emitter.states[len(emitter.states)-1]
-	emitte
+	emitter.states = emitter.states[:len(emitter.states)-1]
+	return true
+}
+
+// Expect SEQUENCE-START.
+func yaml_emitter_emit_sequence_start(emitter *yaml_emitter_t, event *yaml_event_t) bool {
+	if !yaml_emitter_process_anchor(emitter) {
+		return false
+	}
+	if !yaml_emitter_process_tag(emitter) {
+		return false
+	}
+	if emitter.flow_level > 0 || emitter.canonical || event.sequence_style() == yaml_FLOW_SEQUENCE_STYLE ||
+		yaml_emitter_check_empty_sequence(emitter) {
+		emitter.state = yaml_EMIT_FLOW_SEQUENCE_FIRST_ITEM_STATE
+	} else {
+		emitter.state = yaml_EMIT_BLOCK_SEQUENCE_FIRST_ITEM_STATE
+	}
+	return true
+}
+
+// Expect MAPPING-START.
+func yaml_emitter_emit_mapping_start(emitter *yaml_emitter_t, event *yaml_event_t) bool {
+	if !yaml_emitter_process_anchor(emitter) {
+		return false
+	}
+	if !yaml_emitter_process_tag(emitter) {
+		return false
+	}
+	if emitter.flow_level > 0 || emitter.canonical || event.mapping_style() == yaml_FLOW_MAPPING_STYLE ||
+		yaml_emitter_check_empty_mapping(emitter) {
+		emitter.state = yaml_EMIT_FLOW_MAPPING_FIRST_KEY_STATE
+	} else {
+		emitter.state = yaml_EMIT_BLOCK_MAPPING_FIRST_KEY_STATE
+	}
+	return true
+}
+
+// Check if the document content is an empty scalar.
+func yaml_emitter_check_empty_document(emitter *yaml_emitter_t) bool {
+	return false // [Go] Huh?
+}
+
+// Check if the next events represent an empty sequence.
+func yaml_emitter_check_empty_sequence(emitter *yaml_emitter_t) bool {
+	if len(emitter.events)-emitter.events_head < 2 {
+		return false
+	}
+	return emitter.events[emitter.events_head].typ == yaml_SEQUENCE_START_EVENT &&
+		emitter.events[emitter.events_head+1].typ == yaml_SEQUENCE_END_EVENT
+}
+
+// Check if the next events represent an empty mapping.
+func yaml_emitter_check_empty_mapping(emitter *yaml_emitter_t) bool {
+	if len(emitter.events)-emitter.events_head < 2 {
+		return false
+	}
+	return emitter.events[emitter.events_head].typ == yaml_MAPPING_START_EVENT &&
+		emitter.events[emitter.events_head+1].typ == yaml_MAPPING_END_EVENT
+}
+
+// Check if the next node can be expressed as a simple key.
+func yaml_emitter_check_simple_key(emitter *yaml_emitter_t) bool {
+	length := 0
+	switch emitter.events[emitter.events_head].typ {
+	case yaml_ALIAS_EVENT:
+		length += len(emitter.anchor_data.anchor)
+	case yaml_SCALAR_EVENT:
+		if emitter.scalar_data.multiline {
+			return false
+		}
+		length += len(emitter.anchor_data.anchor) +
+			len(emitter.tag_data.handle) +
+			len(emitter.tag_data.suffix) +
+			len(emitter.scalar_data.value)
+	case yaml_SEQUENCE_START_EVENT:
+		if !yaml_emitter_check_empty_sequence(emitter) {
+			return false
+		}
+		length += len(emitter.anchor_data.anchor) +
+			len(emitter.tag_data.handle) +
+			len(emitter.tag_data.suffix)
+	case yaml_MAPPING_START_EVENT:
+		if !yaml_emitter_check_empty_mapping(emitter) {
+			return false
+		}
+		length += len(emitter.anchor_data.anchor) +
+			len(emitter.tag_data.handle) +
+			len(emitter.tag_data.suffix)
+	default:
+		return false
+	}
+	return length <= 128
+}
+
+// Determine an acceptable scalar style.
+func yaml_emitter_select_scalar_style(emitter *yaml_emitter_t, event *yaml_event_t) bool {
+
+	no_tag := len(emitter.tag_data.handle) == 0 && len(emitter.tag_data.suffix) == 0
+	if no_tag && !event.implicit && !event.quoted_implicit {
+		return yaml_emitter_set_emitter_error(emitter, "neither tag nor implicit flags are specified")
+	}
+
+	style := event.scalar_style()
+	if style == yaml_ANY_SCALAR_STYLE {
+		style = yaml_PLAIN_SCALAR_STYLE
+	}
+	if emitter.canonical {
+		style = yaml_DOUBLE_QUOTED_SCALAR_STYLE
+	}
+	if emitter.simple_key_context && emitter.scalar_data.multiline {
+		style = yaml_DOUBLE_QUOTED_SCALAR_STYLE
+	}
+
+	if style == yaml_PLAIN_SCALAR_STYLE {
+		if emitter.flow_level > 0 && !emitter.scalar_data.flow_plain_allowed ||
+			emitter.flow_level == 0 && !emitter.scalar_data.block_plain_allowed {
+			style = yaml_SINGLE_QUOTED_SCALAR_STYLE
+		}
+		if len(emitter.scalar_data.value) == 0 && (emitter.flow_level > 0 || emitter.simple_key_context) {
+			style = yaml_SINGLE_QUOTED_SCALAR_STYLE
+		}
+		if no_tag && !event.implicit {
+			style = yaml_SINGLE_QUOTED_SCALAR_STYLE
+		}
+	}
+	if style == yaml_SINGLE_QUOTED_SCALAR_STYLE {
+		if !emitter.scalar_data.single_quoted_all
