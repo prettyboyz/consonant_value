@@ -825,4 +825,129 @@ func yaml_emitter_select_scalar_style(emitter *yaml_emitter_t, event *yaml_event
 		}
 	}
 	if style == yaml_SINGLE_QUOTED_SCALAR_STYLE {
-		if !emitter.scalar_data.single_quoted_all
+		if !emitter.scalar_data.single_quoted_allowed {
+			style = yaml_DOUBLE_QUOTED_SCALAR_STYLE
+		}
+	}
+	if style == yaml_LITERAL_SCALAR_STYLE || style == yaml_FOLDED_SCALAR_STYLE {
+		if !emitter.scalar_data.block_allowed || emitter.flow_level > 0 || emitter.simple_key_context {
+			style = yaml_DOUBLE_QUOTED_SCALAR_STYLE
+		}
+	}
+
+	if no_tag && !event.quoted_implicit && style != yaml_PLAIN_SCALAR_STYLE {
+		emitter.tag_data.handle = []byte{'!'}
+	}
+	emitter.scalar_data.style = style
+	return true
+}
+
+// Write an achor.
+func yaml_emitter_process_anchor(emitter *yaml_emitter_t) bool {
+	if emitter.anchor_data.anchor == nil {
+		return true
+	}
+	c := []byte{'&'}
+	if emitter.anchor_data.alias {
+		c[0] = '*'
+	}
+	if !yaml_emitter_write_indicator(emitter, c, true, false, false) {
+		return false
+	}
+	return yaml_emitter_write_anchor(emitter, emitter.anchor_data.anchor)
+}
+
+// Write a tag.
+func yaml_emitter_process_tag(emitter *yaml_emitter_t) bool {
+	if len(emitter.tag_data.handle) == 0 && len(emitter.tag_data.suffix) == 0 {
+		return true
+	}
+	if len(emitter.tag_data.handle) > 0 {
+		if !yaml_emitter_write_tag_handle(emitter, emitter.tag_data.handle) {
+			return false
+		}
+		if len(emitter.tag_data.suffix) > 0 {
+			if !yaml_emitter_write_tag_content(emitter, emitter.tag_data.suffix, false) {
+				return false
+			}
+		}
+	} else {
+		// [Go] Allocate these slices elsewhere.
+		if !yaml_emitter_write_indicator(emitter, []byte("!<"), true, false, false) {
+			return false
+		}
+		if !yaml_emitter_write_tag_content(emitter, emitter.tag_data.suffix, false) {
+			return false
+		}
+		if !yaml_emitter_write_indicator(emitter, []byte{'>'}, false, false, false) {
+			return false
+		}
+	}
+	return true
+}
+
+// Write a scalar.
+func yaml_emitter_process_scalar(emitter *yaml_emitter_t) bool {
+	switch emitter.scalar_data.style {
+	case yaml_PLAIN_SCALAR_STYLE:
+		return yaml_emitter_write_plain_scalar(emitter, emitter.scalar_data.value, !emitter.simple_key_context)
+
+	case yaml_SINGLE_QUOTED_SCALAR_STYLE:
+		return yaml_emitter_write_single_quoted_scalar(emitter, emitter.scalar_data.value, !emitter.simple_key_context)
+
+	case yaml_DOUBLE_QUOTED_SCALAR_STYLE:
+		return yaml_emitter_write_double_quoted_scalar(emitter, emitter.scalar_data.value, !emitter.simple_key_context)
+
+	case yaml_LITERAL_SCALAR_STYLE:
+		return yaml_emitter_write_literal_scalar(emitter, emitter.scalar_data.value)
+
+	case yaml_FOLDED_SCALAR_STYLE:
+		return yaml_emitter_write_folded_scalar(emitter, emitter.scalar_data.value)
+	}
+	panic("unknown scalar style")
+}
+
+// Check if a %YAML directive is valid.
+func yaml_emitter_analyze_version_directive(emitter *yaml_emitter_t, version_directive *yaml_version_directive_t) bool {
+	if version_directive.major != 1 || version_directive.minor != 1 {
+		return yaml_emitter_set_emitter_error(emitter, "incompatible %YAML directive")
+	}
+	return true
+}
+
+// Check if a %TAG directive is valid.
+func yaml_emitter_analyze_tag_directive(emitter *yaml_emitter_t, tag_directive *yaml_tag_directive_t) bool {
+	handle := tag_directive.handle
+	prefix := tag_directive.prefix
+	if len(handle) == 0 {
+		return yaml_emitter_set_emitter_error(emitter, "tag handle must not be empty")
+	}
+	if handle[0] != '!' {
+		return yaml_emitter_set_emitter_error(emitter, "tag handle must start with '!'")
+	}
+	if handle[len(handle)-1] != '!' {
+		return yaml_emitter_set_emitter_error(emitter, "tag handle must end with '!'")
+	}
+	for i := 1; i < len(handle)-1; i += width(handle[i]) {
+		if !is_alpha(handle, i) {
+			return yaml_emitter_set_emitter_error(emitter, "tag handle must contain alphanumerical characters only")
+		}
+	}
+	if len(prefix) == 0 {
+		return yaml_emitter_set_emitter_error(emitter, "tag prefix must not be empty")
+	}
+	return true
+}
+
+// Check if an anchor is valid.
+func yaml_emitter_analyze_anchor(emitter *yaml_emitter_t, anchor []byte, alias bool) bool {
+	if len(anchor) == 0 {
+		problem := "anchor value must not be empty"
+		if alias {
+			problem = "alias value must not be empty"
+		}
+		return yaml_emitter_set_emitter_error(emitter, problem)
+	}
+	for i := 0; i < len(anchor); i += width(anchor[i]) {
+		if !is_alpha(anchor, i) {
+			problem := "anchor value must contain 
