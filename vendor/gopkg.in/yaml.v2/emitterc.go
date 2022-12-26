@@ -1102,4 +1102,165 @@ func yaml_emitter_analyze_scalar(emitter *yaml_emitter_t, value []byte) bool {
 		emitter.scalar_data.block_plain_allowed = false
 	}
 	if trailing_space {
-		emitter.scalar_data.b
+		emitter.scalar_data.block_allowed = false
+	}
+	if break_space {
+		emitter.scalar_data.flow_plain_allowed = false
+		emitter.scalar_data.block_plain_allowed = false
+		emitter.scalar_data.single_quoted_allowed = false
+	}
+	if space_break || special_characters {
+		emitter.scalar_data.flow_plain_allowed = false
+		emitter.scalar_data.block_plain_allowed = false
+		emitter.scalar_data.single_quoted_allowed = false
+		emitter.scalar_data.block_allowed = false
+	}
+	if line_breaks {
+		emitter.scalar_data.flow_plain_allowed = false
+		emitter.scalar_data.block_plain_allowed = false
+	}
+	if flow_indicators {
+		emitter.scalar_data.flow_plain_allowed = false
+	}
+	if block_indicators {
+		emitter.scalar_data.block_plain_allowed = false
+	}
+	return true
+}
+
+// Check if the event data is valid.
+func yaml_emitter_analyze_event(emitter *yaml_emitter_t, event *yaml_event_t) bool {
+
+	emitter.anchor_data.anchor = nil
+	emitter.tag_data.handle = nil
+	emitter.tag_data.suffix = nil
+	emitter.scalar_data.value = nil
+
+	switch event.typ {
+	case yaml_ALIAS_EVENT:
+		if !yaml_emitter_analyze_anchor(emitter, event.anchor, true) {
+			return false
+		}
+
+	case yaml_SCALAR_EVENT:
+		if len(event.anchor) > 0 {
+			if !yaml_emitter_analyze_anchor(emitter, event.anchor, false) {
+				return false
+			}
+		}
+		if len(event.tag) > 0 && (emitter.canonical || (!event.implicit && !event.quoted_implicit)) {
+			if !yaml_emitter_analyze_tag(emitter, event.tag) {
+				return false
+			}
+		}
+		if !yaml_emitter_analyze_scalar(emitter, event.value) {
+			return false
+		}
+
+	case yaml_SEQUENCE_START_EVENT:
+		if len(event.anchor) > 0 {
+			if !yaml_emitter_analyze_anchor(emitter, event.anchor, false) {
+				return false
+			}
+		}
+		if len(event.tag) > 0 && (emitter.canonical || !event.implicit) {
+			if !yaml_emitter_analyze_tag(emitter, event.tag) {
+				return false
+			}
+		}
+
+	case yaml_MAPPING_START_EVENT:
+		if len(event.anchor) > 0 {
+			if !yaml_emitter_analyze_anchor(emitter, event.anchor, false) {
+				return false
+			}
+		}
+		if len(event.tag) > 0 && (emitter.canonical || !event.implicit) {
+			if !yaml_emitter_analyze_tag(emitter, event.tag) {
+				return false
+			}
+		}
+	}
+	return true
+}
+
+// Write the BOM character.
+func yaml_emitter_write_bom(emitter *yaml_emitter_t) bool {
+	if !flush(emitter) {
+		return false
+	}
+	pos := emitter.buffer_pos
+	emitter.buffer[pos+0] = '\xEF'
+	emitter.buffer[pos+1] = '\xBB'
+	emitter.buffer[pos+2] = '\xBF'
+	emitter.buffer_pos += 3
+	return true
+}
+
+func yaml_emitter_write_indent(emitter *yaml_emitter_t) bool {
+	indent := emitter.indent
+	if indent < 0 {
+		indent = 0
+	}
+	if !emitter.indention || emitter.column > indent || (emitter.column == indent && !emitter.whitespace) {
+		if !put_break(emitter) {
+			return false
+		}
+	}
+	for emitter.column < indent {
+		if !put(emitter, ' ') {
+			return false
+		}
+	}
+	emitter.whitespace = true
+	emitter.indention = true
+	return true
+}
+
+func yaml_emitter_write_indicator(emitter *yaml_emitter_t, indicator []byte, need_whitespace, is_whitespace, is_indention bool) bool {
+	if need_whitespace && !emitter.whitespace {
+		if !put(emitter, ' ') {
+			return false
+		}
+	}
+	if !write_all(emitter, indicator) {
+		return false
+	}
+	emitter.whitespace = is_whitespace
+	emitter.indention = (emitter.indention && is_indention)
+	emitter.open_ended = false
+	return true
+}
+
+func yaml_emitter_write_anchor(emitter *yaml_emitter_t, value []byte) bool {
+	if !write_all(emitter, value) {
+		return false
+	}
+	emitter.whitespace = false
+	emitter.indention = false
+	return true
+}
+
+func yaml_emitter_write_tag_handle(emitter *yaml_emitter_t, value []byte) bool {
+	if !emitter.whitespace {
+		if !put(emitter, ' ') {
+			return false
+		}
+	}
+	if !write_all(emitter, value) {
+		return false
+	}
+	emitter.whitespace = false
+	emitter.indention = false
+	return true
+}
+
+func yaml_emitter_write_tag_content(emitter *yaml_emitter_t, value []byte, need_whitespace bool) bool {
+	if need_whitespace && !emitter.whitespace {
+		if !put(emitter, ' ') {
+			return false
+		}
+	}
+	for i := 0; i < len(value); {
+		var must_write bool
+		switch value
