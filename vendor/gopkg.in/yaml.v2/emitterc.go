@@ -1263,4 +1263,193 @@ func yaml_emitter_write_tag_content(emitter *yaml_emitter_t, value []byte, need_
 	}
 	for i := 0; i < len(value); {
 		var must_write bool
-		switch value
+		switch value[i] {
+		case ';', '/', '?', ':', '@', '&', '=', '+', '$', ',', '_', '.', '~', '*', '\'', '(', ')', '[', ']':
+			must_write = true
+		default:
+			must_write = is_alpha(value, i)
+		}
+		if must_write {
+			if !write(emitter, value, &i) {
+				return false
+			}
+		} else {
+			w := width(value[i])
+			for k := 0; k < w; k++ {
+				octet := value[i]
+				i++
+				if !put(emitter, '%') {
+					return false
+				}
+
+				c := octet >> 4
+				if c < 10 {
+					c += '0'
+				} else {
+					c += 'A' - 10
+				}
+				if !put(emitter, c) {
+					return false
+				}
+
+				c = octet & 0x0f
+				if c < 10 {
+					c += '0'
+				} else {
+					c += 'A' - 10
+				}
+				if !put(emitter, c) {
+					return false
+				}
+			}
+		}
+	}
+	emitter.whitespace = false
+	emitter.indention = false
+	return true
+}
+
+func yaml_emitter_write_plain_scalar(emitter *yaml_emitter_t, value []byte, allow_breaks bool) bool {
+	if !emitter.whitespace {
+		if !put(emitter, ' ') {
+			return false
+		}
+	}
+
+	spaces := false
+	breaks := false
+	for i := 0; i < len(value); {
+		if is_space(value, i) {
+			if allow_breaks && !spaces && emitter.column > emitter.best_width && !is_space(value, i+1) {
+				if !yaml_emitter_write_indent(emitter) {
+					return false
+				}
+				i += width(value[i])
+			} else {
+				if !write(emitter, value, &i) {
+					return false
+				}
+			}
+			spaces = true
+		} else if is_break(value, i) {
+			if !breaks && value[i] == '\n' {
+				if !put_break(emitter) {
+					return false
+				}
+			}
+			if !write_break(emitter, value, &i) {
+				return false
+			}
+			emitter.indention = true
+			breaks = true
+		} else {
+			if breaks {
+				if !yaml_emitter_write_indent(emitter) {
+					return false
+				}
+			}
+			if !write(emitter, value, &i) {
+				return false
+			}
+			emitter.indention = false
+			spaces = false
+			breaks = false
+		}
+	}
+
+	emitter.whitespace = false
+	emitter.indention = false
+	if emitter.root_context {
+		emitter.open_ended = true
+	}
+
+	return true
+}
+
+func yaml_emitter_write_single_quoted_scalar(emitter *yaml_emitter_t, value []byte, allow_breaks bool) bool {
+
+	if !yaml_emitter_write_indicator(emitter, []byte{'\''}, true, false, false) {
+		return false
+	}
+
+	spaces := false
+	breaks := false
+	for i := 0; i < len(value); {
+		if is_space(value, i) {
+			if allow_breaks && !spaces && emitter.column > emitter.best_width && i > 0 && i < len(value)-1 && !is_space(value, i+1) {
+				if !yaml_emitter_write_indent(emitter) {
+					return false
+				}
+				i += width(value[i])
+			} else {
+				if !write(emitter, value, &i) {
+					return false
+				}
+			}
+			spaces = true
+		} else if is_break(value, i) {
+			if !breaks && value[i] == '\n' {
+				if !put_break(emitter) {
+					return false
+				}
+			}
+			if !write_break(emitter, value, &i) {
+				return false
+			}
+			emitter.indention = true
+			breaks = true
+		} else {
+			if breaks {
+				if !yaml_emitter_write_indent(emitter) {
+					return false
+				}
+			}
+			if value[i] == '\'' {
+				if !put(emitter, '\'') {
+					return false
+				}
+			}
+			if !write(emitter, value, &i) {
+				return false
+			}
+			emitter.indention = false
+			spaces = false
+			breaks = false
+		}
+	}
+	if !yaml_emitter_write_indicator(emitter, []byte{'\''}, false, false, false) {
+		return false
+	}
+	emitter.whitespace = false
+	emitter.indention = false
+	return true
+}
+
+func yaml_emitter_write_double_quoted_scalar(emitter *yaml_emitter_t, value []byte, allow_breaks bool) bool {
+	spaces := false
+	if !yaml_emitter_write_indicator(emitter, []byte{'"'}, true, false, false) {
+		return false
+	}
+
+	for i := 0; i < len(value); {
+		if !is_printable(value, i) || (!emitter.unicode && !is_ascii(value, i)) ||
+			is_bom(value, i) || is_break(value, i) ||
+			value[i] == '"' || value[i] == '\\' {
+
+			octet := value[i]
+
+			var w int
+			var v rune
+			switch {
+			case octet&0x80 == 0x00:
+				w, v = 1, rune(octet&0x7F)
+			case octet&0xE0 == 0xC0:
+				w, v = 2, rune(octet&0x1F)
+			case octet&0xF0 == 0xE0:
+				w, v = 3, rune(octet&0x0F)
+			case octet&0xF8 == 0xF0:
+				w, v = 4, rune(octet&0x07)
+			}
+			for k := 1; k < w; k++ {
+				octet = value[i+k]
+				v = (v << 
