@@ -1642,4 +1642,43 @@ func yaml_emitter_write_folded_scalar(emitter *yaml_emitter_t, value []byte) boo
 	breaks := true
 	leading_spaces := true
 	for i := 0; i < len(value); {
-		if
+		if is_break(value, i) {
+			if !breaks && !leading_spaces && value[i] == '\n' {
+				k := 0
+				for is_break(value, k) {
+					k += width(value[k])
+				}
+				if !is_blankz(value, k) {
+					if !put_break(emitter) {
+						return false
+					}
+				}
+			}
+			if !write_break(emitter, value, &i) {
+				return false
+			}
+			emitter.indention = true
+			breaks = true
+		} else {
+			if breaks {
+				if !yaml_emitter_write_indent(emitter) {
+					return false
+				}
+				leading_spaces = is_blank(value, i)
+			}
+			if !breaks && is_space(value, i) && !is_space(value, i+1) && emitter.column > emitter.best_width {
+				if !yaml_emitter_write_indent(emitter) {
+					return false
+				}
+				i += width(value[i])
+			} else {
+				if !write(emitter, value, &i) {
+					return false
+				}
+			}
+			emitter.indention = false
+			breaks = false
+		}
+	}
+	return true
+}
