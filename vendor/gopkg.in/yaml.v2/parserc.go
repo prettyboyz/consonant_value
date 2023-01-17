@@ -69,4 +69,119 @@ func yaml_parser_parse(parser *yaml_parser_t, event *yaml_event_t) bool {
 	}
 
 	// Generate the next event.
-	return y
+	return yaml_parser_state_machine(parser, event)
+}
+
+// Set parser error.
+func yaml_parser_set_parser_error(parser *yaml_parser_t, problem string, problem_mark yaml_mark_t) bool {
+	parser.error = yaml_PARSER_ERROR
+	parser.problem = problem
+	parser.problem_mark = problem_mark
+	return false
+}
+
+func yaml_parser_set_parser_error_context(parser *yaml_parser_t, context string, context_mark yaml_mark_t, problem string, problem_mark yaml_mark_t) bool {
+	parser.error = yaml_PARSER_ERROR
+	parser.context = context
+	parser.context_mark = context_mark
+	parser.problem = problem
+	parser.problem_mark = problem_mark
+	return false
+}
+
+// State dispatcher.
+func yaml_parser_state_machine(parser *yaml_parser_t, event *yaml_event_t) bool {
+	//trace("yaml_parser_state_machine", "state:", parser.state.String())
+
+	switch parser.state {
+	case yaml_PARSE_STREAM_START_STATE:
+		return yaml_parser_parse_stream_start(parser, event)
+
+	case yaml_PARSE_IMPLICIT_DOCUMENT_START_STATE:
+		return yaml_parser_parse_document_start(parser, event, true)
+
+	case yaml_PARSE_DOCUMENT_START_STATE:
+		return yaml_parser_parse_document_start(parser, event, false)
+
+	case yaml_PARSE_DOCUMENT_CONTENT_STATE:
+		return yaml_parser_parse_document_content(parser, event)
+
+	case yaml_PARSE_DOCUMENT_END_STATE:
+		return yaml_parser_parse_document_end(parser, event)
+
+	case yaml_PARSE_BLOCK_NODE_STATE:
+		return yaml_parser_parse_node(parser, event, true, false)
+
+	case yaml_PARSE_BLOCK_NODE_OR_INDENTLESS_SEQUENCE_STATE:
+		return yaml_parser_parse_node(parser, event, true, true)
+
+	case yaml_PARSE_FLOW_NODE_STATE:
+		return yaml_parser_parse_node(parser, event, false, false)
+
+	case yaml_PARSE_BLOCK_SEQUENCE_FIRST_ENTRY_STATE:
+		return yaml_parser_parse_block_sequence_entry(parser, event, true)
+
+	case yaml_PARSE_BLOCK_SEQUENCE_ENTRY_STATE:
+		return yaml_parser_parse_block_sequence_entry(parser, event, false)
+
+	case yaml_PARSE_INDENTLESS_SEQUENCE_ENTRY_STATE:
+		return yaml_parser_parse_indentless_sequence_entry(parser, event)
+
+	case yaml_PARSE_BLOCK_MAPPING_FIRST_KEY_STATE:
+		return yaml_parser_parse_block_mapping_key(parser, event, true)
+
+	case yaml_PARSE_BLOCK_MAPPING_KEY_STATE:
+		return yaml_parser_parse_block_mapping_key(parser, event, false)
+
+	case yaml_PARSE_BLOCK_MAPPING_VALUE_STATE:
+		return yaml_parser_parse_block_mapping_value(parser, event)
+
+	case yaml_PARSE_FLOW_SEQUENCE_FIRST_ENTRY_STATE:
+		return yaml_parser_parse_flow_sequence_entry(parser, event, true)
+
+	case yaml_PARSE_FLOW_SEQUENCE_ENTRY_STATE:
+		return yaml_parser_parse_flow_sequence_entry(parser, event, false)
+
+	case yaml_PARSE_FLOW_SEQUENCE_ENTRY_MAPPING_KEY_STATE:
+		return yaml_parser_parse_flow_sequence_entry_mapping_key(parser, event)
+
+	case yaml_PARSE_FLOW_SEQUENCE_ENTRY_MAPPING_VALUE_STATE:
+		return yaml_parser_parse_flow_sequence_entry_mapping_value(parser, event)
+
+	case yaml_PARSE_FLOW_SEQUENCE_ENTRY_MAPPING_END_STATE:
+		return yaml_parser_parse_flow_sequence_entry_mapping_end(parser, event)
+
+	case yaml_PARSE_FLOW_MAPPING_FIRST_KEY_STATE:
+		return yaml_parser_parse_flow_mapping_key(parser, event, true)
+
+	case yaml_PARSE_FLOW_MAPPING_KEY_STATE:
+		return yaml_parser_parse_flow_mapping_key(parser, event, false)
+
+	case yaml_PARSE_FLOW_MAPPING_VALUE_STATE:
+		return yaml_parser_parse_flow_mapping_value(parser, event, false)
+
+	case yaml_PARSE_FLOW_MAPPING_EMPTY_VALUE_STATE:
+		return yaml_parser_parse_flow_mapping_value(parser, event, true)
+
+	default:
+		panic("invalid parser state")
+	}
+}
+
+// Parse the production:
+// stream   ::= STREAM-START implicit_document? explicit_document* STREAM-END
+//              ************
+func yaml_parser_parse_stream_start(parser *yaml_parser_t, event *yaml_event_t) bool {
+	token := peek_token(parser)
+	if token == nil {
+		return false
+	}
+	if token.typ != yaml_STREAM_START_TOKEN {
+		return yaml_parser_set_parser_error(parser, "did not find expected <stream-start>", token.start_mark)
+	}
+	parser.state = yaml_PARSE_IMPLICIT_DOCUMENT_START_STATE
+	*event = yaml_event_t{
+		typ:        yaml_STREAM_START_EVENT,
+		start_mark: token.start_mark,
+		end_mark:   token.end_mark,
+		encod
