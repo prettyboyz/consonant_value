@@ -184,4 +184,142 @@ func yaml_parser_parse_stream_start(parser *yaml_parser_t, event *yaml_event_t) 
 		typ:        yaml_STREAM_START_EVENT,
 		start_mark: token.start_mark,
 		end_mark:   token.end_mark,
-		encod
+		encoding:   token.encoding,
+	}
+	skip_token(parser)
+	return true
+}
+
+// Parse the productions:
+// implicit_document    ::= block_node DOCUMENT-END*
+//                          *
+// explicit_document    ::= DIRECTIVE* DOCUMENT-START block_node? DOCUMENT-END*
+//                          *************************
+func yaml_parser_parse_document_start(parser *yaml_parser_t, event *yaml_event_t, implicit bool) bool {
+
+	token := peek_token(parser)
+	if token == nil {
+		return false
+	}
+
+	// Parse extra document end indicators.
+	if !implicit {
+		for token.typ == yaml_DOCUMENT_END_TOKEN {
+			skip_token(parser)
+			token = peek_token(parser)
+			if token == nil {
+				return false
+			}
+		}
+	}
+
+	if implicit && token.typ != yaml_VERSION_DIRECTIVE_TOKEN &&
+		token.typ != yaml_TAG_DIRECTIVE_TOKEN &&
+		token.typ != yaml_DOCUMENT_START_TOKEN &&
+		token.typ != yaml_STREAM_END_TOKEN {
+		// Parse an implicit document.
+		if !yaml_parser_process_directives(parser, nil, nil) {
+			return false
+		}
+		parser.states = append(parser.states, yaml_PARSE_DOCUMENT_END_STATE)
+		parser.state = yaml_PARSE_BLOCK_NODE_STATE
+
+		*event = yaml_event_t{
+			typ:        yaml_DOCUMENT_START_EVENT,
+			start_mark: token.start_mark,
+			end_mark:   token.end_mark,
+		}
+
+	} else if token.typ != yaml_STREAM_END_TOKEN {
+		// Parse an explicit document.
+		var version_directive *yaml_version_directive_t
+		var tag_directives []yaml_tag_directive_t
+		start_mark := token.start_mark
+		if !yaml_parser_process_directives(parser, &version_directive, &tag_directives) {
+			return false
+		}
+		token = peek_token(parser)
+		if token == nil {
+			return false
+		}
+		if token.typ != yaml_DOCUMENT_START_TOKEN {
+			yaml_parser_set_parser_error(parser,
+				"did not find expected <document start>", token.start_mark)
+			return false
+		}
+		parser.states = append(parser.states, yaml_PARSE_DOCUMENT_END_STATE)
+		parser.state = yaml_PARSE_DOCUMENT_CONTENT_STATE
+		end_mark := token.end_mark
+
+		*event = yaml_event_t{
+			typ:               yaml_DOCUMENT_START_EVENT,
+			start_mark:        start_mark,
+			end_mark:          end_mark,
+			version_directive: version_directive,
+			tag_directives:    tag_directives,
+			implicit:          false,
+		}
+		skip_token(parser)
+
+	} else {
+		// Parse the stream end.
+		parser.state = yaml_PARSE_END_STATE
+		*event = yaml_event_t{
+			typ:        yaml_STREAM_END_EVENT,
+			start_mark: token.start_mark,
+			end_mark:   token.end_mark,
+		}
+		skip_token(parser)
+	}
+
+	return true
+}
+
+// Parse the productions:
+// explicit_document    ::= DIRECTIVE* DOCUMENT-START block_node? DOCUMENT-END*
+//                                                    ***********
+//
+func yaml_parser_parse_document_content(parser *yaml_parser_t, event *yaml_event_t) bool {
+	token := peek_token(parser)
+	if token == nil {
+		return false
+	}
+	if token.typ == yaml_VERSION_DIRECTIVE_TOKEN ||
+		token.typ == yaml_TAG_DIRECTIVE_TOKEN ||
+		token.typ == yaml_DOCUMENT_START_TOKEN ||
+		token.typ == yaml_DOCUMENT_END_TOKEN ||
+		token.typ == yaml_STREAM_END_TOKEN {
+		parser.state = parser.states[len(parser.states)-1]
+		parser.states = parser.states[:len(parser.states)-1]
+		return yaml_parser_process_empty_scalar(parser, event,
+			token.start_mark)
+	}
+	return yaml_parser_parse_node(parser, event, true, false)
+}
+
+// Parse the productions:
+// implicit_document    ::= block_node DOCUMENT-END*
+//                                     *************
+// explicit_document    ::= DIRECTIVE* DOCUMENT-START block_node? DOCUMENT-END*
+//
+func yaml_parser_parse_document_end(parser *yaml_parser_t, event *yaml_event_t) bool {
+	token := peek_token(parser)
+	if token == nil {
+		return false
+	}
+
+	start_mark := token.start_mark
+	end_mark := token.start_mark
+
+	implicit := true
+	if token.typ == yaml_DOCUMENT_END_TOKEN {
+		end_mark = token.end_mark
+		skip_token(parser)
+		implicit = false
+	}
+
+	parser.tag_directives = parser.tag_directives[:0]
+
+	parser.state = yaml_PARSE_DOCUMENT_START_STATE
+	*event = yaml_event_t{
+		typ: 
