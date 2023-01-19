@@ -322,4 +322,142 @@ func yaml_parser_parse_document_end(parser *yaml_parser_t, event *yaml_event_t) 
 
 	parser.state = yaml_PARSE_DOCUMENT_START_STATE
 	*event = yaml_event_t{
-		typ: 
+		typ:        yaml_DOCUMENT_END_EVENT,
+		start_mark: start_mark,
+		end_mark:   end_mark,
+		implicit:   implicit,
+	}
+	return true
+}
+
+// Parse the productions:
+// block_node_or_indentless_sequence    ::=
+//                          ALIAS
+//                          *****
+//                          | properties (block_content | indentless_block_sequence)?
+//                            **********  *
+//                          | block_content | indentless_block_sequence
+//                            *
+// block_node           ::= ALIAS
+//                          *****
+//                          | properties block_content?
+//                            ********** *
+//                          | block_content
+//                            *
+// flow_node            ::= ALIAS
+//                          *****
+//                          | properties flow_content?
+//                            ********** *
+//                          | flow_content
+//                            *
+// properties           ::= TAG ANCHOR? | ANCHOR TAG?
+//                          *************************
+// block_content        ::= block_collection | flow_collection | SCALAR
+//                                                               ******
+// flow_content         ::= flow_collection | SCALAR
+//                                            ******
+func yaml_parser_parse_node(parser *yaml_parser_t, event *yaml_event_t, block, indentless_sequence bool) bool {
+	//defer trace("yaml_parser_parse_node", "block:", block, "indentless_sequence:", indentless_sequence)()
+
+	token := peek_token(parser)
+	if token == nil {
+		return false
+	}
+
+	if token.typ == yaml_ALIAS_TOKEN {
+		parser.state = parser.states[len(parser.states)-1]
+		parser.states = parser.states[:len(parser.states)-1]
+		*event = yaml_event_t{
+			typ:        yaml_ALIAS_EVENT,
+			start_mark: token.start_mark,
+			end_mark:   token.end_mark,
+			anchor:     token.value,
+		}
+		skip_token(parser)
+		return true
+	}
+
+	start_mark := token.start_mark
+	end_mark := token.start_mark
+
+	var tag_token bool
+	var tag_handle, tag_suffix, anchor []byte
+	var tag_mark yaml_mark_t
+	if token.typ == yaml_ANCHOR_TOKEN {
+		anchor = token.value
+		start_mark = token.start_mark
+		end_mark = token.end_mark
+		skip_token(parser)
+		token = peek_token(parser)
+		if token == nil {
+			return false
+		}
+		if token.typ == yaml_TAG_TOKEN {
+			tag_token = true
+			tag_handle = token.value
+			tag_suffix = token.suffix
+			tag_mark = token.start_mark
+			end_mark = token.end_mark
+			skip_token(parser)
+			token = peek_token(parser)
+			if token == nil {
+				return false
+			}
+		}
+	} else if token.typ == yaml_TAG_TOKEN {
+		tag_token = true
+		tag_handle = token.value
+		tag_suffix = token.suffix
+		start_mark = token.start_mark
+		tag_mark = token.start_mark
+		end_mark = token.end_mark
+		skip_token(parser)
+		token = peek_token(parser)
+		if token == nil {
+			return false
+		}
+		if token.typ == yaml_ANCHOR_TOKEN {
+			anchor = token.value
+			end_mark = token.end_mark
+			skip_token(parser)
+			token = peek_token(parser)
+			if token == nil {
+				return false
+			}
+		}
+	}
+
+	var tag []byte
+	if tag_token {
+		if len(tag_handle) == 0 {
+			tag = tag_suffix
+			tag_suffix = nil
+		} else {
+			for i := range parser.tag_directives {
+				if bytes.Equal(parser.tag_directives[i].handle, tag_handle) {
+					tag = append([]byte(nil), parser.tag_directives[i].prefix...)
+					tag = append(tag, tag_suffix...)
+					break
+				}
+			}
+			if len(tag) == 0 {
+				yaml_parser_set_parser_error_context(parser,
+					"while parsing a node", start_mark,
+					"found undefined tag handle", tag_mark)
+				return false
+			}
+		}
+	}
+
+	implicit := len(tag) == 0
+	if indentless_sequence && token.typ == yaml_BLOCK_ENTRY_TOKEN {
+		end_mark = token.end_mark
+		parser.state = yaml_PARSE_INDENTLESS_SEQUENCE_ENTRY_STATE
+		*event = yaml_event_t{
+			typ:        yaml_SEQUENCE_START_EVENT,
+			start_mark: start_mark,
+			end_mark:   end_mark,
+			anchor:     anchor,
+			tag:        tag,
+			implicit:   implicit,
+			style:      yaml_style_t(yaml_BLOCK_SEQUENCE_STYLE)
