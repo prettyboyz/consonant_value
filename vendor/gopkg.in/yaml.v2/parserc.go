@@ -460,4 +460,140 @@ func yaml_parser_parse_node(parser *yaml_parser_t, event *yaml_event_t, block, i
 			anchor:     anchor,
 			tag:        tag,
 			implicit:   implicit,
-			style:      yaml_style_t(yaml_BLOCK_SEQUENCE_STYLE)
+			style:      yaml_style_t(yaml_BLOCK_SEQUENCE_STYLE),
+		}
+		return true
+	}
+	if token.typ == yaml_SCALAR_TOKEN {
+		var plain_implicit, quoted_implicit bool
+		end_mark = token.end_mark
+		if (len(tag) == 0 && token.style == yaml_PLAIN_SCALAR_STYLE) || (len(tag) == 1 && tag[0] == '!') {
+			plain_implicit = true
+		} else if len(tag) == 0 {
+			quoted_implicit = true
+		}
+		parser.state = parser.states[len(parser.states)-1]
+		parser.states = parser.states[:len(parser.states)-1]
+
+		*event = yaml_event_t{
+			typ:             yaml_SCALAR_EVENT,
+			start_mark:      start_mark,
+			end_mark:        end_mark,
+			anchor:          anchor,
+			tag:             tag,
+			value:           token.value,
+			implicit:        plain_implicit,
+			quoted_implicit: quoted_implicit,
+			style:           yaml_style_t(token.style),
+		}
+		skip_token(parser)
+		return true
+	}
+	if token.typ == yaml_FLOW_SEQUENCE_START_TOKEN {
+		// [Go] Some of the events below can be merged as they differ only on style.
+		end_mark = token.end_mark
+		parser.state = yaml_PARSE_FLOW_SEQUENCE_FIRST_ENTRY_STATE
+		*event = yaml_event_t{
+			typ:        yaml_SEQUENCE_START_EVENT,
+			start_mark: start_mark,
+			end_mark:   end_mark,
+			anchor:     anchor,
+			tag:        tag,
+			implicit:   implicit,
+			style:      yaml_style_t(yaml_FLOW_SEQUENCE_STYLE),
+		}
+		return true
+	}
+	if token.typ == yaml_FLOW_MAPPING_START_TOKEN {
+		end_mark = token.end_mark
+		parser.state = yaml_PARSE_FLOW_MAPPING_FIRST_KEY_STATE
+		*event = yaml_event_t{
+			typ:        yaml_MAPPING_START_EVENT,
+			start_mark: start_mark,
+			end_mark:   end_mark,
+			anchor:     anchor,
+			tag:        tag,
+			implicit:   implicit,
+			style:      yaml_style_t(yaml_FLOW_MAPPING_STYLE),
+		}
+		return true
+	}
+	if block && token.typ == yaml_BLOCK_SEQUENCE_START_TOKEN {
+		end_mark = token.end_mark
+		parser.state = yaml_PARSE_BLOCK_SEQUENCE_FIRST_ENTRY_STATE
+		*event = yaml_event_t{
+			typ:        yaml_SEQUENCE_START_EVENT,
+			start_mark: start_mark,
+			end_mark:   end_mark,
+			anchor:     anchor,
+			tag:        tag,
+			implicit:   implicit,
+			style:      yaml_style_t(yaml_BLOCK_SEQUENCE_STYLE),
+		}
+		return true
+	}
+	if block && token.typ == yaml_BLOCK_MAPPING_START_TOKEN {
+		end_mark = token.end_mark
+		parser.state = yaml_PARSE_BLOCK_MAPPING_FIRST_KEY_STATE
+		*event = yaml_event_t{
+			typ:        yaml_MAPPING_START_EVENT,
+			start_mark: start_mark,
+			end_mark:   end_mark,
+			anchor:     anchor,
+			tag:        tag,
+			implicit:   implicit,
+			style:      yaml_style_t(yaml_BLOCK_MAPPING_STYLE),
+		}
+		return true
+	}
+	if len(anchor) > 0 || len(tag) > 0 {
+		parser.state = parser.states[len(parser.states)-1]
+		parser.states = parser.states[:len(parser.states)-1]
+
+		*event = yaml_event_t{
+			typ:             yaml_SCALAR_EVENT,
+			start_mark:      start_mark,
+			end_mark:        end_mark,
+			anchor:          anchor,
+			tag:             tag,
+			implicit:        implicit,
+			quoted_implicit: false,
+			style:           yaml_style_t(yaml_PLAIN_SCALAR_STYLE),
+		}
+		return true
+	}
+
+	context := "while parsing a flow node"
+	if block {
+		context = "while parsing a block node"
+	}
+	yaml_parser_set_parser_error_context(parser, context, start_mark,
+		"did not find expected node content", token.start_mark)
+	return false
+}
+
+// Parse the productions:
+// block_sequence ::= BLOCK-SEQUENCE-START (BLOCK-ENTRY block_node?)* BLOCK-END
+//                    ********************  *********** *             *********
+//
+func yaml_parser_parse_block_sequence_entry(parser *yaml_parser_t, event *yaml_event_t, first bool) bool {
+	if first {
+		token := peek_token(parser)
+		parser.marks = append(parser.marks, token.start_mark)
+		skip_token(parser)
+	}
+
+	token := peek_token(parser)
+	if token == nil {
+		return false
+	}
+
+	if token.typ == yaml_BLOCK_ENTRY_TOKEN {
+		mark := token.end_mark
+		skip_token(parser)
+		token = peek_token(parser)
+		if token == nil {
+			return false
+		}
+		if token.typ != yaml_BLOCK_ENTRY_TOKEN && token.typ != yaml_BLOCK_END_TOKEN {
+			parser.states = append(parser.s
