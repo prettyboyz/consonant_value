@@ -596,4 +596,133 @@ func yaml_parser_parse_block_sequence_entry(parser *yaml_parser_t, event *yaml_e
 			return false
 		}
 		if token.typ != yaml_BLOCK_ENTRY_TOKEN && token.typ != yaml_BLOCK_END_TOKEN {
-			parser.states = append(parser.s
+			parser.states = append(parser.states, yaml_PARSE_BLOCK_SEQUENCE_ENTRY_STATE)
+			return yaml_parser_parse_node(parser, event, true, false)
+		} else {
+			parser.state = yaml_PARSE_BLOCK_SEQUENCE_ENTRY_STATE
+			return yaml_parser_process_empty_scalar(parser, event, mark)
+		}
+	}
+	if token.typ == yaml_BLOCK_END_TOKEN {
+		parser.state = parser.states[len(parser.states)-1]
+		parser.states = parser.states[:len(parser.states)-1]
+		parser.marks = parser.marks[:len(parser.marks)-1]
+
+		*event = yaml_event_t{
+			typ:        yaml_SEQUENCE_END_EVENT,
+			start_mark: token.start_mark,
+			end_mark:   token.end_mark,
+		}
+
+		skip_token(parser)
+		return true
+	}
+
+	context_mark := parser.marks[len(parser.marks)-1]
+	parser.marks = parser.marks[:len(parser.marks)-1]
+	return yaml_parser_set_parser_error_context(parser,
+		"while parsing a block collection", context_mark,
+		"did not find expected '-' indicator", token.start_mark)
+}
+
+// Parse the productions:
+// indentless_sequence  ::= (BLOCK-ENTRY block_node?)+
+//                           *********** *
+func yaml_parser_parse_indentless_sequence_entry(parser *yaml_parser_t, event *yaml_event_t) bool {
+	token := peek_token(parser)
+	if token == nil {
+		return false
+	}
+
+	if token.typ == yaml_BLOCK_ENTRY_TOKEN {
+		mark := token.end_mark
+		skip_token(parser)
+		token = peek_token(parser)
+		if token == nil {
+			return false
+		}
+		if token.typ != yaml_BLOCK_ENTRY_TOKEN &&
+			token.typ != yaml_KEY_TOKEN &&
+			token.typ != yaml_VALUE_TOKEN &&
+			token.typ != yaml_BLOCK_END_TOKEN {
+			parser.states = append(parser.states, yaml_PARSE_INDENTLESS_SEQUENCE_ENTRY_STATE)
+			return yaml_parser_parse_node(parser, event, true, false)
+		}
+		parser.state = yaml_PARSE_INDENTLESS_SEQUENCE_ENTRY_STATE
+		return yaml_parser_process_empty_scalar(parser, event, mark)
+	}
+	parser.state = parser.states[len(parser.states)-1]
+	parser.states = parser.states[:len(parser.states)-1]
+
+	*event = yaml_event_t{
+		typ:        yaml_SEQUENCE_END_EVENT,
+		start_mark: token.start_mark,
+		end_mark:   token.start_mark, // [Go] Shouldn't this be token.end_mark?
+	}
+	return true
+}
+
+// Parse the productions:
+// block_mapping        ::= BLOCK-MAPPING_START
+//                          *******************
+//                          ((KEY block_node_or_indentless_sequence?)?
+//                            *** *
+//                          (VALUE block_node_or_indentless_sequence?)?)*
+//
+//                          BLOCK-END
+//                          *********
+//
+func yaml_parser_parse_block_mapping_key(parser *yaml_parser_t, event *yaml_event_t, first bool) bool {
+	if first {
+		token := peek_token(parser)
+		parser.marks = append(parser.marks, token.start_mark)
+		skip_token(parser)
+	}
+
+	token := peek_token(parser)
+	if token == nil {
+		return false
+	}
+
+	if token.typ == yaml_KEY_TOKEN {
+		mark := token.end_mark
+		skip_token(parser)
+		token = peek_token(parser)
+		if token == nil {
+			return false
+		}
+		if token.typ != yaml_KEY_TOKEN &&
+			token.typ != yaml_VALUE_TOKEN &&
+			token.typ != yaml_BLOCK_END_TOKEN {
+			parser.states = append(parser.states, yaml_PARSE_BLOCK_MAPPING_VALUE_STATE)
+			return yaml_parser_parse_node(parser, event, true, true)
+		} else {
+			parser.state = yaml_PARSE_BLOCK_MAPPING_VALUE_STATE
+			return yaml_parser_process_empty_scalar(parser, event, mark)
+		}
+	} else if token.typ == yaml_BLOCK_END_TOKEN {
+		parser.state = parser.states[len(parser.states)-1]
+		parser.states = parser.states[:len(parser.states)-1]
+		parser.marks = parser.marks[:len(parser.marks)-1]
+		*event = yaml_event_t{
+			typ:        yaml_MAPPING_END_EVENT,
+			start_mark: token.start_mark,
+			end_mark:   token.end_mark,
+		}
+		skip_token(parser)
+		return true
+	}
+
+	context_mark := parser.marks[len(parser.marks)-1]
+	parser.marks = parser.marks[:len(parser.marks)-1]
+	return yaml_parser_set_parser_error_context(parser,
+		"while parsing a block mapping", context_mark,
+		"did not find expected key", token.start_mark)
+}
+
+// Parse the productions:
+// block_mapping        ::= BLOCK-MAPPING_START
+//
+//                          ((KEY block_node_or_indentless_sequence?)?
+//
+/
