@@ -965,4 +965,131 @@ func yaml_parser_parse_flow_mapping_key(parser *yaml_parser_t, event *yaml_event
 
 // Parse the productions:
 // flow_mapping_entry   ::= flow_node | KEY flow_node? (VALUE flow_node?)?
-//             
+//                                   *                  ***** *
+//
+func yaml_parser_parse_flow_mapping_value(parser *yaml_parser_t, event *yaml_event_t, empty bool) bool {
+	token := peek_token(parser)
+	if token == nil {
+		return false
+	}
+	if empty {
+		parser.state = yaml_PARSE_FLOW_MAPPING_KEY_STATE
+		return yaml_parser_process_empty_scalar(parser, event, token.start_mark)
+	}
+	if token.typ == yaml_VALUE_TOKEN {
+		skip_token(parser)
+		token = peek_token(parser)
+		if token == nil {
+			return false
+		}
+		if token.typ != yaml_FLOW_ENTRY_TOKEN && token.typ != yaml_FLOW_MAPPING_END_TOKEN {
+			parser.states = append(parser.states, yaml_PARSE_FLOW_MAPPING_KEY_STATE)
+			return yaml_parser_parse_node(parser, event, false, false)
+		}
+	}
+	parser.state = yaml_PARSE_FLOW_MAPPING_KEY_STATE
+	return yaml_parser_process_empty_scalar(parser, event, token.start_mark)
+}
+
+// Generate an empty scalar event.
+func yaml_parser_process_empty_scalar(parser *yaml_parser_t, event *yaml_event_t, mark yaml_mark_t) bool {
+	*event = yaml_event_t{
+		typ:        yaml_SCALAR_EVENT,
+		start_mark: mark,
+		end_mark:   mark,
+		value:      nil, // Empty
+		implicit:   true,
+		style:      yaml_style_t(yaml_PLAIN_SCALAR_STYLE),
+	}
+	return true
+}
+
+var default_tag_directives = []yaml_tag_directive_t{
+	{[]byte("!"), []byte("!")},
+	{[]byte("!!"), []byte("tag:yaml.org,2002:")},
+}
+
+// Parse directives.
+func yaml_parser_process_directives(parser *yaml_parser_t,
+	version_directive_ref **yaml_version_directive_t,
+	tag_directives_ref *[]yaml_tag_directive_t) bool {
+
+	var version_directive *yaml_version_directive_t
+	var tag_directives []yaml_tag_directive_t
+
+	token := peek_token(parser)
+	if token == nil {
+		return false
+	}
+
+	for token.typ == yaml_VERSION_DIRECTIVE_TOKEN || token.typ == yaml_TAG_DIRECTIVE_TOKEN {
+		if token.typ == yaml_VERSION_DIRECTIVE_TOKEN {
+			if version_directive != nil {
+				yaml_parser_set_parser_error(parser,
+					"found duplicate %YAML directive", token.start_mark)
+				return false
+			}
+			if token.major != 1 || token.minor != 1 {
+				yaml_parser_set_parser_error(parser,
+					"found incompatible YAML document", token.start_mark)
+				return false
+			}
+			version_directive = &yaml_version_directive_t{
+				major: token.major,
+				minor: token.minor,
+			}
+		} else if token.typ == yaml_TAG_DIRECTIVE_TOKEN {
+			value := yaml_tag_directive_t{
+				handle: token.value,
+				prefix: token.prefix,
+			}
+			if !yaml_parser_append_tag_directive(parser, value, false, token.start_mark) {
+				return false
+			}
+			tag_directives = append(tag_directives, value)
+		}
+
+		skip_token(parser)
+		token = peek_token(parser)
+		if token == nil {
+			return false
+		}
+	}
+
+	for i := range default_tag_directives {
+		if !yaml_parser_append_tag_directive(parser, default_tag_directives[i], true, token.start_mark) {
+			return false
+		}
+	}
+
+	if version_directive_ref != nil {
+		*version_directive_ref = version_directive
+	}
+	if tag_directives_ref != nil {
+		*tag_directives_ref = tag_directives
+	}
+	return true
+}
+
+// Append a tag directive to the directives stack.
+func yaml_parser_append_tag_directive(parser *yaml_parser_t, value yaml_tag_directive_t, allow_duplicates bool, mark yaml_mark_t) bool {
+	for i := range parser.tag_directives {
+		if bytes.Equal(value.handle, parser.tag_directives[i].handle) {
+			if allow_duplicates {
+				return true
+			}
+			return yaml_parser_set_parser_error(parser, "found duplicate %TAG directive", mark)
+		}
+	}
+
+	// [Go] I suspect the copy is unnecessary. This was likely done
+	// because there was no way to track ownership of the data.
+	value_copy := yaml_tag_directive_t{
+		handle: make([]byte, len(value.handle)),
+		prefix: make([]byte, len(value.prefix)),
+	}
+	copy(value_copy.handle, value.handle)
+	copy(value_copy.prefix, value.prefix)
+	parser.tag_directives = append(parser.tag_directives, value_copy)
+	return true
+}
