@@ -847,4 +847,122 @@ func yaml_parser_parse_flow_sequence_entry_mapping_key(parser *yaml_parser_t, ev
 	return yaml_parser_process_empty_scalar(parser, event, mark)
 }
 
-// Parse the pr
+// Parse the productions:
+// flow_sequence_entry  ::= flow_node | KEY flow_node? (VALUE flow_node?)?
+//                                                      ***** *
+//
+func yaml_parser_parse_flow_sequence_entry_mapping_value(parser *yaml_parser_t, event *yaml_event_t) bool {
+	token := peek_token(parser)
+	if token == nil {
+		return false
+	}
+	if token.typ == yaml_VALUE_TOKEN {
+		skip_token(parser)
+		token := peek_token(parser)
+		if token == nil {
+			return false
+		}
+		if token.typ != yaml_FLOW_ENTRY_TOKEN && token.typ != yaml_FLOW_SEQUENCE_END_TOKEN {
+			parser.states = append(parser.states, yaml_PARSE_FLOW_SEQUENCE_ENTRY_MAPPING_END_STATE)
+			return yaml_parser_parse_node(parser, event, false, false)
+		}
+	}
+	parser.state = yaml_PARSE_FLOW_SEQUENCE_ENTRY_MAPPING_END_STATE
+	return yaml_parser_process_empty_scalar(parser, event, token.start_mark)
+}
+
+// Parse the productions:
+// flow_sequence_entry  ::= flow_node | KEY flow_node? (VALUE flow_node?)?
+//                                                                      *
+//
+func yaml_parser_parse_flow_sequence_entry_mapping_end(parser *yaml_parser_t, event *yaml_event_t) bool {
+	token := peek_token(parser)
+	if token == nil {
+		return false
+	}
+	parser.state = yaml_PARSE_FLOW_SEQUENCE_ENTRY_STATE
+	*event = yaml_event_t{
+		typ:        yaml_MAPPING_END_EVENT,
+		start_mark: token.start_mark,
+		end_mark:   token.start_mark, // [Go] Shouldn't this be end_mark?
+	}
+	return true
+}
+
+// Parse the productions:
+// flow_mapping         ::= FLOW-MAPPING-START
+//                          ******************
+//                          (flow_mapping_entry FLOW-ENTRY)*
+//                           *                  **********
+//                          flow_mapping_entry?
+//                          ******************
+//                          FLOW-MAPPING-END
+//                          ****************
+// flow_mapping_entry   ::= flow_node | KEY flow_node? (VALUE flow_node?)?
+//                          *           *** *
+//
+func yaml_parser_parse_flow_mapping_key(parser *yaml_parser_t, event *yaml_event_t, first bool) bool {
+	if first {
+		token := peek_token(parser)
+		parser.marks = append(parser.marks, token.start_mark)
+		skip_token(parser)
+	}
+
+	token := peek_token(parser)
+	if token == nil {
+		return false
+	}
+
+	if token.typ != yaml_FLOW_MAPPING_END_TOKEN {
+		if !first {
+			if token.typ == yaml_FLOW_ENTRY_TOKEN {
+				skip_token(parser)
+				token = peek_token(parser)
+				if token == nil {
+					return false
+				}
+			} else {
+				context_mark := parser.marks[len(parser.marks)-1]
+				parser.marks = parser.marks[:len(parser.marks)-1]
+				return yaml_parser_set_parser_error_context(parser,
+					"while parsing a flow mapping", context_mark,
+					"did not find expected ',' or '}'", token.start_mark)
+			}
+		}
+
+		if token.typ == yaml_KEY_TOKEN {
+			skip_token(parser)
+			token = peek_token(parser)
+			if token == nil {
+				return false
+			}
+			if token.typ != yaml_VALUE_TOKEN &&
+				token.typ != yaml_FLOW_ENTRY_TOKEN &&
+				token.typ != yaml_FLOW_MAPPING_END_TOKEN {
+				parser.states = append(parser.states, yaml_PARSE_FLOW_MAPPING_VALUE_STATE)
+				return yaml_parser_parse_node(parser, event, false, false)
+			} else {
+				parser.state = yaml_PARSE_FLOW_MAPPING_VALUE_STATE
+				return yaml_parser_process_empty_scalar(parser, event, token.start_mark)
+			}
+		} else if token.typ != yaml_FLOW_MAPPING_END_TOKEN {
+			parser.states = append(parser.states, yaml_PARSE_FLOW_MAPPING_EMPTY_VALUE_STATE)
+			return yaml_parser_parse_node(parser, event, false, false)
+		}
+	}
+
+	parser.state = parser.states[len(parser.states)-1]
+	parser.states = parser.states[:len(parser.states)-1]
+	parser.marks = parser.marks[:len(parser.marks)-1]
+	*event = yaml_event_t{
+		typ:        yaml_MAPPING_END_EVENT,
+		start_mark: token.start_mark,
+		end_mark:   token.end_mark,
+	}
+	skip_token(parser)
+	return true
+}
+
+// Parse the productions:
+// flow_mapping_entry   ::= flow_node | KEY flow_node? (VALUE flow_node?)?
+//             
