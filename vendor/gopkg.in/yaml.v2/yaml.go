@@ -84,4 +84,157 @@ func Unmarshal(in []byte, out interface{}) (err error) {
 	node := p.parse()
 	if node != nil {
 		v := reflect.ValueOf(out)
-		if v.Kind() == reflect.Ptr && !v
+		if v.Kind() == reflect.Ptr && !v.IsNil() {
+			v = v.Elem()
+		}
+		d.unmarshal(node, v)
+	}
+	if len(d.terrors) > 0 {
+		return &TypeError{d.terrors}
+	}
+	return nil
+}
+
+// Marshal serializes the value provided into a YAML document. The structure
+// of the generated document will reflect the structure of the value itself.
+// Maps and pointers (to struct, string, int, etc) are accepted as the in value.
+//
+// Struct fields are only unmarshalled if they are exported (have an upper case
+// first letter), and are unmarshalled using the field name lowercased as the
+// default key. Custom keys may be defined via the "yaml" name in the field
+// tag: the content preceding the first comma is used as the key, and the
+// following comma-separated options are used to tweak the marshalling process.
+// Conflicting names result in a runtime error.
+//
+// The field tag format accepted is:
+//
+//     `(...) yaml:"[<key>][,<flag1>[,<flag2>]]" (...)`
+//
+// The following flags are currently supported:
+//
+//     omitempty    Only include the field if it's not set to the zero
+//                  value for the type or to empty slices or maps.
+//                  Does not apply to zero valued structs.
+//
+//     flow         Marshal using a flow style (useful for structs,
+//                  sequences and maps).
+//
+//     inline       Inline the field, which must be a struct or a map,
+//                  causing all of its fields or keys to be processed as if
+//                  they were part of the outer struct. For maps, keys must
+//                  not conflict with the yaml keys of other struct fields.
+//
+// In addition, if the key is "-", the field is ignored.
+//
+// For example:
+//
+//     type T struct {
+//         F int "a,omitempty"
+//         B int
+//     }
+//     yaml.Marshal(&T{B: 2}) // Returns "b: 2\n"
+//     yaml.Marshal(&T{F: 1}} // Returns "a: 1\nb: 0\n"
+//
+func Marshal(in interface{}) (out []byte, err error) {
+	defer handleErr(&err)
+	e := newEncoder()
+	defer e.destroy()
+	e.marshal("", reflect.ValueOf(in))
+	e.finish()
+	out = e.out
+	return
+}
+
+func handleErr(err *error) {
+	if v := recover(); v != nil {
+		if e, ok := v.(yamlError); ok {
+			*err = e.err
+		} else {
+			panic(v)
+		}
+	}
+}
+
+type yamlError struct {
+	err error
+}
+
+func fail(err error) {
+	panic(yamlError{err})
+}
+
+func failf(format string, args ...interface{}) {
+	panic(yamlError{fmt.Errorf("yaml: "+format, args...)})
+}
+
+// A TypeError is returned by Unmarshal when one or more fields in
+// the YAML document cannot be properly decoded into the requested
+// types. When this error is returned, the value is still
+// unmarshaled partially.
+type TypeError struct {
+	Errors []string
+}
+
+func (e *TypeError) Error() string {
+	return fmt.Sprintf("yaml: unmarshal errors:\n  %s", strings.Join(e.Errors, "\n  "))
+}
+
+// --------------------------------------------------------------------------
+// Maintain a mapping of keys to structure field indexes
+
+// The code in this section was copied from mgo/bson.
+
+// structInfo holds details for the serialization of fields of
+// a given struct.
+type structInfo struct {
+	FieldsMap  map[string]fieldInfo
+	FieldsList []fieldInfo
+
+	// InlineMap is the number of the field in the struct that
+	// contains an ,inline map, or -1 if there's none.
+	InlineMap int
+}
+
+type fieldInfo struct {
+	Key       string
+	Num       int
+	OmitEmpty bool
+	Flow      bool
+
+	// Inline holds the field index if the field is part of an inlined struct.
+	Inline []int
+}
+
+var structMap = make(map[reflect.Type]*structInfo)
+var fieldMapMutex sync.RWMutex
+
+func getStructInfo(st reflect.Type) (*structInfo, error) {
+	fieldMapMutex.RLock()
+	sinfo, found := structMap[st]
+	fieldMapMutex.RUnlock()
+	if found {
+		return sinfo, nil
+	}
+
+	n := st.NumField()
+	fieldsMap := make(map[string]fieldInfo)
+	fieldsList := make([]fieldInfo, 0, n)
+	inlineMap := -1
+	for i := 0; i != n; i++ {
+		field := st.Field(i)
+		if field.PkgPath != "" && !field.Anonymous {
+			continue // Private field
+		}
+
+		info := fieldInfo{Num: i}
+
+		tag := field.Tag.Get("yaml")
+		if tag == "" && strings.Index(string(field.Tag), ":") < 0 {
+			tag = string(field.Tag)
+		}
+		if tag == "-" {
+			continue
+		}
+
+		inline := false
+		fields := strings.
